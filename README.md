@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Test App
 
-## Getting Started
+Next.js App Router 기반의 쇼핑몰 애플리케이션입니다. 상품 탐색, 이벤트, 장바구니, 인증, 마이페이지, 고객센터 화면을 포함하며 현재 주요 데이터는 fixture repository를 통해 제공합니다.
 
-First, run the development server:
+## 개발 환경
+
+- Node.js 24.12.0
+- npm
+- Next.js 16
+- React 19
+- TypeScript
+
+프로젝트에 포함된 `.nvmrc`를 사용하면 권장 Node.js 버전을 선택할 수 있습니다.
+
+## 시작하기
 
 ```bash
+nvm use
+npm ci
+cp .env.example .env.local
+chmod 600 .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+브라우저에서 [http://localhost:3000](http://localhost:3000)을 엽니다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 환경변수
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+`.env.example`을 복사한 뒤 로컬 값만 `.env.local`에 입력합니다. `.env.local`과 실제 인증정보는 Git에 커밋하지 않습니다.
 
-## Learn More
+| 변수 | 용도 |
+| --- | --- |
+| `AUTH_SECRET` | Auth.js 세션 암호화용 비밀값 |
+| `SUPABASE_URL` | Supabase 프로젝트 URL |
+| `SUPABASE_ANON_KEY` | Supabase anonymous key |
 
-To learn more about Next.js, take a look at the following resources:
+서버 전용 권한을 가진 Supabase service-role 키를 `SUPABASE_ANON_KEY`에 사용하지 마세요.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 명령어
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run dev        # 개발 서버
+npm run lint       # ESLint 검사
+npm run typecheck  # TypeScript 검사
+npm run build      # 프로덕션 빌드
+npm run start      # 빌드 결과 실행
+```
 
-## Deploy on Vercel
+## 구조
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `src/app`: App Router 페이지와 API 라우트
+- `src/components`: 공통 레이아웃과 UI 컴포넌트
+- `src/features`: 화면 단위 기능
+- `src/domains`: 도메인 모델, fixture, repository, service
+- `src/shared`: 여러 기능에서 공유하는 코드
+- `public/images`: 쇼핑몰 정적 이미지
+- `docs/superpowers`: 승인된 설계 및 구현 계획
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Git 작업 방식
+
+`main`에는 직접 기능을 개발하지 않습니다. 짧게 유지되는 기능 브랜치에서 작업하고, lint·typecheck·build를 확인한 PR만 `main`에 병합합니다.
+
+로컬 도구 상태인 `.superpowers/`와 `.env.example`을 제외한 로컬 환경변수 파일은 Git에서 제외됩니다.

@@ -1,0 +1,73 @@
+'use client';
+
+import { useTransition } from 'react';
+import { User } from 'lucide-react';
+import { loginAction } from '@/actions/login';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { loginFormSchema } from '@/lib/form-schemas';
+import { InputError } from '@/components/ui/input';
+import { FormSubmitButton } from '@/components/ui/button'
+import { useState } from 'react';
+import { IconInput, PasswordInput } from '@/features/auth/icon-input';
+
+export function LoginForm() {
+  const [isPending, startTransition] = useTransition();
+  const [serverError, setServerError] = useState<string | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<z.infer<typeof loginFormSchema>>({
+    resolver: zodResolver(loginFormSchema),
+    defaultValues: {
+      userid: '',
+      password: '',
+    },
+  });
+
+  const onSubmit = async (data: z.infer<typeof loginFormSchema>) => {
+    setServerError(null);
+
+    startTransition(async () => {
+      const result = await loginAction(data);
+
+      if (!result.ok) {
+        setServerError(result.errorMessage);
+      } else {
+        // TODO: 로그인 성공 처리 (리다이렉트 등)
+        console.log('로그인 성공');
+      }
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
+      <div>
+        <IconInput
+          placeholder="아이디"
+          icon={User}
+          register={register('userid')}
+          disabled={isPending}
+          ariaInvalid={!!errors.userid}
+        />
+        <InputError message={errors.userid?.message} />
+      </div>
+      <div>
+        <PasswordInput
+          register={register('password')}
+          disabled={isPending}
+          ariaInvalid={!!errors.password}
+          placeholder="비밀번호"
+        />
+        <InputError message={errors.password?.message} />
+      </div>
+
+      <InputError message={serverError ?? undefined} className="text-center" />
+
+      <FormSubmitButton isPending={isPending}>로그인</FormSubmitButton>
+    </form>
+  );
+}

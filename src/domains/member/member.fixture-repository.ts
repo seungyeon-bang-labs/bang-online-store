@@ -1,0 +1,32 @@
+import { CURRENT_USER } from './current-user.fixture';
+import type {
+  CurrentUserRepository,
+  UserAddressRepository,
+} from './member.repository';
+import { USER_ADDRESSES } from './user-address.fixture';
+
+export const fixtureCurrentUserRepository: CurrentUserRepository = {
+  async findCurrent() {
+    return { ...CURRENT_USER };
+  },
+};
+
+export const fixtureUserAddressRepository: UserAddressRepository = {
+  async findByUserId(userId) {
+    return USER_ADDRESSES.filter(address => address.user_id === userId)
+      .sort(
+        (a, b) =>
+          Number(b.is_default) - Number(a.is_default) ||
+          b.created_at.localeCompare(a.created_at),
+      )
+      .map(address => ({ ...address }));
+  },
+  async findDefaultByUserId(userId) {
+    const address =
+      USER_ADDRESSES.find(
+        item => item.user_id === userId && item.is_default,
+      ) ?? null;
+
+    return address ? { ...address } : null;
+  },
+};
