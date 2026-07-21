@@ -37,6 +37,9 @@ yarn-error.log*
 # local agent/tool state
 /.superpowers/
 
+# local project documentation
+/docs/**/*.md
+
 # credentials
 *.key
 *.p12
