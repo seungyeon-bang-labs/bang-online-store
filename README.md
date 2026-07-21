@@ -1,4 +1,4 @@
-# Test App
+# BANG Online Store
 
 Next.js App Router 기반의 쇼핑몰 애플리케이션입니다. 상품 탐색, 이벤트, 장바구니, 인증, 마이페이지, 고객센터 화면을 포함하며 현재 주요 데이터는 fixture repository를 통해 제공합니다.
 
