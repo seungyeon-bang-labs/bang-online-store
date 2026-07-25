@@ -9,7 +9,7 @@ import {
   toInquiryViewModel,
 } from '@/domains/inquiry';
 import { currentUserRepository } from '@/domains/member';
-import { paginate } from '@/domains/mypage/mypage-pagination';
+import { paginate } from '@/shared/lib/pagination';
 import { MypageEmptyState } from '@/features/mypage/mypage-empty-state';
 import { MypageFilterLinks } from '@/features/mypage/mypage-filter-links';
 import { MypageInquiryList } from '@/features/mypage/mypage-inquiry-list';

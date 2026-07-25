@@ -2,7 +2,7 @@ import { Clock3 } from 'lucide-react';
 import { DynamicPagination } from '@/components/common/dynamic-pagination';
 import { getRecentProductItems } from '@/domains/activity';
 import { currentUserRepository } from '@/domains/member';
-import { paginate } from '@/domains/mypage';
+import { paginate } from '@/shared/lib/pagination';
 import { MypageEmptyState } from '@/features/mypage/mypage-empty-state';
 import { MypageSectionHeader } from '@/features/mypage/mypage-section-header';
 import { ProductItem } from '@/features/product/product-item';

@@ -1,10 +1,10 @@
-import { requireMypageRelation } from '@/domains/mypage/mypage-data-integrity.error';
-import { toMembershipViewModel } from './benefit.mapper';
+import { requireRelation } from '@/shared/lib/data-integrity';
+import { toMembershipViewModel } from './mapper';
 import type {
   MembershipTierRepository,
   UserMembershipRepository,
-} from './benefit.repository';
-import type { MembershipViewModel } from './benefit.view-model';
+} from './repository';
+import type { MembershipViewModel } from './view-model';
 
 export interface MembershipServiceDependencies {
   membershipTierRepository: MembershipTierRepository;
@@ -29,7 +29,7 @@ export function createMembershipService({
       ]);
       if (!membership) return null;
 
-      const currentTier = requireMypageRelation(
+      const currentTier = requireRelation(
         tiers.find(tier => tier.id === membership.tier_id),
         'user_memberships.tier_id -> membership_tiers.id',
         membership.id,

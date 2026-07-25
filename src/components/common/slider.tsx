@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import Link from 'next/link';
 import {
   Carousel,
   CarouselContent,
@@ -7,7 +8,6 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel';
 import { cn } from '@/shared/lib/utils';
-import Link from 'next/link';
 
 interface SliderProps {
   children: React.ReactNode[];
@@ -20,6 +20,8 @@ interface SliderProps {
   navigationPosition?: 'outside' | 'edge';
   className?: string;
   itemClassName?: string;
+  slidesToScroll?: number | 'auto';
+  ariaLabel?: string;
 }
 
 export function Slider({
@@ -33,6 +35,8 @@ export function Slider({
   showButtons = true,
   navigationPosition = 'outside',
   itemClassName,
+  slidesToScroll = 1,
+  ariaLabel,
 }: SliderProps) {
   const itemsPerPage = rows * cols;
 
@@ -47,7 +51,7 @@ export function Slider({
   return (
     <div>
       <div className="flex items-center justify-between">
-        {title && <h2 className="text-2xl font-bold mb-4">{title}</h2>}
+        {title && <h2 className="mb-4 text-2xl font-bold">{title}</h2>}
         {href && (
           <Link href={href} className="text-sm text-gray-500 hover:underline">
             전체보기
@@ -58,9 +62,10 @@ export function Slider({
         opts={{
           align: 'start',
           loop: false,
-          slidesToScroll: 1,
+          slidesToScroll,
         }}
         className={cn('w-full', className)}
+        aria-label={ariaLabel}
       >
         <CarouselContent className={itemClassName ? undefined : 'ml-0'}>
           {itemClassName
@@ -89,21 +94,25 @@ export function Slider({
         </CarouselContent>
 
         {showButtons &&
-          (itemClassName ? children.length > cols : pages.length > 1) && (
-          <>
-            <CarouselPrevious
-              className={cn(
-                'hidden md:flex hover:bg-black hover:text-white transition-colors',
-                navigationPosition === 'edge' ? '-left-5' : '-left-12',
-              )}
-            />
-            <CarouselNext
-              className={cn(
-                'hidden md:flex hover:bg-black hover:text-white transition-colors',
-                navigationPosition === 'edge' ? '-right-5' : '-right-12',
-              )}
-            />
-          </>
+          (itemClassName ? children.length > 1 : pages.length > 1) && (
+            <>
+              <CarouselPrevious
+                className={cn(
+                  'flex size-8 transition-colors hover:bg-black hover:text-white disabled:invisible',
+                  navigationPosition === 'edge'
+                    ? '-left-5'
+                    : '-left-5 md:-left-12',
+                )}
+              />
+              <CarouselNext
+                className={cn(
+                  'flex size-8 transition-colors hover:bg-black hover:text-white disabled:invisible',
+                  navigationPosition === 'edge'
+                    ? '-right-5'
+                    : '-right-5 md:-right-12',
+                )}
+              />
+            </>
           )}
       </Carousel>
     </div>

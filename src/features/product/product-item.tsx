@@ -10,6 +10,7 @@ interface ProductItemProps {
   isWishlisted?: boolean;
   showWishlistButton?: boolean;
   rank?: number;
+  size?: 'default' | 'compact';
 }
 
 export function ProductItem({
@@ -17,7 +18,10 @@ export function ProductItem({
   isWishlisted = false,
   showWishlistButton = true,
   rank,
+  size = 'default',
 }: ProductItemProps) {
+  const isCompact = size === 'compact';
+
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-lg">
       <Link href={product.href} className="flex cursor-pointer flex-col">
@@ -48,10 +52,18 @@ export function ProductItem({
           )}
         </div>
 
-        <div className="flex flex-col p-3 text-left gap-1.5">
+        <div
+          className={cn(
+            'flex flex-col text-left',
+            isCompact
+              ? 'gap-1 p-1.5 sm:gap-1.5 sm:p-3'
+              : 'gap-1.5 p-3',
+          )}
+        >
           <h3
             className={cn(
-              'text-sm font-medium  line-clamp-2 tracking-tight',
+              'line-clamp-2 font-medium tracking-tight',
+              isCompact ? 'text-xs sm:text-sm' : 'text-sm',
               product.isSoldOut ? 'text-gray-400' : 'text-gray-900',
             )}
           >
@@ -61,7 +73,8 @@ export function ProductItem({
             price={product.price}
             discount={product.discountRate}
             isOutOfStock={product.isSoldOut}
-            size="md"
+            size={isCompact ? 'compact' : 'md'}
+            className={isCompact ? '[&>div]:flex-wrap' : undefined}
           />
         </div>
       </Link>

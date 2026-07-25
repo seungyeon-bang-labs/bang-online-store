@@ -4,15 +4,15 @@ import {
   fixturePointTransactionRepository,
   fixtureUserCouponRepository,
   fixtureUserMembershipRepository,
-} from './benefit.fixture-repository';
+} from './fixture-repository';
 import { createMembershipService } from './membership.service';
 import { createUserCouponService } from './user-coupon.service';
 
-export * from './benefit.domain';
-export * from './benefit.dto';
-export * from './benefit.mapper';
-export * from './benefit.repository';
-export * from './benefit.view-model';
+export * from './domain';
+export * from './dto';
+export * from './mapper';
+export * from './repository';
+export * from './view-model';
 export * from './membership.service';
 export * from './user-coupon.service';
 
