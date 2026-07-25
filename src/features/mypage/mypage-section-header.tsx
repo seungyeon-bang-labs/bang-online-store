@@ -17,9 +17,7 @@ export function MypageSectionHeader({
         <h2 className="text-2xl font-black tracking-tight text-black">
           {title}
         </h2>
-        <p className="mt-2 text-sm font-medium text-zinc-500">
-          {description}
-        </p>
+        <p className="mt-2 text-sm font-medium text-zinc-500">{description}</p>
       </div>
       {action}
     </div>

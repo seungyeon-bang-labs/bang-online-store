@@ -1,7 +1,7 @@
 import type {
   StatusTone,
   StatusViewModel,
-} from '@/domains/mypage/mypage-status.view-model';
+} from '@/shared/types/status';
 import { cn } from '@/shared/lib/utils';
 
 const TONE_CLASS: Record<StatusTone, string> = {

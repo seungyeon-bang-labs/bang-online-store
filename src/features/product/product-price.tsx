@@ -4,13 +4,19 @@ interface ProductPriceProps {
   price: number;
   discount: number;
   isOutOfStock?: boolean;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'compact';
   quantity?: number;
   priceOffset?: number;
   className?: string;
 }
 
 const sizeStyles = {
+  compact: {
+    original: 'text-xs sm:text-sm',
+    percent: 'text-xs sm:text-sm',
+    current: 'text-sm sm:text-base',
+    gap: 'gap-1',
+  },
   sm: {
     original: 'text-xs',
     percent: 'text-xs',

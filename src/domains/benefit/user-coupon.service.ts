@@ -1,14 +1,14 @@
 import type { CouponRepository } from '@/domains/coupon';
-import { requireMypageRelation } from '@/domains/mypage/mypage-data-integrity.error';
-import { paginate } from '@/domains/mypage/mypage-pagination';
-import type { UserCouponListQuery } from './benefit.domain';
-import { resolveUserCouponStatus } from './benefit.domain';
-import { toUserCouponViewModel } from './benefit.mapper';
-import type { UserCouponRepository } from './benefit.repository';
+import { requireRelation } from '@/shared/lib/data-integrity';
+import { paginate } from '@/shared/lib/pagination';
+import type { UserCouponListQuery } from './domain';
+import { resolveUserCouponStatus } from './domain';
+import { toUserCouponViewModel } from './mapper';
+import type { UserCouponRepository } from './repository';
 import type {
   UserCouponPageViewModel,
   UserCouponViewModel,
-} from './benefit.view-model';
+} from './view-model';
 
 export interface UserCouponServiceDependencies {
   couponRepository: CouponRepository;
@@ -42,7 +42,7 @@ export function createUserCouponService({
     const couponById = new Map(coupons.map(coupon => [coupon.id, coupon]));
 
     return rows.map(row => {
-      const coupon = requireMypageRelation(
+      const coupon = requireRelation(
         couponById.get(row.coupon_id),
         'user_coupons.coupon_id -> coupons.id',
         row.id,

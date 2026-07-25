@@ -1,0 +1,35 @@
+import {
+  RECENT_PRODUCT_VIEWS,
+  REVIEWS,
+  WISHLIST_ITEMS,
+} from './fixture';
+import type {
+  RecentProductViewRepository,
+  ReviewRepository,
+  WishlistItemRepository,
+} from './repository';
+
+export const fixtureRecentProductViewRepository: RecentProductViewRepository =
+  {
+    async findByUserId(userId) {
+      return RECENT_PRODUCT_VIEWS.filter(row => row.user_id === userId)
+        .map(row => ({ ...row }))
+        .sort((a, b) => b.viewed_at.localeCompare(a.viewed_at));
+    },
+  };
+
+export const fixtureWishlistItemRepository: WishlistItemRepository = {
+  async findByUserId(userId) {
+    return WISHLIST_ITEMS.filter(row => row.user_id === userId)
+      .map(row => ({ ...row }))
+      .sort((a, b) => b.created_at.localeCompare(a.created_at));
+  },
+};
+
+export const fixtureReviewRepository: ReviewRepository = {
+  async findByUserId(userId) {
+    return REVIEWS.filter(row => row.user_id === userId)
+      .map(row => ({ ...row }))
+      .sort((a, b) => b.created_at.localeCompare(a.created_at));
+  },
+};

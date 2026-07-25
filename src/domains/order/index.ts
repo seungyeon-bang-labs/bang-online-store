@@ -3,16 +3,16 @@ import {
   fixtureOrderClaimRepository,
   fixtureOrderItemRepository,
   fixtureOrderRepository,
-} from './order.fixture-repository';
-import { createOrderService } from './order.service';
+} from './fixture-repository';
+import { createOrderService } from './service';
 
-export * from './order.domain';
-export * from './order.dto';
-export * from './order.fixture';
-export * from './order.mapper';
-export * from './order.repository';
-export * from './order.service';
-export * from './order.view-model';
+export * from './domain';
+export * from './dto';
+export * from './fixture';
+export * from './mapper';
+export * from './repository';
+export * from './service';
+export * from './view-model';
 
 export const orderClaimRepository = fixtureOrderClaimRepository;
 export const orderItemRepository = fixtureOrderItemRepository;

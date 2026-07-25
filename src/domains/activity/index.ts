@@ -4,15 +4,15 @@ import {
   fixtureRecentProductViewRepository,
   fixtureReviewRepository,
   fixtureWishlistItemRepository,
-} from './activity.fixture-repository';
-import { createActivityService } from './activity.service';
+} from './fixture-repository';
+import { createActivityService } from './service';
 
-export * from './activity.domain';
-export * from './activity.dto';
-export * from './activity.mapper';
-export * from './activity.repository';
-export * from './activity.service';
-export * from './activity.view-model';
+export * from './domain';
+export * from './dto';
+export * from './mapper';
+export * from './repository';
+export * from './service';
+export * from './view-model';
 
 export const recentProductViewRepository =
   fixtureRecentProductViewRepository;

@@ -1,7 +1,7 @@
-export * from './inquiry.domain';
-export * from './inquiry.dto';
-export * from './inquiry.mapper';
-export * from './inquiry.repository';
-export * from './inquiry.view-model';
+export * from './domain';
+export * from './dto';
+export * from './mapper';
+export * from './repository';
+export * from './view-model';
 
-export { fixtureInquiryRepository as inquiryRepository } from './inquiry.fixture-repository';
+export { fixtureInquiryRepository as inquiryRepository } from './fixture-repository';
