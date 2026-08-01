@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import type { MypageHomeRecentOrderViewModel } from '@/domains/mypage';
-import { MypageStatusBadge } from '../mypage-status-badge';
+import { MypageStatusBadge } from '../common/status-badge';
 import { MypageHomeOrderActions } from './order-actions';
 
 interface MypageHomeRecentOrderCardProps {

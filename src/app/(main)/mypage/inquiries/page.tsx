@@ -10,10 +10,12 @@ import {
 } from '@/domains/inquiry';
 import { currentUserRepository } from '@/domains/member';
 import { paginate } from '@/shared/lib/pagination';
-import { MypageEmptyState } from '@/features/mypage/mypage-empty-state';
-import { MypageFilterLinks } from '@/features/mypage/mypage-filter-links';
+import {
+  MypageEmptyState,
+  MypageFilterLinks,
+  MypageSectionHeader,
+} from '@/features/mypage/common';
 import { MypageInquiryList } from '@/features/mypage/mypage-inquiry-list';
-import { MypageSectionHeader } from '@/features/mypage/mypage-section-header';
 import {
   buildQueryHref,
   firstQueryValue,
@@ -89,7 +91,6 @@ async function InquiriesPage({ searchParams }: InquiriesPageProps) {
     <div className="space-y-8">
       <MypageSectionHeader
         title="1:1 문의 내역"
-        description="접수한 문의와 답변 상태를 확인할 수 있습니다."
         action={
           <ButtonLink
             href="/cs/inquiry"

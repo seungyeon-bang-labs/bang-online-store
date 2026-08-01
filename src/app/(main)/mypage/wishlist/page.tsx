@@ -3,8 +3,10 @@ import { DynamicPagination } from '@/components/common/dynamic-pagination';
 import { getWishlistProductItems } from '@/domains/activity';
 import { currentUserRepository } from '@/domains/member';
 import { paginate } from '@/shared/lib/pagination';
-import { MypageEmptyState } from '@/features/mypage/mypage-empty-state';
-import { MypageSectionHeader } from '@/features/mypage/mypage-section-header';
+import {
+  MypageEmptyState,
+  MypageSectionHeader,
+} from '@/features/mypage/common';
 import { ProductItem } from '@/features/product/product-item';
 import { buildQueryHref, parsePositivePage } from '@/shared/lib/query';
 
@@ -22,10 +24,7 @@ async function WishlistPage({ searchParams }: WishlistPageProps) {
 
   return (
     <div className="space-y-8">
-      <MypageSectionHeader
-        title="관심 상품"
-        description="관심 상품으로 저장한 상품을 모아볼 수 있습니다."
-      />
+      <MypageSectionHeader title="관심 상품" />
       {result.items.length > 0 ? (
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
           {result.items.map(item => (

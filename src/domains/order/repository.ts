@@ -1,5 +1,10 @@
 import type { Product } from '@/domains/product/product.dto';
-import type { OrderClaimDTO, OrderDTO, OrderItemDTO } from './dto';
+import type {
+  OrderClaimDTO,
+  OrderDTO,
+  OrderItemCancellationDTO,
+  OrderItemDTO,
+} from './dto';
 
 export interface OrderRepository {
   findByUserId(userId: string): Promise<OrderDTO[]>;
@@ -7,6 +12,10 @@ export interface OrderRepository {
 
 export interface OrderItemRepository {
   findByOrderIds(orderIds: string[]): Promise<OrderItemDTO[]>;
+}
+
+export interface OrderItemCancellationRepository {
+  findByOrderIds(orderIds: string[]): Promise<OrderItemCancellationDTO[]>;
 }
 
 export interface OrderClaimRepository {

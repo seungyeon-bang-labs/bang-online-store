@@ -1,5 +1,5 @@
 import type { PointTransactionViewModel } from '@/domains/benefit';
-import { MypageStatusBadge } from './mypage-status-badge';
+import { MypageStatusBadge } from './common/status-badge';
 
 export function MypagePointList({
   transactions,

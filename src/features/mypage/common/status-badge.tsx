@@ -12,11 +12,25 @@ const TONE_CLASS: Record<StatusTone, string> = {
   danger: 'bg-red-50 text-red-700',
 };
 
-export function MypageStatusBadge({ label, tone }: StatusViewModel) {
+const SIZE_CLASS = {
+  default: 'px-2 py-1 text-xs',
+  large: 'px-2.5 py-1 text-sm',
+};
+
+interface MypageStatusBadgeProps extends StatusViewModel {
+  size?: keyof typeof SIZE_CLASS;
+}
+
+export function MypageStatusBadge({
+  label,
+  tone,
+  size = 'default',
+}: MypageStatusBadgeProps) {
   return (
     <span
       className={cn(
-        'shrink-0 whitespace-nowrap rounded-sm px-2 py-1 text-xs font-black',
+        'shrink-0 whitespace-nowrap rounded-sm font-black',
+        SIZE_CLASS[size],
         TONE_CLASS[tone],
       )}
     >

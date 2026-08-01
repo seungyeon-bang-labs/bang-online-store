@@ -6,9 +6,11 @@ import {
 } from '@/domains/benefit';
 import { currentUserRepository } from '@/domains/member';
 import { MypageCouponList } from '@/features/mypage/mypage-coupon-list';
-import { MypageEmptyState } from '@/features/mypage/mypage-empty-state';
-import { MypageFilterLinks } from '@/features/mypage/mypage-filter-links';
-import { MypageSectionHeader } from '@/features/mypage/mypage-section-header';
+import {
+  MypageEmptyState,
+  MypageFilterLinks,
+  MypageSectionHeader,
+} from '@/features/mypage/common';
 import {
   buildQueryHref,
   firstQueryValue,
@@ -54,10 +56,7 @@ async function CouponsPage({ searchParams }: CouponsPageProps) {
 
   return (
     <div className="space-y-8">
-      <MypageSectionHeader
-        title="쿠폰함"
-        description="보유 중인 쿠폰과 사용 가능 기간을 확인할 수 있습니다."
-      />
+      <MypageSectionHeader title="쿠폰함" />
       <MypageFilterLinks
         label="쿠폰 상태"
         options={USER_COUPON_TAB_LINKS}

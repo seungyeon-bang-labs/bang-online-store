@@ -24,7 +24,6 @@ export type OrderStatusFilter = (typeof ORDER_STATUS_FILTERS)[number];
 
 export const ORDER_CLAIM_TYPE_FILTERS = [
   'all',
-  'cancel',
   'exchange',
   'return',
 ] as const;

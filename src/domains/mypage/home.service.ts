@@ -18,6 +18,7 @@ import type { UserDTO } from '@/domains/member';
 import { userAddressRepository } from '@/domains/member';
 import {
   filterOrders,
+  orderItemCancellationRepository,
   orderItemRepository,
   orderRepository,
   toOrderListItemViewModel,
@@ -54,8 +55,11 @@ export async function getMypageHomeViewModel(
     wishlistItemRepository.findByUserId(user.id),
   ]);
 
-  const [orderItems, coupons] = await Promise.all([
+  const [orderItems, orderItemCancellations, coupons] = await Promise.all([
     orderItemRepository.findByOrderIds(orderRows.map(order => order.id)),
+    orderItemCancellationRepository.findByOrderIds(
+      orderRows.map(order => order.id),
+    ),
     couponRepository.findByIds(
       Array.from(new Set(userCoupons.map(coupon => coupon.coupon_id))),
     ),
@@ -71,6 +75,12 @@ export async function getMypageHomeViewModel(
   );
   const productById = new Map(products.map(product => [product.id, product]));
   const couponById = new Map(coupons.map(coupon => [coupon.id, coupon]));
+  const cancellationByOrderItemId = new Map(
+    orderItemCancellations.map(cancellation => [
+      cancellation.order_item_id,
+      cancellation,
+    ]),
+  );
   const reviewedItemIds = new Set(
     reviews.map(review => review.order_item_id),
   );
@@ -103,6 +113,7 @@ export async function getMypageHomeViewModel(
             'order_items.product_id -> products.id',
             item.id,
           ),
+          cancellation: cancellationByOrderItemId.get(item.id) ?? null,
         })),
       );
       return toMypageHomeRecentOrderViewModel({

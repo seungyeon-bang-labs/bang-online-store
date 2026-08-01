@@ -1,8 +1,10 @@
 import { Crown, TrendingUp } from 'lucide-react';
 import { getMembershipViewModel } from '@/domains/benefit';
 import { currentUserRepository } from '@/domains/member';
-import { MypageEmptyState } from '@/features/mypage/mypage-empty-state';
-import { MypageSectionHeader } from '@/features/mypage/mypage-section-header';
+import {
+  MypageEmptyState,
+  MypageSectionHeader,
+} from '@/features/mypage/common';
 import { MEMBERSHIP_TIER_GRADIENT_CLASS_NAMES } from '@/shared/lib/membership-tier-style';
 import { cn } from '@/shared/lib/utils';
 
@@ -19,10 +21,7 @@ async function MembershipPage() {
 
   return (
     <div className="space-y-8">
-      <MypageSectionHeader
-        title="멤버십 혜택"
-        description="현재 멤버십 등급과 받을 수 있는 혜택을 확인할 수 있습니다."
-      />
+      <MypageSectionHeader title="멤버십 혜택" />
 
       {membership ? (
         <div className="space-y-12 md:space-y-14">

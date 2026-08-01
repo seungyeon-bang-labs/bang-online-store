@@ -3,10 +3,7 @@ import type { OrderDTO } from '@/domains/order/dto';
 import type { OrderListItemViewModel } from '@/domains/order/view-model';
 import { buildQueryHref } from '@/shared/lib/query';
 import { getMypageHomeReviewState } from './home.domain';
-import {
-  buildMypageHomeOrderActions,
-  getMypageHomeOrderStatusDescription,
-} from './home.order-policy';
+import { buildMypageHomeOrderActions } from './home.order-policy';
 import type { MypageHomeRecentOrderViewModel } from './home.view-model';
 
 interface MypageHomeRecentOrderMapperInput {
@@ -31,15 +28,6 @@ export function toMypageHomeRecentOrderViewModel({
     ...orderViewModel,
     productSummary: getMypageHomeProductSummary(orderViewModel),
     orderHref,
-    statusDescription: getMypageHomeOrderStatusDescription({
-      status: order.status,
-      orderedAt: order.ordered_at,
-      paymentDueAt: order.payment_due_at,
-      paidAt: order.paid_at,
-      estimatedDeliveryAt: order.estimated_delivery_at,
-      cancelledAt: order.cancelled_at,
-      paymentMethod: order.payment_method,
-    }),
     actions: buildMypageHomeOrderActions({
       status: order.status,
       reviewState,

@@ -1,0 +1,1 @@
+export { MypageClaimList } from './list';

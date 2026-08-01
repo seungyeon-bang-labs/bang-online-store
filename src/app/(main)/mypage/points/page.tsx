@@ -6,10 +6,12 @@ import {
   toPointPageViewModel,
 } from '@/domains/benefit';
 import { currentUserRepository } from '@/domains/member';
-import { MypageEmptyState } from '@/features/mypage/mypage-empty-state';
-import { MypageFilterLinks } from '@/features/mypage/mypage-filter-links';
+import {
+  MypageEmptyState,
+  MypageFilterLinks,
+  MypageSectionHeader,
+} from '@/features/mypage/common';
 import { MypagePointList } from '@/features/mypage/mypage-point-list';
-import { MypageSectionHeader } from '@/features/mypage/mypage-section-header';
 import {
   buildQueryHref,
   firstQueryValue,
@@ -67,10 +69,7 @@ async function PointsPage({ searchParams }: PointsPageProps) {
 
   return (
     <div className="space-y-8">
-      <MypageSectionHeader
-        title="적립금 내역"
-        description="적립금 지급, 사용, 소멸 내역을 확인할 수 있습니다."
-      />
+      <MypageSectionHeader title="적립금 내역" />
       <section className="grid gap-4 md:grid-cols-3">
         {[
           { label: '사용 가능 적립금', value: result.balanceText },

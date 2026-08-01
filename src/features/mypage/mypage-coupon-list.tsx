@@ -1,5 +1,5 @@
 import type { UserCouponViewModel } from '@/domains/benefit';
-import { MypageStatusBadge } from './mypage-status-badge';
+import { MypageStatusBadge } from './common/status-badge';
 
 export function MypageCouponList({
   coupons,

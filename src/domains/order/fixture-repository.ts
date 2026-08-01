@@ -1,6 +1,12 @@
-import { ORDER_CLAIMS, ORDER_ITEMS, ORDERS } from './fixture';
+import {
+  ORDER_CLAIMS,
+  ORDER_ITEMS,
+  ORDER_ITEM_CANCELLATIONS,
+  ORDERS,
+} from './fixture';
 import type {
   OrderClaimRepository,
+  OrderItemCancellationRepository,
   OrderItemRepository,
   OrderRepository,
 } from './repository';
@@ -20,6 +26,15 @@ export const fixtureOrderItemRepository: OrderItemRepository = {
     );
   },
 };
+
+export const fixtureOrderItemCancellationRepository: OrderItemCancellationRepository =
+  {
+    async findByOrderIds(orderIds) {
+      return ORDER_ITEM_CANCELLATIONS.filter(cancellation =>
+        orderIds.includes(cancellation.order_id),
+      ).map(cancellation => ({ ...cancellation }));
+    },
+  };
 
 export const fixtureOrderClaimRepository: OrderClaimRepository = {
   async findByUserId(userId) {

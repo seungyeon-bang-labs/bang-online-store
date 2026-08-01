@@ -3,19 +3,18 @@ import {
   currentUserRepository,
   toMemberProfileViewModel,
 } from '@/domains/member';
-import { MypageEmptyState } from '@/features/mypage/mypage-empty-state';
+import {
+  MypageEmptyState,
+  MypageSectionHeader,
+} from '@/features/mypage/common';
 import { MypageProfileForm } from '@/features/mypage/mypage-profile-form';
-import { MypageSectionHeader } from '@/features/mypage/mypage-section-header';
 
 async function EditProfilePage() {
   const user = await currentUserRepository.findCurrent();
 
   return (
     <div className="space-y-8">
-      <MypageSectionHeader
-        title="회원 정보 수정"
-        description="이름, 연락처, 이메일 등 기본 회원 정보를 관리할 수 있습니다."
-      />
+      <MypageSectionHeader title="회원 정보 수정" />
       {user ? (
         <MypageProfileForm profile={toMemberProfileViewModel(user)} />
       ) : (

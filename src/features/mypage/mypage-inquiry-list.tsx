@@ -1,5 +1,5 @@
 import type { InquiryViewModel } from '@/domains/inquiry';
-import { MypageStatusBadge } from './mypage-status-badge';
+import { MypageStatusBadge } from './common/status-badge';
 
 export function MypageInquiryList({
   inquiries,

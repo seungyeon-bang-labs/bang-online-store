@@ -5,8 +5,10 @@ import {
   toUserAddressViewModel,
   userAddressRepository,
 } from '@/domains/member';
-import { MypageEmptyState } from '@/features/mypage/mypage-empty-state';
-import { MypageSectionHeader } from '@/features/mypage/mypage-section-header';
+import {
+  MypageEmptyState,
+  MypageSectionHeader,
+} from '@/features/mypage/common';
 
 async function AddressPage() {
   const user = await currentUserRepository.findCurrent();
@@ -20,7 +22,6 @@ async function AddressPage() {
     <div className="space-y-8">
       <MypageSectionHeader
         title="배송지 관리"
-        description="주문 시 사용할 기본 배송지와 추가 배송지를 관리할 수 있습니다."
         action={
           <Button
             type="button"

@@ -7,7 +7,7 @@ import {
   MypageHomeSummary,
   MypageHomeWishlist,
 } from '@/features/mypage/home';
-import { MypageEmptyState } from '@/features/mypage/mypage-empty-state';
+import { MypageEmptyState } from '@/features/mypage/common';
 
 async function MyPageHome() {
   const user = await currentUserRepository.findCurrent();

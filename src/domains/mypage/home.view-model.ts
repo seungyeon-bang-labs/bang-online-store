@@ -62,7 +62,6 @@ export interface MypageHomeRecentOrderViewModel
   productSummary: string;
   orderHref: string;
   actions: MypageHomeOrderActions;
-  statusDescription: string;
 }
 
 export interface MypageHomeSummaryViewModel {

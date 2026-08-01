@@ -1,5 +1,5 @@
 import type { MypageHomeRecentOrderViewModel } from '@/domains/mypage';
-import { MypageCompactEmptyState } from '../mypage-compact-empty-state';
+import { MypageCompactEmptyState } from '../common/compact-empty-state';
 import { MypageHomeRecentOrderCard } from './recent-order-card';
 
 interface MypageHomeRecentOrdersProps {

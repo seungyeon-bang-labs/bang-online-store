@@ -17,7 +17,7 @@ export function MypageHomeOrders({ statuses, orders }: MypageHomeOrdersProps) {
   return (
     <section className="space-y-5">
       <MypageHomeSectionHeader
-        title="최근 주문/배송"
+        title="최근 주문"
         icon={<Truck className="size-4" />}
         viewAllHref={buildQueryHref('/mypage/orders', {
           period: '3-months',

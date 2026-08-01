@@ -5,10 +5,12 @@ import {
   REVIEW_TABS,
 } from '@/domains/activity';
 import { currentUserRepository } from '@/domains/member';
-import { MypageEmptyState } from '@/features/mypage/mypage-empty-state';
-import { MypageFilterLinks } from '@/features/mypage/mypage-filter-links';
+import {
+  MypageEmptyState,
+  MypageFilterLinks,
+  MypageSectionHeader,
+} from '@/features/mypage/common';
 import { MypageReviewList } from '@/features/mypage/mypage-review-list';
-import { MypageSectionHeader } from '@/features/mypage/mypage-section-header';
 import {
   buildQueryHref,
   firstQueryValue,
@@ -50,10 +52,7 @@ async function ReviewsPage({ searchParams }: ReviewsPageProps) {
 
   return (
     <div className="space-y-8">
-      <MypageSectionHeader
-        title="나의 리뷰"
-        description="작성한 리뷰와 작성 가능한 리뷰를 확인할 수 있습니다."
-      />
+      <MypageSectionHeader title="나의 리뷰" />
       <MypageFilterLinks
         label="리뷰 상태"
         options={REVIEW_TAB_LINKS}

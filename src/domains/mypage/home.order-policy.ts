@@ -1,5 +1,4 @@
 import type { OrderStatus } from '../order/dto';
-import { formatKoreanDate } from '@/shared/lib/format';
 import type {
   MypageHomeOrderAction,
   MypageHomeOrderActions,
@@ -35,16 +34,6 @@ interface MypageHomeOrderActionPolicyInput {
   canClaim: boolean;
   repurchaseItem: RepurchaseItem | null;
   links: MypageHomeOrderActionLinks;
-}
-
-interface MypageHomeOrderStatusDescriptionInput {
-  status: OrderStatus;
-  orderedAt: string;
-  paymentDueAt: string | null;
-  paidAt: string | null;
-  estimatedDeliveryAt: string | null;
-  cancelledAt: string | null;
-  paymentMethod: string;
 }
 
 function createNavigationAction(
@@ -228,37 +217,4 @@ export function buildMypageHomeOrderActions({
     [repurchase, order, inquiry],
     [order, inquiry],
   );
-}
-
-export function getMypageHomeOrderStatusDescription({
-  status,
-  orderedAt,
-  paymentDueAt,
-  paidAt,
-  estimatedDeliveryAt,
-  cancelledAt,
-  paymentMethod,
-}: MypageHomeOrderStatusDescriptionInput): string {
-  if (status === 'pending_payment' && paymentDueAt) {
-    return `${formatKoreanDate(paymentDueAt)}까지 입금`;
-  }
-
-  if (status === 'payment_completed' && paidAt) {
-    const completedLabel =
-      paymentMethod === '무통장 입금' ? '입금 완료' : '결제 완료';
-    return `${formatKoreanDate(paidAt)} ${completedLabel}`;
-  }
-
-  if (
-    (status === 'preparing_shipment' || status === 'shipping') &&
-    estimatedDeliveryAt
-  ) {
-    return `${formatKoreanDate(estimatedDeliveryAt)} 도착 예정`;
-  }
-
-  if (status === 'cancelled' && cancelledAt) {
-    return `${formatKoreanDate(cancelledAt)} 취소 완료`;
-  }
-
-  return `${formatKoreanDate(orderedAt)} 주문`;
 }

@@ -1,6 +1,6 @@
 import { Heart } from 'lucide-react';
 import type { ActivityProductViewModel } from '@/domains/activity';
-import { MypageCompactEmptyState } from '../mypage-compact-empty-state';
+import { MypageCompactEmptyState } from '../common/compact-empty-state';
 import { MypageHomeProductPreview } from './product-preview';
 import { MypageHomeSectionHeader } from './section-header';
 

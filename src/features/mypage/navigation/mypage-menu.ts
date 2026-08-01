@@ -17,8 +17,8 @@ export const MYPAGE_MENU_SECTIONS = [
   {
     title: '주문 관리',
     items: [
-      { label: '주문/배송 조회', href: '/mypage/orders' },
-      { label: '취소/교환/반품 내역', href: '/mypage/returns' },
+      { label: '주문 내역', href: '/mypage/orders' },
+      { label: '교환/반품 내역', href: '/mypage/returns' },
     ],
   },
   {
