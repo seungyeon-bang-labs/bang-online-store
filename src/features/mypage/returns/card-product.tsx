@@ -19,7 +19,7 @@ export function MypageClaimCardProduct({
     <div className="grid grid-cols-[72px_minmax(0,1fr)] grid-rows-[auto_auto_auto] gap-x-4 p-4 sm:grid-cols-[88px_minmax(0,1fr)] md:p-5">
       <Link
         href={product.href}
-        className="relative row-span-3 aspect-square overflow-hidden rounded-sm bg-zinc-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
+        className="relative row-span-3 aspect-square overflow-hidden rounded-sm bg-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
       >
         <Image
           src={product.thumbnailUrl}
@@ -31,7 +31,7 @@ export function MypageClaimCardProduct({
       </Link>
       <Link
         href={product.href}
-        className="col-start-2 row-start-1 min-w-0 font-black text-black hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
+        className="col-start-2 row-start-1 min-w-0 font-black text-black hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
       >
         {productName}
       </Link>

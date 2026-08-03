@@ -2,20 +2,22 @@ import type { CouponDTO } from '@/domains/coupon';
 import {
   formatKoreanDate,
   formatKoreanMoney,
+  formatKoreanMonthDay,
   formatKoreanPoints,
+  formatKoreanTime,
 } from '@/shared/lib/format';
-import { paginate } from '@/shared/lib/pagination';
+import type { PageSlice } from '@/shared/lib/pagination';
 import type { StatusViewModel } from '@/shared/types/status';
 import {
   calculateEarnedThisMonth,
-  calculateExpiringPoints,
   calculatePointBalance,
+  getNextPointExpiration,
+  type PointListFilter,
   type PointListQuery,
 } from './domain';
 import type {
   MembershipTierDTO,
   PointTransactionDTO,
-  PointTransactionType,
   UserCouponDTO,
   UserCouponStatus,
   UserMembershipDTO,
@@ -44,29 +46,32 @@ export function toMembershipViewModel(
     : 100;
 
   return {
-    currentTierName: currentTier.name,
-    currentTierCode: currentTier.code,
-    pointRateText: currentTier.point_rate_percent + '%',
-    benefitSummary: currentTier.benefit_summary,
-    evaluationPurchaseText: formatKoreanMoney(
-      membership.evaluation_purchase_amount,
-    ),
-    periodText:
-      formatKoreanDate(membership.started_at) +
-      ' ~ ' +
-      formatKoreanDate(membership.expires_at),
-    nextTierName: nextTier?.name ?? null,
-    remainingAmountText: nextTier
-      ? formatKoreanMoney(
-          Math.max(
-            0,
-            nextTier.min_purchase_amount -
-              membership.evaluation_purchase_amount,
-          ),
-        )
-      : null,
-    progressPercent: Math.min(100, Math.max(0, progress)),
-    tiers: tiers.map(tier => ({
+    currentTier: {
+      currentTierName: currentTier.name,
+      currentTierCode: currentTier.code,
+      benefitSummary: currentTier.benefit_summary,
+    },
+    progress: {
+      evaluationPurchaseText: formatKoreanMoney(
+        membership.evaluation_purchase_amount,
+      ),
+      periodText: formatMembershipPeriod(
+        membership.started_at,
+        membership.expires_at,
+      ),
+      nextTierName: nextTier?.name ?? null,
+      remainingAmountText: nextTier
+        ? formatKoreanMoney(
+            Math.max(
+              0,
+              nextTier.min_purchase_amount -
+                membership.evaluation_purchase_amount,
+            ),
+          )
+        : null,
+      progressPercent: Math.min(100, Math.max(0, progress)),
+    },
+    membershipTiers: tiers.map(tier => ({
       id: tier.id,
       name: tier.name,
       minPurchaseText: formatKoreanMoney(tier.min_purchase_amount),
@@ -77,23 +82,34 @@ export function toMembershipViewModel(
   };
 }
 
+function formatMembershipPeriod(startedAt: string, expiresAt: string) {
+  const startedDate = new Date(startedAt);
+  const expiresDate = new Date(expiresAt);
+  const startedText = formatKoreanDate(startedAt);
+  const expiresText = formatKoreanDate(expiresAt);
+
+  if (startedDate.getFullYear() !== expiresDate.getFullYear()) {
+    return `${startedText} ~ ${expiresText}`;
+  }
+
+  return `${startedText} ~ ${expiresText.replace(/^\d{4}\.\s*/, '')}`;
+}
+
 export function toPointTransactionViewModel(
   row: PointTransactionDTO,
+  description = row.description,
 ): PointTransactionViewModel {
-  const statusByType: Record<PointTransactionType, StatusViewModel> = {
-    earn: { label: '적립', tone: 'success' },
-    use: { label: '사용', tone: 'info' },
-    expire: { label: '소멸', tone: 'danger' },
-  };
   const absoluteText = Math.abs(row.amount).toLocaleString('ko-KR') + ' P';
 
   return {
     id: row.id,
-    type: statusByType[row.transaction_type],
-    description: row.description,
+    type: getPointTransactionStatus(row),
+    description,
+    showProductDetailIndicator:
+      row.order_id !== null || row.review_id !== null,
     amountText: row.amount > 0 ? '+' + absoluteText : '-' + absoluteText,
-    occurredAt: formatKoreanDate(row.occurred_at),
-    expiresAt: row.expires_at ? formatKoreanDate(row.expires_at) : null,
+    occurredDate: formatKoreanDate(row.occurred_at),
+    occurredTime: formatKoreanTime(row.occurred_at),
   };
 }
 
@@ -101,24 +117,142 @@ export function toPointPageViewModel(
   rows: readonly PointTransactionDTO[],
   query: PointListQuery,
   now = new Date(),
+  descriptionsByTransactionId: ReadonlyMap<string, string> = new Map(),
 ): PointPageViewModel {
+  const nextPointExpiration = getNextPointExpiration(rows, now);
   const filtered = rows.filter(
-    row => query.type === 'all' || row.transaction_type === query.type,
-  );
-  const page = paginate(
-    filtered.map(toPointTransactionViewModel),
+    row => matchesPointListFilter(row, query.filter),
+  ).sort((a, b) => b.occurred_at.localeCompare(a.occurred_at));
+  const page = paginatePointTransactions(
+    filtered.map(row =>
+      toPointTransactionViewModel(
+        row,
+        descriptionsByTransactionId.get(row.id),
+      ),
+    ),
     query.page,
-    5,
   );
 
   return {
-    ...page,
-    balanceText: formatKoreanPoints(calculatePointBalance(rows)),
-    earnedThisMonthText: formatKoreanPoints(
-      calculateEarnedThisMonth(rows, now),
-    ),
-    expiringText: formatKoreanPoints(calculateExpiringPoints(rows, now)),
+    summary: {
+      balanceText: formatKoreanPoints(calculatePointBalance(rows)),
+      earnedThisMonthText: formatKoreanPoints(
+        calculateEarnedThisMonth(rows, now),
+      ),
+      expiringDateText: nextPointExpiration
+        ? formatKoreanMonthDay(nextPointExpiration.expiresAt)
+        : null,
+      expiringText: formatKoreanPoints(nextPointExpiration?.amount ?? 0),
+    },
+    transactionList: {
+      dateGroups: groupPointTransactionsByDate(page.items),
+      currentPage: page.currentPage,
+      totalPages: page.totalPages,
+      totalItems: page.totalItems,
+    },
   };
+}
+
+function groupPointTransactionsByDate(
+  transactions: readonly PointTransactionViewModel[],
+) {
+  const transactionsByDate = Map.groupBy(
+    transactions,
+    transaction => transaction.occurredDate,
+  );
+
+  return Array.from(transactionsByDate, ([date, groupedTransactions]) => ({
+    date,
+    transactions: groupedTransactions,
+  }));
+}
+
+function paginatePointTransactions(
+  items: PointTransactionViewModel[],
+  requestedPage: number,
+): PageSlice<PointTransactionViewModel> {
+  const pages = createPointTransactionPages(items, 10);
+  const totalPages = Math.max(1, pages.length);
+  const currentPage =
+    requestedPage >= 1 && requestedPage <= totalPages ? requestedPage : 1;
+
+  return {
+    items: pages[currentPage - 1] ?? [],
+    currentPage,
+    totalPages,
+    totalItems: items.length,
+  };
+}
+
+function createPointTransactionPages(
+  items: readonly PointTransactionViewModel[],
+  pageSize: number,
+): PointTransactionViewModel[][] {
+  const pages: PointTransactionViewModel[][] = [];
+  let startIndex = 0;
+
+  while (startIndex < items.length) {
+    let endIndex = Math.min(startIndex + pageSize, items.length);
+    const lastItem = items[endIndex - 1];
+
+    while (
+      lastItem &&
+      endIndex < items.length &&
+      items[endIndex]?.occurredDate === lastItem.occurredDate
+    ) {
+      endIndex += 1;
+    }
+
+    pages.push(items.slice(startIndex, endIndex));
+    startIndex = endIndex;
+  }
+
+  return pages;
+}
+
+function getPointTransactionStatus(
+  row: PointTransactionDTO,
+): StatusViewModel {
+  if (row.transaction_type === 'use') {
+    return { label: '사용', tone: 'info' };
+  }
+
+  if (row.transaction_type === 'expire') {
+    return { label: '소멸', tone: 'danger' };
+  }
+
+  if (row.review_id) {
+    return { label: '리뷰 적립', tone: 'success' };
+  }
+
+  if (row.order_id) {
+    return { label: '구매 적립', tone: 'success' };
+  }
+
+  return { label: '기타 적립', tone: 'success' };
+}
+
+function matchesPointListFilter(
+  row: PointTransactionDTO,
+  filter: PointListFilter,
+): boolean {
+  switch (filter) {
+    case 'all':
+      return true;
+    case 'purchase-earn':
+      return row.transaction_type === 'earn' && row.order_id !== null;
+    case 'review-earn':
+      return row.transaction_type === 'earn' && row.review_id !== null;
+    case 'other-earn':
+      return (
+        row.transaction_type === 'earn' &&
+        row.order_id === null &&
+        row.review_id === null
+      );
+    case 'use':
+    case 'expire':
+      return row.transaction_type === filter;
+  }
 }
 
 export function toUserCouponViewModel(
@@ -137,7 +271,6 @@ export function toUserCouponViewModel(
         ? formatKoreanMoney(coupon.min_order_amount) + ' 이상 구매 시'
         : '금액 제한 없음',
     expiresAt: formatKoreanDate(row.expires_at),
-    usedAt: row.used_at ? formatKoreanDate(row.used_at) : null,
   };
 }
 

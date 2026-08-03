@@ -6,7 +6,7 @@ import { resolveUserCouponStatus } from './domain';
 import { toUserCouponViewModel } from './mapper';
 import type { UserCouponRepository } from './repository';
 import type {
-  UserCouponPageViewModel,
+  UserCouponListViewModel,
   UserCouponViewModel,
 } from './view-model';
 
@@ -20,11 +20,11 @@ export interface UserCouponService {
     userId: string,
     now?: Date,
   ): Promise<UserCouponViewModel[]>;
-  getUserCouponPageViewModel(
+  getUserCouponListViewModel(
     userId: string,
     query: UserCouponListQuery,
     now?: Date,
-  ): Promise<UserCouponPageViewModel>;
+  ): Promise<UserCouponListViewModel>;
 }
 
 export function createUserCouponService({
@@ -56,20 +56,26 @@ export function createUserCouponService({
     });
   };
 
-  const getUserCouponPageViewModel = async (
+  const getUserCouponListViewModel = async (
     userId: string,
     query: UserCouponListQuery,
     now = new Date(),
-  ): Promise<UserCouponPageViewModel> => {
+  ): Promise<UserCouponListViewModel> => {
     const items = (await getUserCouponItems(userId, now)).filter(
-      item => item.statusCode === query.tab,
+      item => query.tab === 'all' || item.statusCode === query.tab,
     );
+    const page = paginate(items, query.page, 10);
 
-    return paginate(items, query.page, 3);
+    return {
+      coupons: page.items,
+      currentPage: page.currentPage,
+      totalPages: page.totalPages,
+      totalItems: page.totalItems,
+    };
   };
 
   return {
     getUserCouponItems,
-    getUserCouponPageViewModel,
+    getUserCouponListViewModel,
   };
 }

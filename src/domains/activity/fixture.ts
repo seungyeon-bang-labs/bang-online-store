@@ -91,8 +91,8 @@ export const REVIEWS: readonly ReviewDTO[] = [
     product_id: 4,
     rating: 5,
     content: '핏과 원단이 기대 이상입니다.',
-    created_at: '2026-07-16T18:00:00+09:00',
-    updated_at: '2026-07-16T18:00:00+09:00',
+    created_at: '2026-07-15T14:20:00+09:00',
+    updated_at: '2026-07-15T14:20:00+09:00',
   },
   {
     id: '32000000-0000-4000-8000-000000000002',

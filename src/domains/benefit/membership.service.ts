@@ -29,21 +29,23 @@ export function createMembershipService({
       ]);
       if (!membership) return null;
 
+      const sortedTiers = [...tiers].sort((a, b) => a.level - b.level);
+
       const currentTier = requireRelation(
-        tiers.find(tier => tier.id === membership.tier_id),
+        sortedTiers.find(tier => tier.id === membership.tier_id),
         'user_memberships.tier_id -> membership_tiers.id',
         membership.id,
       );
       const nextTier =
-        tiers
+        sortedTiers
           .filter(tier => tier.level > currentTier.level)
-          .sort((a, b) => a.level - b.level)[0] ?? null;
+          [0] ?? null;
 
       return toMembershipViewModel(
         membership,
         currentTier,
         nextTier,
-        tiers,
+        sortedTiers,
       );
     },
   };
