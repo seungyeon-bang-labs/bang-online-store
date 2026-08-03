@@ -149,13 +149,13 @@ export async function getMypageHomeViewModel(
               membership,
               currentMembership,
               nextMembership,
-              membershipTiers,
-            ).currentTierName
+            membershipTiers,
+            ).currentTier.currentTierName
           : '브론즈',
       pointBalanceText: toPointPageViewModel(pointTransactions, {
-        type: 'all',
+        filter: 'all',
         page: 1,
-      }).balanceText,
+      }).summary.balanceText,
       availableCouponCount: userCoupons.filter(userCoupon => {
         const coupon = requireRelation(
           couponById.get(userCoupon.coupon_id),

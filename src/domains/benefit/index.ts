@@ -33,5 +33,5 @@ const userCouponService = createUserCouponService({
 export const getMembershipViewModel =
   membershipService.getMembershipViewModel;
 export const getUserCouponItems = userCouponService.getUserCouponItems;
-export const getUserCouponPageViewModel =
-  userCouponService.getUserCouponPageViewModel;
+export const getUserCouponListViewModel =
+  userCouponService.getUserCouponListViewModel;

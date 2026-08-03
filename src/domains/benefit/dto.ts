@@ -35,6 +35,7 @@ export interface PointTransactionDTO {
   transaction_type: PointTransactionType;
   amount: number;
   order_id: string | null;
+  review_id: string | null;
   description: string;
   occurred_at: string;
   expires_at: string | null;

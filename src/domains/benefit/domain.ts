@@ -5,26 +5,30 @@ import type {
   UserCouponStatus,
 } from './dto';
 
-export const POINT_TYPE_FILTERS = [
-  'all',
-  'earn',
-  'use',
-  'expire',
-] as const;
+export type PointListFilter =
+  | 'all'
+  | 'purchase-earn'
+  | 'review-earn'
+  | 'other-earn'
+  | 'use'
+  | 'expire';
 
 export interface PointListQuery {
-  type: (typeof POINT_TYPE_FILTERS)[number];
+  filter: PointListFilter;
   page: number;
 }
 
 export const USER_COUPON_TABS = [
+  'all',
   'available',
   'used',
   'expired',
 ] as const;
 
+export type UserCouponTab = (typeof USER_COUPON_TABS)[number];
+
 export interface UserCouponListQuery {
-  tab: (typeof USER_COUPON_TABS)[number];
+  tab: UserCouponTab;
   page: number;
 }
 
@@ -32,22 +36,33 @@ export const calculatePointBalance = (
   transactions: readonly PointTransactionDTO[],
 ) => transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
 
-export const calculateExpiringPoints = (
+export interface NextPointExpiration {
+  expiresAt: string;
+  amount: number;
+}
+
+export const getNextPointExpiration = (
   transactions: readonly PointTransactionDTO[],
   now: Date,
-) => {
-  const limit = new Date(now);
-  limit.setMonth(limit.getMonth() + 1);
-
-  return transactions
+) : NextPointExpiration | null => {
+  const expiringTransactions = transactions
     .filter(
       transaction =>
         transaction.amount > 0 &&
         transaction.expires_at !== null &&
-        new Date(transaction.expires_at) >= now &&
-        new Date(transaction.expires_at) <= limit,
+        new Date(transaction.expires_at) >= now,
     )
-    .reduce((sum, transaction) => sum + transaction.amount, 0);
+    .sort((a, b) => a.expires_at!.localeCompare(b.expires_at!));
+  const nextExpiration = expiringTransactions[0];
+
+  if (!nextExpiration?.expires_at) return null;
+
+  return {
+    expiresAt: nextExpiration.expires_at,
+    amount: expiringTransactions
+      .filter(transaction => transaction.expires_at === nextExpiration.expires_at)
+      .reduce((sum, transaction) => sum + transaction.amount, 0),
+  };
 };
 
 export function calculateEarnedThisMonth(

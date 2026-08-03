@@ -1,75 +1,45 @@
 import { Ticket } from 'lucide-react';
 import { DynamicPagination } from '@/components/common/dynamic-pagination';
 import {
-  getUserCouponPageViewModel,
-  USER_COUPON_TABS,
+  getUserCouponListViewModel,
 } from '@/domains/benefit';
 import { currentUserRepository } from '@/domains/member';
-import { MypageCouponList } from '@/features/mypage/mypage-coupon-list';
 import {
   MypageEmptyState,
-  MypageFilterLinks,
+  MypageFilterCard,
   MypageSectionHeader,
 } from '@/features/mypage/common';
+import { MypageCouponList } from '@/features/mypage/coupons';
 import {
-  buildQueryHref,
-  firstQueryValue,
-  parsePositivePage,
-  parseQueryOption,
-} from '@/shared/lib/query';
+  buildCouponListFilterHref,
+  buildCouponListHref,
+  parseCouponListQuery,
+  USER_COUPON_FILTERS,
+  type CouponsPageSearchParams,
+} from './query';
 
 interface CouponsPageProps {
-  searchParams: Promise<{
-    tab?: string | string[];
-    page?: string | string[];
-  }>;
+  searchParams: Promise<CouponsPageSearchParams>;
 }
-
-const USER_COUPON_TAB_LABELS: Record<
-  (typeof USER_COUPON_TABS)[number],
-  string
-> = {
-  available: '사용 가능',
-  used: '사용 완료',
-  expired: '기간 만료',
-};
-
-const USER_COUPON_TAB_LINKS = USER_COUPON_TABS.map(value => ({
-  value,
-  label: USER_COUPON_TAB_LABELS[value],
-}));
 
 async function CouponsPage({ searchParams }: CouponsPageProps) {
   const user = await currentUserRepository.findCurrent();
-  const search = await searchParams;
-  const tab = parseQueryOption({
-    value: firstQueryValue(search.tab),
-    options: USER_COUPON_TABS,
-    fallback: 'available',
-  });
-  const result = user
-    ? await getUserCouponPageViewModel(user.id, {
-        tab,
-        page: parsePositivePage(search.page),
-      })
-    : { items: [], currentPage: 1, totalPages: 1, totalItems: 0 };
+  const query = parseCouponListQuery(await searchParams);
+  const couponList = user
+    ? await getUserCouponListViewModel(user.id, query)
+    : { coupons: [], currentPage: 1, totalPages: 1, totalItems: 0 };
+  const { coupons, currentPage, totalPages } = couponList;
 
   return (
     <div className="space-y-8">
       <MypageSectionHeader title="쿠폰함" />
-      <MypageFilterLinks
-        label="쿠폰 상태"
-        options={USER_COUPON_TAB_LINKS}
-        current={tab}
-        getHref={nextTab =>
-          buildQueryHref('/mypage/coupons', {
-            tab: nextTab,
-            page: 1,
-          })
-        }
+      <MypageFilterCard
+        filters={USER_COUPON_FILTERS}
+        values={{ tab: query.tab }}
+        getHref={buildCouponListFilterHref}
       />
-      {result.items.length > 0 ? (
-        <MypageCouponList coupons={result.items} />
+      {coupons.length > 0 ? (
+        <MypageCouponList coupons={coupons} />
       ) : (
         <MypageEmptyState
           icon={Ticket}
@@ -78,11 +48,9 @@ async function CouponsPage({ searchParams }: CouponsPageProps) {
         />
       )}
       <DynamicPagination
-        currentPage={result.currentPage}
-        totalPages={result.totalPages}
-        getPageHref={({ page }) =>
-          buildQueryHref('/mypage/coupons', { tab, page })
-        }
+        currentPage={currentPage}
+        totalPages={totalPages}
+        getPageHref={({ page }) => buildCouponListHref({ ...query, page })}
       />
     </div>
   );
