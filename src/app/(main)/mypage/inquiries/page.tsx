@@ -1,91 +1,33 @@
 import { MessageSquare } from 'lucide-react';
 import { DynamicPagination } from '@/components/common/dynamic-pagination';
 import { ButtonLink } from '@/components/ui/button';
-import {
-  filterInquiries,
-  inquiryRepository,
-  INQUIRY_STATUS_FILTERS,
-  INQUIRY_TYPE_FILTERS,
-  toInquiryViewModel,
-} from '@/domains/inquiry';
+import { getInquiryPageViewModel } from '@/domains/inquiry';
 import { currentUserRepository } from '@/domains/member';
-import { paginate } from '@/shared/lib/pagination';
 import {
   MypageEmptyState,
-  MypageFilterLinks,
+  MypageFilterCard,
   MypageSectionHeader,
 } from '@/features/mypage/common';
-import { MypageInquiryList } from '@/features/mypage/mypage-inquiry-list';
+import { MypageInquiryList } from '@/features/mypage/inquiries';
 import {
-  buildQueryHref,
-  firstQueryValue,
-  parsePositivePage,
-  parseQueryOption,
-} from '@/shared/lib/query';
+  buildInquiryListFilterHref,
+  buildInquiryListHref,
+  INQUIRY_LIST_FILTERS,
+  parseInquiryListQuery,
+  type InquiriesPageSearchParams,
+} from './query';
 
 interface InquiriesPageProps {
-  searchParams: Promise<{
-    type?: string | string[];
-    status?: string | string[];
-    page?: string | string[];
-  }>;
+  searchParams: Promise<InquiriesPageSearchParams>;
 }
-
-const INQUIRY_TYPE_LABELS: Record<
-  (typeof INQUIRY_TYPE_FILTERS)[number],
-  string
-> = {
-  all: '전체',
-  order: '주문/결제',
-  delivery: '배송',
-  return: '교환/반품',
-  product: '상품',
-  coupon: '쿠폰/이벤트',
-  account: '회원/계정',
-  etc: '기타',
-};
-
-const INQUIRY_STATUS_LABELS: Record<
-  (typeof INQUIRY_STATUS_FILTERS)[number],
-  string
-> = {
-  all: '전체',
-  pending: '답변대기',
-  answered: '답변완료',
-};
-
-const INQUIRY_TYPE_LINKS = INQUIRY_TYPE_FILTERS.map(value => ({
-  value,
-  label: INQUIRY_TYPE_LABELS[value],
-}));
-
-const INQUIRY_STATUS_LINKS = INQUIRY_STATUS_FILTERS.map(value => ({
-  value,
-  label: INQUIRY_STATUS_LABELS[value],
-}));
 
 async function InquiriesPage({ searchParams }: InquiriesPageProps) {
   const user = await currentUserRepository.findCurrent();
-  const search = await searchParams;
-  const type = parseQueryOption({
-    value: firstQueryValue(search.type),
-    options: INQUIRY_TYPE_FILTERS,
-    fallback: 'all',
-  });
-  const status = parseQueryOption({
-    value: firstQueryValue(search.status),
-    options: INQUIRY_STATUS_FILTERS,
-    fallback: 'all',
-  });
-  const rows = user
-    ? await inquiryRepository.findByUserId(user.id)
-    : [];
-  const filtered = filterInquiries(rows, { type, status });
-  const result = paginate(
-    filtered.map(toInquiryViewModel),
-    parsePositivePage(search.page),
-    4,
-  );
+  const query = parseInquiryListQuery(await searchParams);
+  const inquiryPageViewModel = user
+    ? await getInquiryPageViewModel(user.id, query)
+    : { items: [], currentPage: 1, totalPages: 1, totalItems: 0 };
+  const { items: inquiries, currentPage, totalPages } = inquiryPageViewModel;
 
   return (
     <div className="space-y-8">
@@ -101,32 +43,20 @@ async function InquiriesPage({ searchParams }: InquiriesPageProps) {
           </ButtonLink>
         }
       />
-      <MypageFilterLinks
-        label="문의 유형"
-        options={INQUIRY_TYPE_LINKS}
-        current={type}
-        getHref={nextType =>
-          buildQueryHref('/mypage/inquiries', {
-            type: nextType,
-            status,
-            page: 1,
-          })
-        }
+      <ButtonLink
+        href="/cs/inquiry"
+        size="lg"
+        className="w-full bg-black font-bold text-white hover:bg-zinc-800 md:hidden"
+      >
+        문의 작성
+      </ButtonLink>
+      <MypageFilterCard
+        filters={INQUIRY_LIST_FILTERS}
+        values={{ type: query.type, status: query.status }}
+        getHref={buildInquiryListFilterHref}
       />
-      <MypageFilterLinks
-        label="답변 상태"
-        options={INQUIRY_STATUS_LINKS}
-        current={status}
-        getHref={nextStatus =>
-          buildQueryHref('/mypage/inquiries', {
-            type,
-            status: nextStatus,
-            page: 1,
-          })
-        }
-      />
-      {result.items.length > 0 ? (
-        <MypageInquiryList inquiries={result.items} />
+      {inquiries.length > 0 ? (
+        <MypageInquiryList inquiries={inquiries} />
       ) : (
         <MypageEmptyState
           icon={MessageSquare}
@@ -135,10 +65,10 @@ async function InquiriesPage({ searchParams }: InquiriesPageProps) {
         />
       )}
       <DynamicPagination
-        currentPage={result.currentPage}
-        totalPages={result.totalPages}
+        currentPage={currentPage}
+        totalPages={totalPages}
         getPageHref={({ page }) =>
-          buildQueryHref('/mypage/inquiries', { type, status, page })
+          buildInquiryListHref({ ...query, page })
         }
       />
     </div>

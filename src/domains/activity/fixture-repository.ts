@@ -12,9 +12,9 @@ import type {
 export const fixtureRecentProductViewRepository: RecentProductViewRepository =
   {
     async findByUserId(userId) {
-      return RECENT_PRODUCT_VIEWS.filter(row => row.user_id === userId)
-        .map(row => ({ ...row }))
-        .sort((a, b) => b.viewed_at.localeCompare(a.viewed_at));
+      return RECENT_PRODUCT_VIEWS.filter(row => row.user_id === userId).map(
+        row => ({ ...row }),
+      );
     },
   };
 

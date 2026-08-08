@@ -29,6 +29,16 @@ const KOREAN_MONTH_DAY_FORMATTER = new Intl.DateTimeFormat('ko-KR', {
 export const formatKoreanDate = (value: string) =>
   KOREAN_DATE_FORMATTER.format(new Date(value));
 
+export const formatKoreanDateKey = (value: string) => {
+  const dateParts = Object.fromEntries(
+    KOREAN_DATE_FORMATTER.formatToParts(new Date(value))
+      .filter(part => part.type !== 'literal')
+      .map(part => [part.type, part.value]),
+  );
+
+  return `${dateParts.year}-${dateParts.month}-${dateParts.day}`;
+};
+
 export const formatKoreanDateTime = (value: string) =>
   KOREAN_DATE_TIME_FORMATTER.format(new Date(value));
 

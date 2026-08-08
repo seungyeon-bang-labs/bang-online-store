@@ -1,42 +1,35 @@
 import { Clock3 } from 'lucide-react';
-import { DynamicPagination } from '@/components/common/dynamic-pagination';
-import { getRecentProductItems } from '@/domains/activity';
+import {
+  getRecentProductPageViewModel,
+  getRecentProductPolicyDescription,
+} from '@/domains/activity';
 import { currentUserRepository } from '@/domains/member';
-import { paginate } from '@/shared/lib/pagination';
 import {
   MypageEmptyState,
   MypageSectionHeader,
 } from '@/features/mypage/common';
-import { ProductItem } from '@/features/product/product-item';
-import { buildQueryHref, parsePositivePage } from '@/shared/lib/query';
+import {
+  MypageRecentProductList,
+  MypageRecentProductPolicy,
+} from '@/features/mypage/activity';
 
-interface RecentProductsPageProps {
-  searchParams: Promise<{
-    page?: string | string[];
-  }>;
-}
-
-async function RecentProductsPage({
-  searchParams,
-}: RecentProductsPageProps) {
+async function RecentProductsPage() {
   const user = await currentUserRepository.findCurrent();
-  const search = await searchParams;
-  const items = user ? await getRecentProductItems(user.id) : [];
-  const result = paginate(items, parsePositivePage(search.page), 10);
+  const recentProductPageViewModel = user
+    ? await getRecentProductPageViewModel(user.id)
+    : null;
+
+  const { groups, policyDescription } = recentProductPageViewModel ?? {
+    groups: [],
+    policyDescription: getRecentProductPolicyDescription(),
+  };
 
   return (
     <div className="space-y-8">
       <MypageSectionHeader title="최근 본 상품" />
-      {result.items.length > 0 ? (
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-          {result.items.map(item => (
-            <ProductItem
-              key={item.id}
-              product={item.product}
-              showWishlistButton={false}
-            />
-          ))}
-        </div>
+      <MypageRecentProductPolicy description={policyDescription} />
+      {groups.length > 0 ? (
+        <MypageRecentProductList groups={groups} />
       ) : (
         <MypageEmptyState
           icon={Clock3}
@@ -44,13 +37,6 @@ async function RecentProductsPage({
           description="상품 상세 페이지를 확인하면 최근 본 상품으로 기록됩니다."
         />
       )}
-      <DynamicPagination
-        currentPage={result.currentPage}
-        totalPages={result.totalPages}
-        getPageHref={({ page }) =>
-          buildQueryHref('/mypage/recent', { page })
-        }
-      />
     </div>
   );
 }

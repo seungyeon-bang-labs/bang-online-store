@@ -14,6 +14,7 @@ export interface InquiryDTO {
   user_id: string;
   inquiry_type: InquiryType;
   order_id: string | null;
+  order_item_id?: string | null;
   product_id: number | null;
   title: string;
   content: string;

@@ -1,38 +1,40 @@
-import { formatKoreanDateTime } from '@/shared/lib/format';
+import { formatKoreanDate } from '@/shared/lib/format';
 import type { StatusViewModel } from '@/shared/types/status';
+import type { InquiryDTO, InquiryStatus } from './dto';
+import {
+  getInquiryActionEligibility,
+  INQUIRY_STATUS_FILTER_LABELS,
+  INQUIRY_TYPE_FILTER_LABELS,
+} from './domain';
 import type {
-  InquiryDTO,
-  InquiryStatus,
-  InquiryType,
-} from './dto';
-import type { InquiryViewModel } from './view-model';
+  InquiryContextViewModel,
+  InquiryViewModel,
+} from './view-model';
 
-const INQUIRY_TYPE_LABEL: Record<InquiryType, string> = {
-  order: '주문/결제',
-  delivery: '배송',
-  return: '교환/반품',
-  product: '상품',
-  coupon: '쿠폰/이벤트',
-  account: '회원/계정',
-  etc: '기타',
+const INQUIRY_STATUS_TONES: Record<InquiryStatus, StatusViewModel['tone']> = {
+  pending: 'warning',
+  answered: 'success',
 };
 
-const INQUIRY_STATUS_VIEW: Record<InquiryStatus, StatusViewModel> = {
-  pending: { label: '답변대기', tone: 'warning' },
-  answered: { label: '답변완료', tone: 'success' },
-};
-
-export function toInquiryViewModel(row: InquiryDTO): InquiryViewModel {
+export function toInquiryViewModel(
+  row: InquiryDTO,
+  context: InquiryContextViewModel | null,
+): InquiryViewModel {
   return {
     id: row.id,
-    typeLabel: INQUIRY_TYPE_LABEL[row.inquiry_type],
+    typeLabel: INQUIRY_TYPE_FILTER_LABELS[row.inquiry_type],
     title: row.title,
     content: row.content,
-    status: INQUIRY_STATUS_VIEW[row.status],
+    context,
+    status: {
+      label: INQUIRY_STATUS_FILTER_LABELS[row.status],
+      tone: INQUIRY_STATUS_TONES[row.status],
+    },
+    actions: getInquiryActionEligibility(row.status),
     answerContent: row.answer_content,
     answeredAt: row.answered_at
-      ? formatKoreanDateTime(row.answered_at)
+      ? formatKoreanDate(row.answered_at)
       : null,
-    createdAt: formatKoreanDateTime(row.created_at),
+    createdAt: formatKoreanDate(row.created_at),
   };
 }
