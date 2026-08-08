@@ -12,14 +12,18 @@ export const MYPAGE_HOME_ORDER_STATUS_SUMMARY_STATUSES = [
 
 export function getMypageHomeReviewState(
   order: OrderListItemViewModel,
-  reviewedItemIds: ReadonlySet<string>,
+  writableReviewOrderItemIds: ReadonlySet<string>,
+  reviewedOrderItemIds: ReadonlySet<string>,
 ): MypageHomeReviewState {
   if (order.statusCode !== 'delivered') {
     return 'unavailable';
   }
 
-  return order.items.length > 0 &&
-    order.items.every(item => reviewedItemIds.has(item.id))
+  if (order.items.some(item => writableReviewOrderItemIds.has(item.id))) {
+    return 'writable';
+  }
+
+  return order.items.some(item => reviewedOrderItemIds.has(item.id))
     ? 'written'
-    : 'writable';
+    : 'unavailable';
 }

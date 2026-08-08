@@ -110,7 +110,7 @@ function MypageOrderCardCollapsedItemSummary({
         </button>
         <p className="self-end font-black text-black">총 {finalAmountText}</p>
       </div>
-      <div className="col-span-2 mt-2">
+          <div className="col-span-2 mt-3">
         <Button
           type="button"
           variant="outline"

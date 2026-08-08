@@ -25,6 +25,7 @@ export interface OrderDTO {
   payment_due_at: string | null;
   paid_at: string | null;
   estimated_delivery_at: string | null;
+  delivered_at: string | null;
   cancelled_at: string | null;
   subtotal_amount: number;
   discount_amount: number;

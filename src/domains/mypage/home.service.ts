@@ -1,8 +1,8 @@
 import {
-  recentProductViewRepository,
+  getRecentProductItems,
+  getWishlistProductItems,
+  isReviewWritable,
   reviewRepository,
-  toActivityProductViewModel,
-  wishlistItemRepository,
 } from '@/domains/activity';
 import {
   membershipTierRepository,
@@ -18,6 +18,7 @@ import type { UserDTO } from '@/domains/member';
 import { userAddressRepository } from '@/domains/member';
 import {
   filterOrders,
+  orderClaimRepository,
   orderItemCancellationRepository,
   orderItemRepository,
   orderRepository,
@@ -26,7 +27,9 @@ import {
 } from '@/domains/order';
 import { productRepository } from '@/domains/product';
 import { requireRelation } from '@/shared/lib/data-integrity';
-import { MYPAGE_HOME_ORDER_STATUS_SUMMARY_STATUSES } from './home.domain';
+import {
+  MYPAGE_HOME_ORDER_STATUS_SUMMARY_STATUSES,
+} from './home.domain';
 import { toMypageHomeRecentOrderViewModel } from './home.mapper';
 import type { MypageHomeViewModel } from './home.view-model';
 
@@ -41,8 +44,9 @@ export async function getMypageHomeViewModel(
     userCoupons,
     orderRows,
     reviews,
-    recentProductViews,
-    wishlistItems,
+    claims,
+    recentProducts,
+    wishlistProducts,
   ] = await Promise.all([
     userAddressRepository.findDefaultByUserId(user.id),
     userMembershipRepository.findByUserId(user.id),
@@ -51,8 +55,9 @@ export async function getMypageHomeViewModel(
     userCouponRepository.findByUserId(user.id),
     orderRepository.findByUserId(user.id),
     reviewRepository.findByUserId(user.id),
-    recentProductViewRepository.findByUserId(user.id),
-    wishlistItemRepository.findByUserId(user.id),
+    orderClaimRepository.findByUserId(user.id),
+    getRecentProductItems(user.id),
+    getWishlistProductItems(user.id),
   ]);
 
   const [orderItems, orderItemCancellations, coupons] = await Promise.all([
@@ -68,8 +73,6 @@ export async function getMypageHomeViewModel(
     Array.from(
       new Set([
         ...orderItems.map(item => item.product_id),
-        ...recentProductViews.map(item => item.product_id),
-        ...wishlistItems.map(item => item.product_id),
       ]),
     ),
   );
@@ -84,6 +87,15 @@ export async function getMypageHomeViewModel(
   const reviewedItemIds = new Set(
     reviews.map(review => review.order_item_id),
   );
+  const cancelledItemIds = new Set(
+    orderItemCancellations.map(cancellation => cancellation.order_item_id),
+  );
+  const completedClaimedItemIds = new Set(
+    claims
+      .filter(claim => claim.status === 'completed')
+      .map(claim => claim.order_item_id),
+  );
+  const orderById = new Map(orderRows.map(order => [order.id, order]));
   const orderItemsByOrderId = new Map<string, typeof orderItems>();
   const now = new Date();
 
@@ -93,16 +105,32 @@ export async function getMypageHomeViewModel(
     orderItemsByOrderId.set(item.order_id, items);
   });
 
-  const recentOrderIds = new Set(
-    filterOrders(
-      orderRows,
-      { period: '3-months', status: 'all' },
-      now,
-    ).map(order => order.id),
+  const writableReviewOrderItemIds = new Set(
+    orderItems
+      .filter(item => {
+        const order = orderById.get(item.order_id);
+
+        return order
+          ? isReviewWritable(
+              {
+                orderStatus: order.status,
+                deliveredAt: order.delivered_at,
+                hasReview: reviewedItemIds.has(item.id),
+                isCancelled: cancelledItemIds.has(item.id),
+                hasCompletedClaim: completedClaimedItemIds.has(item.id),
+              },
+              now,
+            )
+          : false;
+      })
+      .map(item => item.id),
   );
-  const recentOrders = orderRows
-    .filter(order => recentOrderIds.has(order.id))
-    .sort((a, b) => b.ordered_at.localeCompare(a.ordered_at))
+  const recentOrders = filterOrders(
+    orderRows,
+    { period: '1-month', status: 'all' },
+    now,
+  )
+    .filter(order => order.status !== 'cancelled')
     .map(order => {
       const orderViewModel = toOrderListItemViewModel(
         order,
@@ -119,7 +147,8 @@ export async function getMypageHomeViewModel(
       return toMypageHomeRecentOrderViewModel({
         order,
         orderViewModel,
-        reviewedItemIds,
+        writableReviewOrderItemIds,
+        reviewedOrderItemIds: reviewedItemIds,
       });
     });
   const currentMembership = membership
@@ -172,29 +201,7 @@ export async function getMypageHomeViewModel(
       count: recentOrders.filter(order => order.statusCode === status).length,
     })),
     recentOrders,
-    recentProducts: recentProductViews
-      .map(item =>
-        toActivityProductViewModel(
-          { id: item.id, recordedAt: item.viewed_at },
-          requireRelation(
-            productById.get(item.product_id),
-            'recent_product_views.product_id -> products.id',
-            item.id,
-          ),
-        ),
-      )
-      .slice(0, 7),
-    wishlistProducts: wishlistItems
-      .map(item =>
-        toActivityProductViewModel(
-          { id: item.id, recordedAt: item.created_at },
-          requireRelation(
-            productById.get(item.product_id),
-            'wishlist_items.product_id -> products.id',
-            item.id,
-          ),
-        ),
-      )
-      .slice(0, 5),
+    recentProducts,
+    wishlistProducts: wishlistProducts.slice(0, 10),
   };
 }

@@ -18,7 +18,7 @@ export function MypageHomeOrderStatuses({
     useOrderStatusScrollIndicators(items.length);
 
   return (
-    <nav aria-label="최근 3개월 주문 상태" className="relative">
+    <nav aria-label="최근 1개월 주문 상태" className="relative">
       <ul
         ref={listRef}
         className="flex snap-x snap-mandatory overflow-x-auto rounded-md border border-zinc-200 bg-white [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:grid lg:grid-cols-5 lg:overflow-visible"
@@ -43,7 +43,7 @@ function MypageHomeOrderStatusLink({ item }: MypageHomeOrderStatusLinkProps) {
     <li className="min-w-26 shrink-0 snap-start border-r border-zinc-200 last:border-r-0 lg:min-w-0">
       <Link
         href={buildQueryHref('/mypage/orders', {
-          period: '3-months',
+          period: '1-month',
           status: item.status,
           page: 1,
         })}

@@ -4,13 +4,28 @@ import type { ProductCardViewModel } from '@/domains/product/product.view-model'
 export interface ActivityProductViewModel {
   id: string;
   product: ProductCardViewModel;
-  recordedAt: string;
+  recordedDateKey: string;
+  recordedDateLabel: string;
 }
+
+export interface RecentProductDateGroupViewModel {
+  dateKey: string;
+  dateLabel: string;
+  items: ActivityProductViewModel[];
+}
+
+export interface RecentProductPageViewModel {
+  groups: RecentProductDateGroupViewModel[];
+  policyDescription: string;
+}
+
+export type WishlistPageViewModel = PageSlice<ActivityProductViewModel>;
 
 export interface WrittenReviewViewModel {
   kind: 'written';
   id: string;
   product: ProductCardViewModel;
+  optionLabel: string;
   rating: number;
   content: string;
   createdAt: string;
@@ -19,15 +34,18 @@ export interface WrittenReviewViewModel {
 export interface AvailableReviewViewModel {
   kind: 'available';
   orderItemId: string;
-  orderNumber: string;
   product: ProductCardViewModel;
   productName: string;
   optionLabel: string;
   orderedAt: string;
+  reviewDeadlineAt: string;
+  reviewDeadlineDday: string;
 }
 
 export type ReviewItemViewModel =
   | WrittenReviewViewModel
   | AvailableReviewViewModel;
 
-export type ReviewPageViewModel = PageSlice<ReviewItemViewModel>;
+export interface ReviewPageViewModel extends PageSlice<ReviewItemViewModel> {
+  availableCount: number;
+}

@@ -20,7 +20,7 @@ export function MypageHomeOrders({ statuses, orders }: MypageHomeOrdersProps) {
         title="최근 주문"
         icon={<Truck className="size-4" />}
         viewAllHref={buildQueryHref('/mypage/orders', {
-          period: '3-months',
+          period: '1-month',
           status: 'all',
           page: 1,
         })}

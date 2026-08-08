@@ -9,18 +9,21 @@ import type { MypageHomeRecentOrderViewModel } from './home.view-model';
 interface MypageHomeRecentOrderMapperInput {
   order: OrderDTO;
   orderViewModel: OrderListItemViewModel;
-  reviewedItemIds: ReadonlySet<string>;
+  writableReviewOrderItemIds: ReadonlySet<string>;
+  reviewedOrderItemIds: ReadonlySet<string>;
 }
 
 export function toMypageHomeRecentOrderViewModel({
   order,
   orderViewModel,
-  reviewedItemIds,
+  writableReviewOrderItemIds,
+  reviewedOrderItemIds,
 }: MypageHomeRecentOrderMapperInput): MypageHomeRecentOrderViewModel {
   const orderHref = buildMypageHomeOrderHref(order.status);
   const reviewState = getMypageHomeReviewState(
     orderViewModel,
-    reviewedItemIds,
+    writableReviewOrderItemIds,
+    reviewedOrderItemIds,
   );
   const { canCancel, canClaim } = getOrderActionEligibility(order.status);
 
@@ -67,7 +70,7 @@ function getMypageHomeProductSummary(order: OrderListItemViewModel): string {
 
 function buildMypageHomeOrderHref(status: OrderDTO['status']): string {
   return buildQueryHref('/mypage/orders', {
-    period: '3-months',
+    period: '1-month',
     status,
     page: 1,
   });

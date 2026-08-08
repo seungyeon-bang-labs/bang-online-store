@@ -15,6 +15,7 @@ const TONE_CLASS: Record<StatusTone, string> = {
 const SIZE_CLASS = {
   default: 'px-2 py-1 text-xs',
   large: 'px-2.5 py-1 text-sm',
+  responsive: 'px-2 py-1 text-xs sm:px-2.5 sm:text-sm',
 };
 
 interface MypageStatusBadgeProps extends StatusViewModel {
