@@ -1,14 +1,20 @@
-import type { UserAddressDTO, UserDTO } from './member.dto';
+import type { UserAddressDTO, UserDTO } from './dto';
+import {
+  getUserAddressDisplayName,
+  getUserAddressText,
+} from './domain';
 import type {
   MemberProfileViewModel,
   UserAddressViewModel,
-} from './member.view-model';
+} from './view-model';
 
 export const toMemberProfileViewModel = (
   user: UserDTO,
 ): MemberProfileViewModel => ({
+  loginId: user.login_id,
   name: user.name,
   email: user.email,
+  isEmailVerified: user.email_verified_at !== null,
   phoneNumber: user.phone_number,
   birthDate: user.birth_date ?? '',
 });
@@ -17,13 +23,11 @@ export const toUserAddressViewModel = (
   address: UserAddressDTO,
 ): UserAddressViewModel => ({
   id: address.id,
-  label: address.label,
+  displayName: getUserAddressDisplayName(address),
   recipientName: address.recipient_name,
   phoneNumber: address.phone_number,
   postalCode: address.postal_code,
-  addressText: [address.address_line_1, address.address_line_2]
-    .filter(Boolean)
-    .join(' '),
+  formattedAddress: getUserAddressText(address),
   deliveryNote: address.delivery_note,
   isDefault: address.is_default,
 });

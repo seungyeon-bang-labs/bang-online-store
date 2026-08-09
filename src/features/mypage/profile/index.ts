@@ -1,0 +1,1 @@
+export { MypageProfileForm } from './form';

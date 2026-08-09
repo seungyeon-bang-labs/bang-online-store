@@ -1,0 +1,1 @@
+export { MypageAddressList } from './list';

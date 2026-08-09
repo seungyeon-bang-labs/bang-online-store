@@ -14,8 +14,11 @@ import {
   userMembershipRepository,
 } from '@/domains/benefit';
 import { couponRepository } from '@/domains/coupon';
-import type { UserDTO } from '@/domains/member';
-import { userAddressRepository } from '@/domains/member';
+import {
+  getUserAddressText,
+  userAddressRepository,
+  type UserDTO,
+} from '@/domains/member';
 import {
   filterOrders,
   orderClaimRepository,
@@ -168,9 +171,7 @@ export async function getMypageHomeViewModel(
     summary: {
       memberName: user.name,
       defaultAddressText: defaultAddress
-        ? [defaultAddress.address_line_1, defaultAddress.address_line_2]
-            .filter(Boolean)
-            .join(' ')
+        ? getUserAddressText(defaultAddress)
         : '등록된 배송지 없음',
       membershipTierName:
         membership && currentMembership
