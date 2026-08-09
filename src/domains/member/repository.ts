@@ -1,4 +1,4 @@
-import type { UserAddressDTO, UserDTO } from './member.dto';
+import type { UserAddressDTO, UserDTO } from './dto';
 
 export interface CurrentUserRepository {
   findCurrent(): Promise<UserDTO | null>;

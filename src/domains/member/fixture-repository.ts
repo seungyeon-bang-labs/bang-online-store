@@ -1,9 +1,8 @@
-import { CURRENT_USER } from './current-user.fixture';
+import { CURRENT_USER, USER_ADDRESSES } from './fixture';
 import type {
   CurrentUserRepository,
   UserAddressRepository,
-} from './member.repository';
-import { USER_ADDRESSES } from './user-address.fixture';
+} from './repository';
 
 export const fixtureCurrentUserRepository: CurrentUserRepository = {
   async findCurrent() {

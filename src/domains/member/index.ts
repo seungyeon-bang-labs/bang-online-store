@@ -1,9 +1,10 @@
-export * from './member.dto';
-export * from './member.mapper';
-export * from './member.repository';
-export * from './member.view-model';
+export * from './dto';
+export * from './domain';
+export * from './mapper';
+export * from './repository';
+export * from './view-model';
 
 export {
   fixtureCurrentUserRepository as currentUserRepository,
   fixtureUserAddressRepository as userAddressRepository,
-} from './member.fixture-repository';
+} from './fixture-repository';

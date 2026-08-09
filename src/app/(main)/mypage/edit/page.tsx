@@ -7,7 +7,7 @@ import {
   MypageEmptyState,
   MypageSectionHeader,
 } from '@/features/mypage/common';
-import { MypageProfileForm } from '@/features/mypage/mypage-profile-form';
+import { MypageProfileForm } from '@/features/mypage/profile';
 
 async function EditProfilePage() {
   const user = await currentUserRepository.findCurrent();

@@ -1,4 +1,4 @@
-import { DEMO_USER_ID } from '@/domains/member/current-user.fixture';
+import { DEMO_USER_ID } from '@/domains/member/fixture';
 import type {
   RecentProductViewDTO,
   ReviewDTO,
