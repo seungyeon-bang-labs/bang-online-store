@@ -1,7 +1,7 @@
 import { getOrderActionEligibility } from '@/domains/order';
 import type { OrderDTO } from '@/domains/order/dto';
 import type { OrderListItemViewModel } from '@/domains/order/view-model';
-import { buildQueryHref } from '@/shared/lib/query';
+import { getMypageOrderDetailHref } from '@/shared/lib/mypage-routes';
 import { getMypageHomeReviewState } from './home.domain';
 import { buildMypageHomeOrderActions } from './home.order-policy';
 import type { MypageHomeRecentOrderViewModel } from './home.view-model';
@@ -19,7 +19,7 @@ export function toMypageHomeRecentOrderViewModel({
   writableReviewOrderItemIds,
   reviewedOrderItemIds,
 }: MypageHomeRecentOrderMapperInput): MypageHomeRecentOrderViewModel {
-  const orderHref = buildMypageHomeOrderHref(order.status);
+  const orderHref = getMypageOrderDetailHref(order.id);
   const reviewState = getMypageHomeReviewState(
     orderViewModel,
     writableReviewOrderItemIds,
@@ -66,12 +66,4 @@ function getMypageHomeProductSummary(order: OrderListItemViewModel): string {
 
   return firstItem.productName +
     (order.items.length > 1 ? ` 외 ${order.items.length - 1}건` : '');
-}
-
-function buildMypageHomeOrderHref(status: OrderDTO['status']): string {
-  return buildQueryHref('/mypage/orders', {
-    period: '1-month',
-    status,
-    page: 1,
-  });
 }

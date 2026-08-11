@@ -4,8 +4,10 @@ import {
   fixtureOrderItemCancellationRepository,
   fixtureOrderItemRepository,
   fixtureOrderRepository,
+  fixtureOrderStatusHistoryRepository,
 } from './fixture-repository';
 import { createClaimListService } from './claim-list.service';
+import { createOrderDetailService } from './order-detail.service';
 import { createOrderItemRelationsService } from './order-item-relations.service';
 import { createOrderListService } from './order-list.service';
 
@@ -21,6 +23,8 @@ export const orderItemCancellationRepository =
   fixtureOrderItemCancellationRepository;
 export const orderItemRepository = fixtureOrderItemRepository;
 export const orderRepository = fixtureOrderRepository;
+export const orderStatusHistoryRepository =
+  fixtureOrderStatusHistoryRepository;
 
 const orderItemRelationsService = createOrderItemRelationsService({
   orderItemRepository,
@@ -33,6 +37,13 @@ const orderListService = createOrderListService({
   orderItemRelationsService,
 });
 
+const orderDetailService = createOrderDetailService({
+  orderRepository,
+  orderItemCancellationRepository,
+  orderStatusHistoryRepository,
+  orderItemRelationsService,
+});
+
 const claimListService = createClaimListService({
   orderRepository,
   orderClaimRepository,
@@ -41,5 +52,7 @@ const claimListService = createClaimListService({
 
 export const getOrderListViewModel =
   orderListService.getOrderListViewModel;
+export const getOrderDetailViewModel =
+  orderDetailService.getOrderDetailViewModel;
 export const getOrderClaimListViewModel =
   claimListService.getOrderClaimListViewModel;

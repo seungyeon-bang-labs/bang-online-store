@@ -15,6 +15,8 @@ export interface UserMembershipRepository {
 
 export interface PointTransactionRepository {
   findByUserId(userId: string): Promise<PointTransactionDTO[]>;
+  findByOrderIds(orderIds: string[]): Promise<PointTransactionDTO[]>;
+  findByReviewIds(reviewIds: string[]): Promise<PointTransactionDTO[]>;
 }
 
 export interface UserCouponRepository {

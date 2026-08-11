@@ -4,9 +4,11 @@ import type {
   OrderDTO,
   OrderItemCancellationDTO,
   OrderItemDTO,
+  OrderStatusHistoryDTO,
 } from './dto';
 
 export interface OrderRepository {
+  findById(orderId: string): Promise<OrderDTO | null>;
   findByUserId(userId: string): Promise<OrderDTO[]>;
 }
 
@@ -20,6 +22,10 @@ export interface OrderItemCancellationRepository {
 
 export interface OrderClaimRepository {
   findByUserId(userId: string): Promise<OrderClaimDTO[]>;
+}
+
+export interface OrderStatusHistoryRepository {
+  findByOrderIds(orderIds: string[]): Promise<OrderStatusHistoryDTO[]>;
 }
 
 export interface OrderProductRepository {

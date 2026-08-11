@@ -3,17 +3,23 @@ import type {
   OrderDTO,
   OrderItemCancellationDTO,
   OrderItemDTO,
+  OrderStatusHistoryDTO,
+  OrderStatusHistoryStatus,
 } from './dto';
 
 const USER_ID = '00000000-0000-4000-8000-000000000001';
 const ORDER_ADDRESS = '서울특별시 강남구 테헤란로 123 101동 1203호';
+const ORDER_POSTAL_CODE = '06134';
+const ORDER_RECIPIENT_PHONE = '010-1234-5678';
 
 function createOrder(
   value: Omit<
     OrderDTO,
     | 'user_id'
     | 'recipient_name'
+    | 'recipient_phone'
     | 'shipping_address_text'
+    | 'postal_code'
     | 'payment_method'
     | 'delivered_at'
   > & { delivered_at?: string | null },
@@ -25,7 +31,9 @@ function createOrder(
       (value.status === 'delivered' ? value.estimated_delivery_at : null),
     user_id: USER_ID,
     recipient_name: 'Kim Gemini',
+    recipient_phone: ORDER_RECIPIENT_PHONE,
     shipping_address_text: ORDER_ADDRESS,
+    postal_code: ORDER_POSTAL_CODE,
     payment_method: '신용카드',
   };
 }
@@ -43,7 +51,7 @@ export const ORDERS: readonly OrderDTO[] = [
     subtotal_amount: 248000,
     discount_amount: 0,
     shipping_fee: 0,
-    total_amount: 248000,
+    total_amount: 246000,
   }),
   createOrder({
     id: '20000000-0000-4000-8000-000000000002',
@@ -709,3 +717,82 @@ export const ORDER_ITEM_CANCELLATIONS: readonly OrderItemCancellationDTO[] = [
     refunded_at: null,
   },
 ];
+
+function addHours(value: string, hours: number): string {
+  return new Date(new Date(value).getTime() + hours * 60 * 60 * 1000).toISOString();
+}
+
+function createOrderStatusHistory(
+  order: OrderDTO,
+  status: OrderStatusHistoryStatus,
+  occurredAt: string,
+): OrderStatusHistoryDTO {
+  return {
+    id: `order-status-history-${order.id}-${status}`,
+    order_id: order.id,
+    status,
+    occurred_at: occurredAt,
+  };
+}
+
+function createOrderStatusHistories(
+  order: OrderDTO,
+): OrderStatusHistoryDTO[] {
+  const histories = [
+    createOrderStatusHistory(order, 'order_received', order.ordered_at),
+  ];
+
+  if (order.paid_at) {
+    histories.push(
+      createOrderStatusHistory(
+        order,
+        'payment_completed',
+        order.paid_at,
+      ),
+    );
+  }
+
+  if (
+    order.status === 'preparing_shipment' ||
+    order.status === 'shipping' ||
+    order.status === 'delivered'
+  ) {
+    histories.push(
+      createOrderStatusHistory(
+        order,
+        'preparing_shipment',
+        addHours(order.paid_at ?? order.ordered_at, 8),
+      ),
+    );
+  }
+
+  if (
+    (order.status === 'shipping' || order.status === 'delivered') &&
+    order.estimated_delivery_at
+  ) {
+    histories.push(
+      createOrderStatusHistory(
+        order,
+        'shipping',
+        addHours(order.estimated_delivery_at, -24),
+      ),
+    );
+  }
+
+  if (order.status === 'delivered' && order.delivered_at) {
+    histories.push(
+      createOrderStatusHistory(order, 'delivered', order.delivered_at),
+    );
+  }
+
+  if (order.status === 'cancelled' && order.cancelled_at) {
+    histories.push(
+      createOrderStatusHistory(order, 'cancelled', order.cancelled_at),
+    );
+  }
+
+  return histories;
+}
+
+export const ORDER_STATUS_HISTORIES: readonly OrderStatusHistoryDTO[] =
+  ORDERS.flatMap(createOrderStatusHistories);

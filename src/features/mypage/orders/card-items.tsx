@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { OrderItemViewModel, OrderRefundViewModel } from '@/domains/order';
-import { MypageOrderItemActions } from './item-actions';
+import { MypageOrderItemActions } from './order-item-actions';
 import { MypageOrderCardPaymentSummary } from './card-payment-summary';
 
 interface MypageOrderCardItemsProps {
