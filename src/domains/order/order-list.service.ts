@@ -1,16 +1,10 @@
-import {
-  DataIntegrityError,
-  requireRelation,
-} from '@/shared/lib/data-integrity';
 import { paginate } from '@/shared/lib/pagination';
-import type { Product } from '@/domains/product/product.dto';
-import { filterOrders } from './domain';
+import {
+  filterOrders,
+  indexOrderItemCancellations,
+  joinOrderItems,
+} from './domain';
 import type { OrderListQuery } from './domain';
-import type {
-  OrderDTO,
-  OrderItemCancellationDTO,
-  OrderItemDTO,
-} from './dto';
 import { toOrderListItemViewModel } from './mapper';
 import type { OrderItemRelationsService } from './order-item-relations.service';
 import type {
@@ -53,17 +47,12 @@ export function createOrderListService({
       orderItemRelationsService.getOrderItemRelations(orderIds),
       orderItemCancellationRepository.findByOrderIds(orderIds),
     ]);
-    const cancellationByOrderItemId = new Map(
-      cancellations.map(cancellation => [
-        cancellation.order_item_id,
-        cancellation,
-      ]),
-    );
+    const cancellationByOrderItemId = indexOrderItemCancellations(cancellations);
     const items = orders.map(order =>
       toOrderListItemViewModel(
         order,
-        getOrderListItemRelations(
-          order,
+        joinOrderItems(
+          order.id,
           relations.itemsByOrderId,
           relations.productById,
           cancellationByOrderItemId,
@@ -75,32 +64,4 @@ export function createOrderListService({
   }
 
   return { getOrderListViewModel };
-}
-
-function getOrderListItemRelations(
-  order: OrderDTO,
-  itemsByOrderId: ReadonlyMap<string, OrderItemDTO[]>,
-  productById: ReadonlyMap<number, Product>,
-  cancellationByOrderItemId: ReadonlyMap<string, OrderItemCancellationDTO>,
-) {
-  return (itemsByOrderId.get(order.id) ?? []).map(item => {
-    const cancellation = cancellationByOrderItemId.get(item.id) ?? null;
-
-    if (cancellation && cancellation.order_id !== order.id) {
-      throw new DataIntegrityError(
-        'order_item_cancellations order and order_item mismatch',
-        cancellation.id,
-      );
-    }
-
-    return {
-      item,
-      product: requireRelation(
-        productById.get(item.product_id),
-        'order_items.product_id -> products.id',
-        item.id,
-      ),
-      cancellation,
-    };
-  });
 }

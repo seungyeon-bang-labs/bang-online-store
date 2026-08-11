@@ -6,6 +6,8 @@ export type OrderStatus =
   | 'delivered'
   | 'cancelled';
 
+export type OrderStatusHistoryStatus = OrderStatus | 'order_received';
+
 export type OrderClaimType = 'exchange' | 'return';
 
 export type OrderClaimStatus =
@@ -32,7 +34,9 @@ export interface OrderDTO {
   shipping_fee: number;
   total_amount: number;
   recipient_name: string;
+  recipient_phone: string;
   shipping_address_text: string;
+  postal_code: string;
   payment_method: string;
 }
 
@@ -59,6 +63,13 @@ export interface OrderItemCancellationDTO {
   refund_status: OrderRefundStatus;
   refund_expected_at: string | null;
   refunded_at: string | null;
+}
+
+export interface OrderStatusHistoryDTO {
+  id: string;
+  order_id: string;
+  status: OrderStatusHistoryStatus;
+  occurred_at: string;
 }
 
 export interface OrderClaimDTO {

@@ -1,9 +1,12 @@
+import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import type { OrderStatus } from '@/domains/order';
+import { getMypageOrderDetailHref } from '@/shared/lib/mypage-routes';
 import type { StatusViewModel } from '@/shared/types/status';
 import { MypageStatusBadge } from '../common/status-badge';
 
 interface MypageOrderCardHeaderProps {
+  orderId: string;
   status: StatusViewModel;
   statusCode: OrderStatus;
   statusDescription: string;
@@ -11,6 +14,7 @@ interface MypageOrderCardHeaderProps {
 }
 
 export function MypageOrderCardHeader({
+  orderId,
   status,
   statusCode,
   statusDescription,
@@ -29,14 +33,13 @@ export function MypageOrderCardHeader({
           </span>
         )}
       </p>
-      <button
-        type="button"
-        disabled
-        className="col-start-2 row-start-1 inline-flex items-center gap-0.5 whitespace-nowrap text-sm font-bold text-black disabled:cursor-not-allowed sm:col-start-3"
+      <Link
+        href={getMypageOrderDetailHref(orderId)}
+        className="col-start-2 row-start-1 inline-flex items-center gap-0.5 whitespace-nowrap text-sm font-bold text-black hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black sm:col-start-3"
       >
         주문 상세 보기
         <ChevronRight className="size-4" aria-hidden="true" />
-      </button>
+      </Link>
     </header>
   );
 }

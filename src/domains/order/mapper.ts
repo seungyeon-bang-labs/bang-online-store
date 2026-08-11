@@ -1,5 +1,6 @@
 import {
   formatKoreanDate,
+  formatKoreanDateTime,
   formatKoreanMoney,
 } from '@/shared/lib/format';
 import type { StatusViewModel } from '@/shared/types/status';
@@ -12,11 +13,17 @@ import type {
   OrderItemCancellationDTO,
   OrderItemDTO,
   OrderStatus,
+  OrderStatusHistoryDTO,
+  OrderStatusHistoryStatus,
 } from './dto';
 import type {
   OrderClaimViewModel,
+  OrderDetailItemViewModel,
+  OrderDetailViewModel,
   OrderItemActionsViewModel,
+  OrderItemViewModel,
   OrderListItemViewModel,
+  OrderRefundViewModel,
 } from './view-model';
 
 const ORDER_STATUS_VIEW: Record<OrderStatus, StatusViewModel> = {
@@ -32,7 +39,7 @@ export const toOrderStatusViewModel = (
   status: OrderStatus,
 ): StatusViewModel => ORDER_STATUS_VIEW[status];
 
-function getOrderStatusDescription(order: OrderDTO): string {
+export function getOrderStatusDescription(order: OrderDTO): string {
   if (order.status === 'pending_payment' && order.payment_due_at) {
     return `${formatKoreanDate(order.payment_due_at)}까지 입금`;
   }
@@ -56,6 +63,19 @@ function getOrderStatusDescription(order: OrderDTO): string {
 
   return `${formatKoreanDate(order.ordered_at)} 주문`;
 }
+
+const ORDER_STATUS_HISTORY_LABELS: Record<
+  OrderStatusHistoryStatus,
+  string
+> = {
+  order_received: '주문 접수',
+  pending_payment: '입금 대기',
+  payment_completed: '결제 완료',
+  preparing_shipment: '배송 준비',
+  shipping: '배송 시작',
+  delivered: '배송 완료',
+  cancelled: '주문 취소',
+};
 
 const ORDER_CLAIM_TYPE_VIEW: Record<OrderClaimType, StatusViewModel> = {
   exchange: { label: '교환', tone: 'info' },
@@ -120,6 +140,81 @@ function getOrderItemActions(
   };
 }
 
+interface OrderItemViewModelParts {
+  detailItem: OrderDetailItemViewModel;
+  repurchaseItem: OrderItemViewModel['repurchaseItem'];
+}
+
+function toOrderItemViewModelParts(
+  order: OrderDTO,
+  item: OrderItemDTO,
+  product: Product,
+  cancellation: OrderItemCancellationDTO | null,
+): OrderItemViewModelParts {
+  const orderedVariant = product.variants.find(
+    variant => variant.id === item.variant_id,
+  );
+  const canRepurchase =
+    product.state === 'active' &&
+    orderedVariant !== undefined &&
+    orderedVariant.stock >= item.quantity;
+
+  return {
+    detailItem: {
+      id: item.id,
+      product: toProductCardViewModel(product),
+      productName: item.product_name,
+      optionLabel: item.option_label,
+      quantity: item.quantity,
+      lineTotalText: formatKoreanMoney(item.line_total_amount),
+      cancellation: cancellation
+        ? {
+            refundAmountText: formatKoreanMoney(cancellation.refund_amount),
+          }
+        : null,
+      actions: cancellation
+        ? null
+        : getOrderItemActions(order.status, canRepurchase),
+    },
+    repurchaseItem: canRepurchase
+      ? {
+          productId: item.product_id,
+          variantId: item.variant_id,
+          quantity: item.quantity,
+        }
+      : null,
+  };
+}
+
+function toOrderRefundViewModels(
+  joinedItems: readonly {
+    cancellation: OrderItemCancellationDTO | null;
+  }[],
+): OrderRefundViewModel[] {
+  return joinedItems.flatMap(({ cancellation }) => {
+    if (!cancellation) return [];
+
+    const isPending = cancellation.refund_status === 'pending';
+    const refundDate = isPending
+      ? cancellation.refund_expected_at
+      : cancellation.refunded_at;
+
+    return [
+      {
+        id: cancellation.id,
+        label: isPending ? '환불 예정 금액' : '환불 완료 금액',
+        amountText: formatKoreanMoney(cancellation.refund_amount),
+        description: refundDate
+          ? `${formatKoreanDate(refundDate)} ${isPending ? '이내 ' : ''}결제수단으로 환불 ${
+              isPending ? '예정' : '완료'
+            }`
+          : `결제수단으로 환불 ${isPending ? '예정' : '완료'}`,
+        status: cancellation.refund_status,
+      },
+    ];
+  });
+}
+
 export function toOrderListItemViewModel(
   order: OrderDTO,
   joinedItems: Array<{
@@ -133,6 +228,8 @@ export function toOrderListItemViewModel(
     0,
   );
 
+  const refunds = toOrderRefundViewModels(joinedItems);
+
   return {
     id: order.id,
     orderNumber: order.order_number,
@@ -145,59 +242,84 @@ export function toOrderListItemViewModel(
     cancelledItemCount: joinedItems.filter(
       ({ cancellation }) => cancellation !== null,
     ).length,
-    refunds: joinedItems.flatMap(({ cancellation }) => {
-      if (!cancellation) return [];
-
-      const isPending = cancellation.refund_status === 'pending';
-      const refundDate = isPending
-        ? cancellation.refund_expected_at
-        : cancellation.refunded_at;
-
-      return {
-        id: cancellation.id,
-        label: isPending ? '환불 예정 금액' : '환불 완료 금액',
-        amountText: formatKoreanMoney(cancellation.refund_amount),
-        description: refundDate
-          ? `${formatKoreanDate(refundDate)} ${isPending ? '이내 ' : ''}결제수단으로 환불 ${
-              isPending ? '예정' : '완료'
-            }`
-          : `결제수단으로 환불 ${isPending ? '예정' : '완료'}`,
-        status: cancellation.refund_status,
-      };
-    }),
+    refunds,
     items: joinedItems.map(({ item, product, cancellation }) => {
-      const orderedVariant = product.variants.find(
-        variant => variant.id === item.variant_id,
+      const { detailItem, repurchaseItem } = toOrderItemViewModelParts(
+        order,
+        item,
+        product,
+        cancellation,
       );
-      const canRepurchase =
-        product.state === 'active' &&
-        orderedVariant !== undefined &&
-        orderedVariant.stock >= item.quantity;
 
       return {
-        id: item.id,
-        product: toProductCardViewModel(product),
-        productName: item.product_name,
-        optionLabel: item.option_label,
-        quantity: item.quantity,
-        lineTotalText: formatKoreanMoney(item.line_total_amount),
-        cancellation: cancellation
-          ? {
-              refundAmountText: formatKoreanMoney(cancellation.refund_amount),
-            }
-          : null,
-        repurchaseItem: canRepurchase
-          ? {
-              productId: item.product_id,
-              variantId: item.variant_id,
-              quantity: item.quantity,
-            }
-          : null,
-        actions: cancellation
-          ? null
-          : getOrderItemActions(order.status, canRepurchase),
+        ...detailItem,
+        repurchaseItem,
       };
     }),
+  };
+}
+
+export function toOrderDetailViewModel(
+  order: OrderDTO,
+  joinedItems: Array<{
+    item: OrderItemDTO;
+    product: Product;
+    cancellation: OrderItemCancellationDTO | null;
+  }>,
+  histories: readonly OrderStatusHistoryDTO[],
+): OrderDetailViewModel {
+  const refunds = toOrderRefundViewModels(joinedItems);
+  const completedRefundAmount = joinedItems.reduce(
+    (total, { cancellation }) =>
+      total +
+      (cancellation?.refund_status === 'completed'
+        ? cancellation.refund_amount
+        : 0),
+    0,
+  );
+
+  return {
+    id: order.id,
+    orderNumber: order.order_number,
+    orderedAt: formatKoreanDate(order.ordered_at),
+    items: joinedItems.map(({ item, product, cancellation }) =>
+      toOrderItemViewModelParts(order, item, product, cancellation).detailItem,
+    ),
+    payment: {
+      subtotalAmountText: formatKoreanMoney(order.subtotal_amount),
+      discountAmountText: formatKoreanMoney(order.discount_amount),
+      hasDiscount: order.discount_amount > 0,
+      shippingFeeText: formatKoreanMoney(order.shipping_fee),
+      isFreeShipping: order.shipping_fee === 0,
+      totalAmountText: formatKoreanMoney(order.total_amount),
+      paymentMethod: order.payment_method,
+    },
+    shipping: {
+      recipientName: order.recipient_name,
+      recipientPhone: order.recipient_phone,
+      addressText: order.shipping_address_text,
+      postalCode: order.postal_code,
+    },
+    refund: {
+      items: refunds,
+      finalPaymentAmountText:
+        completedRefundAmount > 0
+          ? formatKoreanMoney(order.total_amount - completedRefundAmount)
+          : null,
+    },
+    statusHistory: histories
+      .slice()
+      .sort(
+        (a, b) =>
+          new Date(a.occurred_at).getTime() -
+          new Date(b.occurred_at).getTime(),
+      )
+      .map(history => ({
+        id: history.id,
+        label: ORDER_STATUS_HISTORY_LABELS[history.status],
+        occurredAt: formatKoreanDateTime(history.occurred_at),
+        isCurrent: history.status === order.status,
+      })),
   };
 }
 

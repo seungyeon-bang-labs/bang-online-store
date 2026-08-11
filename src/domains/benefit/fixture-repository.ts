@@ -34,6 +34,20 @@ export const fixturePointTransactionRepository: PointTransactionRepository = {
       .map(row => ({ ...row }))
       .sort((a, b) => b.occurred_at.localeCompare(a.occurred_at));
   },
+  async findByOrderIds(orderIds) {
+    const orderIdSet = new Set(orderIds);
+
+    return POINT_TRANSACTIONS.filter(
+      row => row.order_id !== null && orderIdSet.has(row.order_id),
+    ).map(row => ({ ...row }));
+  },
+  async findByReviewIds(reviewIds) {
+    const reviewIdSet = new Set(reviewIds);
+
+    return POINT_TRANSACTIONS.filter(
+      row => row.review_id !== null && reviewIdSet.has(row.review_id),
+    ).map(row => ({ ...row }));
+  },
 };
 
 export const fixtureUserCouponRepository: UserCouponRepository = {

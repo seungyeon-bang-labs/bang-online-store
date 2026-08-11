@@ -32,4 +32,11 @@ export const fixtureReviewRepository: ReviewRepository = {
       .map(row => ({ ...row }))
       .sort((a, b) => b.created_at.localeCompare(a.created_at));
   },
+  async findByOrderItemIds(orderItemIds) {
+    const orderItemIdSet = new Set(orderItemIds);
+
+    return REVIEWS.filter(row => orderItemIdSet.has(row.order_item_id)).map(
+      row => ({ ...row }),
+    );
+  },
 };

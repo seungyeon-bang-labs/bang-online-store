@@ -1,4 +1,21 @@
-import type { OrderClaimDTO, OrderDTO, OrderStatus } from './dto';
+import {
+  DataIntegrityError,
+  requireRelation,
+} from '@/shared/lib/data-integrity';
+import type { Product } from '@/domains/product/product.dto';
+import type {
+  OrderClaimDTO,
+  OrderDTO,
+  OrderItemCancellationDTO,
+  OrderItemDTO,
+  OrderStatus,
+} from './dto';
+
+export interface OrderJoinedItem {
+  item: OrderItemDTO;
+  product: Product;
+  cancellation: OrderItemCancellationDTO | null;
+}
 
 export const ORDER_PERIODS = [
   '1-month',
@@ -105,4 +122,46 @@ export function filterOrderClaims(
       claim => query.status === 'all' || claim.status === query.status,
     )
     .sort((a, b) => b.requested_at.localeCompare(a.requested_at));
+}
+
+export function joinOrderItems(
+  orderId: string,
+  itemsByOrderId: ReadonlyMap<string, OrderItemDTO[]>,
+  productById: ReadonlyMap<number, Product>,
+  cancellationByOrderItemId: ReadonlyMap<
+    string,
+    OrderItemCancellationDTO
+  >,
+): OrderJoinedItem[] {
+  return (itemsByOrderId.get(orderId) ?? []).map(item => {
+    const cancellation = cancellationByOrderItemId.get(item.id) ?? null;
+
+    if (cancellation && cancellation.order_id !== orderId) {
+      throw new DataIntegrityError(
+        'order_item_cancellations order and order_item mismatch',
+        cancellation.id,
+      );
+    }
+
+    return {
+      item,
+      product: requireRelation(
+        productById.get(item.product_id),
+        'order_items.product_id -> products.id',
+        item.id,
+      ),
+      cancellation,
+    };
+  });
+}
+
+export function indexOrderItemCancellations(
+  cancellations: readonly OrderItemCancellationDTO[],
+): ReadonlyMap<string, OrderItemCancellationDTO> {
+  return new Map(
+    cancellations.map(cancellation => [
+      cancellation.order_item_id,
+      cancellation,
+    ]),
+  );
 }

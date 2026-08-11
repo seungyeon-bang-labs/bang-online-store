@@ -21,7 +21,7 @@ export interface OrderRefundViewModel {
   status: 'pending' | 'completed';
 }
 
-export interface OrderItemViewModel {
+export interface OrderItemBaseViewModel {
   id: string;
   product: ProductCardViewModel;
   productName: string;
@@ -31,13 +31,18 @@ export interface OrderItemViewModel {
   cancellation: {
     refundAmountText: string;
   } | null;
+  actions: OrderItemActionsViewModel | null;
+}
+
+export interface OrderItemViewModel extends OrderItemBaseViewModel {
   repurchaseItem: {
     productId: number;
     variantId: string;
     quantity: number;
   } | null;
-  actions: OrderItemActionsViewModel | null;
 }
+
+export type OrderDetailItemViewModel = OrderItemBaseViewModel;
 
 export interface OrderListItemViewModel {
   id: string;
@@ -54,6 +59,46 @@ export interface OrderListItemViewModel {
 }
 
 export type OrderListPageViewModel = PageSlice<OrderListItemViewModel>;
+
+export interface OrderDetailPaymentViewModel {
+  subtotalAmountText: string;
+  discountAmountText: string;
+  hasDiscount: boolean;
+  shippingFeeText: string;
+  isFreeShipping: boolean;
+  totalAmountText: string;
+  paymentMethod: string;
+}
+
+export interface OrderDetailShippingViewModel {
+  recipientName: string;
+  recipientPhone: string;
+  addressText: string;
+  postalCode: string;
+}
+
+export interface OrderStatusHistoryViewModel {
+  id: string;
+  label: string;
+  occurredAt: string;
+  isCurrent: boolean;
+}
+
+export interface OrderDetailRefundSummaryViewModel {
+  items: OrderRefundViewModel[];
+  finalPaymentAmountText: string | null;
+}
+
+export interface OrderDetailViewModel {
+  id: string;
+  orderNumber: string;
+  orderedAt: string;
+  items: OrderDetailItemViewModel[];
+  payment: OrderDetailPaymentViewModel;
+  shipping: OrderDetailShippingViewModel;
+  refund: OrderDetailRefundSummaryViewModel;
+  statusHistory: OrderStatusHistoryViewModel[];
+}
 
 export interface OrderClaimViewModel {
   id: string;
