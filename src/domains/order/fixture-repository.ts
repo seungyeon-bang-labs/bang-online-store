@@ -97,6 +97,11 @@ export const fixtureOrderStatusHistoryRepository: OrderStatusHistoryRepository =
   };
 
 export const fixtureOrderItemRepository: OrderItemRepository = {
+  async findById(orderItemId) {
+    const item = demoOrderItems.find(current => current.id === orderItemId);
+
+    return item ? cloneOrderItem(item) : null;
+  },
   async findByOrderIds(orderIds) {
     return demoOrderItems
       .filter(item => orderIds.includes(item.order_id))
@@ -106,6 +111,13 @@ export const fixtureOrderItemRepository: OrderItemRepository = {
 
 export const fixtureOrderItemCancellationRepository: OrderItemCancellationRepository =
   {
+    async findByOrderItemIds(orderItemIds) {
+      const orderItemIdSet = new Set(orderItemIds);
+
+      return demoOrderItemCancellations
+        .filter(cancellation => orderItemIdSet.has(cancellation.order_item_id))
+        .map(cloneCancellation);
+    },
     async findByOrderIds(orderIds) {
       return demoOrderItemCancellations.filter(cancellation =>
         orderIds.includes(cancellation.order_id),
@@ -155,6 +167,13 @@ export const fixtureOrderMutationRepository: OrderMutationRepository = {
 };
 
 export const fixtureOrderClaimRepository: OrderClaimRepository = {
+  async findByOrderItemIds(orderItemIds) {
+    const orderItemIdSet = new Set(orderItemIds);
+
+    return ORDER_CLAIMS.filter(claim =>
+      orderItemIdSet.has(claim.order_item_id),
+    ).map(claim => ({ ...claim }));
+  },
   async findByUserId(userId) {
     return ORDER_CLAIMS.filter(claim => claim.user_id === userId).map(
       claim => ({ ...claim }),

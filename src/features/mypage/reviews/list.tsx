@@ -1,4 +1,4 @@
-import type { ReviewItemViewModel } from '@/domains/activity';
+import type { ReviewItemViewModel } from '@/domains/activity/view-model';
 import { AvailableReviewCard } from './available-card';
 import { WrittenReviewCard } from './written-card';
 

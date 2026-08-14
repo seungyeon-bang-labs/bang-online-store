@@ -27,14 +27,19 @@ export interface OrderMutationRepository {
 }
 
 export interface OrderItemRepository {
+  findById(orderItemId: string): Promise<OrderItemDTO | null>;
   findByOrderIds(orderIds: string[]): Promise<OrderItemDTO[]>;
 }
 
 export interface OrderItemCancellationRepository {
+  findByOrderItemIds(
+    orderItemIds: string[],
+  ): Promise<OrderItemCancellationDTO[]>;
   findByOrderIds(orderIds: string[]): Promise<OrderItemCancellationDTO[]>;
 }
 
 export interface OrderClaimRepository {
+  findByOrderItemIds(orderItemIds: string[]): Promise<OrderClaimDTO[]>;
   findByUserId(userId: string): Promise<OrderClaimDTO[]>;
 }
 

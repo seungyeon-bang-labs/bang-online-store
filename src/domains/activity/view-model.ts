@@ -49,3 +49,14 @@ export type ReviewItemViewModel =
 export interface ReviewPageViewModel extends PageSlice<ReviewItemViewModel> {
   availableCount: number;
 }
+
+export type ReviewFormMode = 'create' | 'edit';
+
+export interface ReviewFormPageViewModel {
+  mode: ReviewFormMode;
+  product: ProductCardViewModel;
+  productName: string;
+  optionLabel: string;
+  initialRating: number;
+  initialContent: string;
+}

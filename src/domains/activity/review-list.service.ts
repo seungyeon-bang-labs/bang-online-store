@@ -60,25 +60,28 @@ export function createReviewListService({
       reviewRepository.findByUserId(userId),
       orderClaimRepository.findByUserId(userId),
     ]);
-    const deliveredOrders = orders.filter(
-      order => order.status === 'delivered',
-    );
-    const deliveredOrderIds = deliveredOrders.map(order => order.id);
-    const [orderItems, itemCancellations] = await Promise.all([
-      orderItemRepository.findByOrderIds(deliveredOrderIds),
+    const deliveredOrderIds = orders
+      .filter(order => order.status === 'delivered')
+      .map(order => order.id);
+    const [allOrderItems, itemCancellations] = await Promise.all([
+      orderItemRepository.findByOrderIds(orders.map(order => order.id)),
       orderItemCancellationRepository.findByOrderIds(deliveredOrderIds),
     ]);
+    const deliveredOrderIdSet = new Set(deliveredOrderIds);
+    const deliveredOrderItems = allOrderItems.filter(item =>
+      deliveredOrderIdSet.has(item.order_id),
+    );
     const products = await productRepository.findByIds(
       Array.from(
         new Set([
           ...reviews.map(review => review.product_id),
-          ...orderItems.map(item => item.product_id),
+          ...allOrderItems.map(item => item.product_id),
         ]),
       ),
     );
     const productById = new Map(products.map(product => [product.id, product]));
-    const orderById = new Map(deliveredOrders.map(order => [order.id, order]));
-    const itemById = new Map(orderItems.map(item => [item.id, item]));
+    const orderById = new Map(orders.map(order => [order.id, order]));
+    const itemById = new Map(allOrderItems.map(item => [item.id, item]));
     const reviewedItemIds = new Set(
       reviews.map(review => review.order_item_id),
     );
@@ -91,7 +94,7 @@ export function createReviewListService({
         .map(claim => claim.order_item_id),
     );
     const now = new Date();
-    const availableItems = orderItems.filter(item => {
+    const availableItems = deliveredOrderItems.filter(item => {
       const order = requireRelation(
         orderById.get(item.order_id),
         'order_items.order_id -> orders.id',

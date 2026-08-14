@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import type { AvailableReviewViewModel } from '@/domains/activity';
+import type { AvailableReviewViewModel } from '@/domains/activity/view-model';
 import { ReviewProductThumbnail } from './product-thumbnail';
 
 interface AvailableReviewCardProps {
@@ -35,12 +35,15 @@ export function AvailableReviewCard({ review }: AvailableReviewCardProps) {
         </p>
         <div className="col-span-2 mt-3">
           <Button
+            asChild
             type="button"
             variant="outline"
             size="sm"
             className="w-full rounded-sm border-zinc-300 font-bold shadow-none hover:border-black hover:bg-black hover:text-white"
           >
-            리뷰 작성
+            <Link href={`/mypage/reviews/write/${review.orderItemId}`}>
+              리뷰 작성
+            </Link>
           </Button>
         </div>
       </div>
