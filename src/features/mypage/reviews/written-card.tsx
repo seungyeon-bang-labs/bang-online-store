@@ -23,7 +23,7 @@ export function WrittenReviewCard({ review }: WrittenReviewCardProps) {
           <button
             type="button"
             aria-label={`${review.product.name} 리뷰 삭제`}
-            className="inline-flex size-6 items-center justify-center rounded-sm text-zinc-300 transition-colors hover:bg-zinc-100 hover:text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black sm:size-7"
+            className="inline-flex size-6 items-center justify-center rounded-sm text-zinc-300 transition-colors hover:bg-zinc-100 hover:text-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black sm:size-7"
           >
             <X className="size-5" aria-hidden="true" />
           </button>

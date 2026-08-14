@@ -35,7 +35,7 @@ export function MypageOrderCardHeader({
       </p>
       <Link
         href={getMypageOrderDetailHref(orderId)}
-        className="col-start-2 row-start-1 inline-flex items-center gap-0.5 whitespace-nowrap text-sm font-bold text-black hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black sm:col-start-3"
+        className="col-start-2 row-start-1 inline-flex items-center gap-0.5 whitespace-nowrap text-sm font-bold text-black hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black sm:col-start-3"
       >
         주문 상세 보기
         <ChevronRight className="size-4" aria-hidden="true" />
