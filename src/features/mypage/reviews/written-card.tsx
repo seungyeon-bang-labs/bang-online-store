@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import type { WrittenReviewViewModel } from '@/domains/activity';
+import type { WrittenReviewViewModel } from '@/domains/activity/view-model';
 import { ReviewProductThumbnail } from './product-thumbnail';
 
 interface WrittenReviewCardProps {
@@ -45,12 +45,13 @@ export function WrittenReviewCard({ review }: WrittenReviewCardProps) {
         </p>
         <div className="col-span-2 mt-3">
           <Button
+            asChild
             type="button"
             variant="outline"
             size="sm"
             className="w-full rounded-sm border-zinc-300 font-bold shadow-none hover:border-black hover:bg-black hover:text-white"
           >
-            수정
+            <Link href={`/mypage/reviews/${review.id}/edit`}>수정</Link>
           </Button>
         </div>
       </div>

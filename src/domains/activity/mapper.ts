@@ -10,6 +10,8 @@ import {
 import type {
   ActivityProductViewModel,
   AvailableReviewViewModel,
+  ReviewFormMode,
+  ReviewFormPageViewModel,
   WrittenReviewViewModel,
 } from './view-model';
 
@@ -62,5 +64,21 @@ export function toAvailableReviewViewModel(
     orderedAt: formatKoreanDate(order.ordered_at),
     reviewDeadlineAt: formatKoreanDate(reviewDeadline.toISOString()),
     reviewDeadlineDday: getReviewDeadlineDday(reviewDeadline, now),
+  };
+}
+
+export function toReviewFormPageViewModel(
+  mode: ReviewFormMode,
+  item: OrderItemDTO,
+  product: Product,
+  review?: ReviewDTO,
+): ReviewFormPageViewModel {
+  return {
+    mode,
+    product: toProductCardViewModel(product),
+    productName: item.product_name,
+    optionLabel: item.option_label,
+    initialRating: review?.rating ?? 0,
+    initialContent: review?.content ?? '',
   };
 }

@@ -7,6 +7,10 @@ import type { OrderStatus } from '@/domains/order/dto';
 
 export const REVIEW_TABS = ['available', 'completed'] as const;
 export const REVIEW_PAGE_SIZE = 10;
+export const REVIEW_RATING_MIN = 1;
+export const REVIEW_RATING_MAX = 5;
+export const REVIEW_CONTENT_MIN_LENGTH = 10;
+export const REVIEW_CONTENT_MAX_LENGTH = 500;
 export const RECENT_PRODUCT_MAX_COUNT = 50;
 export const REVIEW_WRITE_DEADLINE_DAYS = 30;
 export const WISHLIST_PAGE_SIZE = 15;
@@ -25,6 +29,11 @@ export interface ReviewWriteEligibilityInput {
   hasReview: boolean;
   isCancelled: boolean;
   hasCompletedClaim: boolean;
+}
+
+export interface ReviewFormValidationResult {
+  isRatingValid: boolean;
+  isContentValid: boolean;
 }
 
 export interface WishlistListQuery {
@@ -86,6 +95,38 @@ export function getReviewDeadlineDday(
   );
 
   return remainingDays === 0 ? 'D-Day' : `D-${remainingDays}`;
+}
+
+export function isReviewRatingValid(rating: number): boolean {
+  return Number.isInteger(rating) &&
+    rating >= REVIEW_RATING_MIN &&
+    rating <= REVIEW_RATING_MAX;
+}
+
+export function getReviewContentLength(content: string): number {
+  return content.trim().length;
+}
+
+export function isReviewContentValid(content: string): boolean {
+  const length = getReviewContentLength(content);
+
+  return (
+    length >= REVIEW_CONTENT_MIN_LENGTH &&
+    length <= REVIEW_CONTENT_MAX_LENGTH
+  );
+}
+
+export function validateReviewForm({
+  rating,
+  content,
+}: {
+  rating: number;
+  content: string;
+}): ReviewFormValidationResult {
+  return {
+    isRatingValid: isReviewRatingValid(rating),
+    isContentValid: isReviewContentValid(content),
+  };
 }
 
 export function selectRecentProductViews(

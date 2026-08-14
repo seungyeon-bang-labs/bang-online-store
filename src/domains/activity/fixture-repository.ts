@@ -27,6 +27,11 @@ export const fixtureWishlistItemRepository: WishlistItemRepository = {
 };
 
 export const fixtureReviewRepository: ReviewRepository = {
+  async findById(reviewId) {
+    const review = REVIEWS.find(row => row.id === reviewId);
+
+    return review ? { ...review } : null;
+  },
   async findByUserId(userId) {
     return REVIEWS.filter(row => row.user_id === userId)
       .map(row => ({ ...row }))
