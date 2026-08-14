@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Mail, Phone } from 'lucide-react';
 import { SiInstagram, SiYoutube, SiFacebook } from "react-icons/si";
+import { BUSINESS_INFO } from '@/shared/constants/business-info';
 
 export function Footer() {
   return (
@@ -12,7 +13,7 @@ export function Footer() {
           <div className="lg:col-span-4 space-y-8">
             <div>
               <h2 className="text-3xl font-bold mb-3 text-black dark:text-white">
-                BANG ONLINE STORE
+                {BUSINESS_INFO.brandName}
               </h2>
               <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed max-w-sm">
                 모던하고 미니멀한 라이프스타일을 제안하는 남성복 브랜드입니다.
@@ -23,13 +24,13 @@ export function Footer() {
               <div className="flex items-center gap-3 text-sm">
                 <Phone size={16} className="text-gray-500" />
                 <span className="font-semibold text-black dark:text-white">
-                  1588-0000
+                  {BUSINESS_INFO.customerServicePhone}
                 </span>
               </div>
               <div className="flex items-center gap-3 text-sm">
                 <Mail size={16} className="text-gray-500" />
                 <span className="text-gray-600 dark:text-gray-400">
-                  help@bang.com
+                  {BUSINESS_INFO.customerServiceEmail}
                 </span>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-500 ml-7">
@@ -145,7 +146,8 @@ export function Footer() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="space-y-2 text-xs text-gray-500 dark:text-gray-500 leading-relaxed">
             <p>
-              (주)BANG | 대표자: 홍길동 | 사업자등록번호: 000-00-00000{' '}
+              {BUSINESS_INFO.companyName} | 대표자: {BUSINESS_INFO.representativeName} | 사업자등록번호:{' '}
+              {BUSINESS_INFO.registrationNumber}{' '}
               <Link
                 href="#"
                 className="underline hover:text-gray-700 dark:hover:text-gray-300"
@@ -153,7 +155,7 @@ export function Footer() {
                 [확인]
               </Link>
             </p>
-            <p>통신판매업: 제 2026-서울강남-0000호</p>
+            <p>통신판매업: {BUSINESS_INFO.mailOrderRegistrationNumber}</p>
             <p>서울특별시 강남구 테헤란로 123</p>
             <p>개인정보보호책임자: 홍길동 (help@bang.com)</p>
           </div>

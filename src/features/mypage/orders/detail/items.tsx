@@ -5,10 +5,12 @@ import { MypageOrderItemActions } from '../order-item-actions';
 
 interface MypageOrderDetailItemsProps {
   items: readonly OrderDetailItemViewModel[];
+  orderId: string;
 }
 
 export function MypageOrderDetailItems({
   items,
+  orderId,
 }: MypageOrderDetailItemsProps) {
   return (
     <section className="overflow-hidden rounded-md border border-zinc-300 bg-white">
@@ -18,7 +20,7 @@ export function MypageOrderDetailItems({
       </header>
       <div className="divide-y divide-zinc-200">
         {items.map(item => (
-          <MypageOrderDetailItem key={item.id} item={item} />
+          <MypageOrderDetailItem key={item.id} item={item} orderId={orderId} />
         ))}
       </div>
     </section>
@@ -27,14 +29,15 @@ export function MypageOrderDetailItems({
 
 interface MypageOrderDetailItemProps {
   item: OrderDetailItemViewModel;
+  orderId: string;
 }
 
-function MypageOrderDetailItem({ item }: MypageOrderDetailItemProps) {
+function MypageOrderDetailItem({ item, orderId }: MypageOrderDetailItemProps) {
   return (
     <div className="grid grid-cols-[72px_minmax(0,1fr)] gap-x-4 p-4 sm:grid-cols-[88px_minmax(0,1fr)] md:p-5">
       <Link
         href={item.product.href}
-        className="relative row-span-3 aspect-square overflow-hidden rounded-sm bg-zinc-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
+        className="relative row-span-3 aspect-square overflow-hidden rounded-sm bg-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
       >
         <Image
           src={item.product.thumbnailUrl}
@@ -46,7 +49,7 @@ function MypageOrderDetailItem({ item }: MypageOrderDetailItemProps) {
       </Link>
       <Link
         href={item.product.href}
-        className="min-w-0 font-black text-black hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
+        className="min-w-0 font-black text-black hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
       >
         {item.productName}
       </Link>
@@ -67,6 +70,9 @@ function MypageOrderDetailItem({ item }: MypageOrderDetailItemProps) {
           <MypageOrderItemActions
             actions={item.actions}
             productName={item.productName}
+            orderId={orderId}
+            orderItemId={item.id}
+            repurchaseItem={item.repurchaseItem}
           />
         </div>
       ) : null}

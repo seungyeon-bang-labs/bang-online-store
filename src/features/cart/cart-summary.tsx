@@ -1,9 +1,14 @@
 import { Button } from '@/components/ui/button';
-import { useMemo } from 'react';
+import { useMemo, useTransition } from 'react';
 import { CreditCard } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { useCartStore } from '@/lib/store/cart';
+import { createDemoOrderFromCart } from '@/app/(main)/cart/actions';
 
 interface SelectedProduct {
   id: string;
+  productId: number;
   name: string;
   price: number;
   discount: number;
@@ -16,6 +21,9 @@ interface CartSummaryProps {
 }
 
 export function CartSummary({ selectedProducts }: CartSummaryProps) {
+  const router = useRouter();
+  const clearCart = useCartStore(state => state.clearCart);
+  const [isPending, startTransition] = useTransition();
   const orderSummary = useMemo(() => {
     const itemCount = selectedProducts.reduce(
       (total, item) => total + item.quantity,
@@ -39,6 +47,33 @@ export function CartSummary({ selectedProducts }: CartSummaryProps) {
 
     return { itemCount, subtotal, discountAmount, shippingFee, total, optionsTotal };
   }, [selectedProducts]);
+
+  const handleCreateOrder = () => {
+    if (selectedProducts.length === 0) {
+      toast.error('주문할 상품을 선택해 주세요.', { position: 'bottom-center' });
+      return;
+    }
+
+    startTransition(async () => {
+      try {
+        const orderId = await createDemoOrderFromCart(
+          selectedProducts.map(product => ({
+            productId: product.productId,
+            variantId: product.id,
+            quantity: product.quantity,
+          })),
+        );
+        clearCart();
+        toast.success('데모 주문을 생성했습니다.', { position: 'bottom-center' });
+        router.push(`/mypage/orders/${orderId}`);
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : '주문 생성에 실패했습니다.',
+          { position: 'bottom-center' },
+        );
+      }
+    });
+  };
 
   return (
     <div className="sticky top-40 transition-all duration-300">
@@ -88,11 +123,15 @@ export function CartSummary({ selectedProducts }: CartSummaryProps) {
 
         <div className="space-y-4">
           <Button
+            type="button"
             variant="outline"
             size="xl"
+            disabled={isPending || selectedProducts.length === 0}
             className="w-full text-black font-black flex items-center justify-center gap-3 text-lg tracking-widest cursor-pointer"
+            onClick={handleCreateOrder}
           >
-            <CreditCard className="size-6" /> 주문하기
+            <CreditCard className="size-6" />
+            {isPending ? '주문 생성 중' : '주문하기'}
           </Button>
         </div>
       </div>

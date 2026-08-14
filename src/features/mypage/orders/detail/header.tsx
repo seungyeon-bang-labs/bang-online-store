@@ -1,8 +1,10 @@
+import Link from 'next/link';
 import type { OrderDetailViewModel } from '@/domains/order';
 import { Button } from '@/components/ui/button';
+import { getMypageOrderReceiptHref } from '@/shared/lib/mypage-routes';
 
 interface MypageOrderDetailHeaderProps {
-  order: Pick<OrderDetailViewModel, 'orderNumber' | 'orderedAt'>;
+  order: Pick<OrderDetailViewModel, 'id' | 'orderNumber' | 'orderedAt' | 'paidAt'>;
 }
 
 export function MypageOrderDetailHeader({
@@ -24,15 +26,7 @@ export function MypageOrderDetailHeader({
               </dd>
             </div>
           </dl>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled
-            className="mt-4 h-9 w-full rounded-sm border-zinc-300 font-bold shadow-none disabled:opacity-100"
-          >
-            영수증
-          </Button>
+          <ReceiptLinkButton order={order} className="mt-4 h-9 w-full" />
         </div>
         <div className="hidden items-center justify-between gap-4 md:flex">
           <dl className="grid min-w-0 grid-cols-[72px_minmax(0,1fr)] gap-x-3 gap-y-1 text-sm">
@@ -43,17 +37,38 @@ export function MypageOrderDetailHeader({
               {order.orderNumber}
             </dd>
           </dl>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled
-            className="shrink-0 rounded-sm border-zinc-300 font-bold shadow-none disabled:opacity-100"
-          >
-            영수증
-          </Button>
+          <ReceiptLinkButton order={order} className="shrink-0" />
         </div>
       </div>
     </section>
+  );
+}
+
+interface ReceiptLinkButtonProps {
+  order: Pick<OrderDetailViewModel, 'id' | 'paidAt'>;
+  className?: string;
+}
+
+function ReceiptLinkButton({ order, className }: ReceiptLinkButtonProps) {
+  const buttonClassName = `rounded-sm border-zinc-300 font-bold shadow-none ${className ?? ''}`;
+
+  if (!order.paidAt) {
+    return (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled
+        className={`${buttonClassName} disabled:opacity-100`}
+      >
+        영수증
+      </Button>
+    );
+  }
+
+  return (
+    <Button variant="outline" size="sm" asChild className={buttonClassName}>
+      <Link href={getMypageOrderReceiptHref(order.id)}>영수증</Link>
+    </Button>
   );
 }

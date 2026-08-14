@@ -1,10 +1,10 @@
-import type { PointTransactionDTO } from '@/domains/benefit';
-import type { OrderDetailViewModel } from '@/domains/order';
-import { formatKoreanPoints } from '@/shared/lib/format';
 import {
   calculateEarnedPointAmount,
   calculateUsedPointAmount,
-} from './order-detail.domain';
+  type PointTransactionDTO,
+} from '@/domains/benefit';
+import type { OrderDetailViewModel } from '@/domains/order';
+import { formatKoreanPoints } from '@/shared/lib/format';
 import type {
   MypageOrderDetailViewModel,
   MypageOrderPointBenefitViewModel,

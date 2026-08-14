@@ -1,7 +1,10 @@
 import { getOrderActionEligibility } from '@/domains/order';
 import type { OrderDTO } from '@/domains/order/dto';
 import type { OrderListItemViewModel } from '@/domains/order/view-model';
-import { getMypageOrderDetailHref } from '@/shared/lib/mypage-routes';
+import {
+  getMypageOrderDetailHref,
+  getMypageOrderReceiptHref,
+} from '@/shared/lib/mypage-routes';
 import { getMypageHomeReviewState } from './home.domain';
 import { buildMypageHomeOrderActions } from './home.order-policy';
 import type { MypageHomeRecentOrderViewModel } from './home.view-model';
@@ -43,14 +46,14 @@ export function toMypageHomeRecentOrderViewModel({
           : null,
       links: {
         payment: 'placeholder',
-        cancel: 'placeholder',
+        cancel: orderHref,
         order: orderHref,
         tracking: 'placeholder',
         reviewWrite: '/mypage/reviews?tab=available&page=1',
         reviewEdit: '/mypage/reviews?tab=completed&page=1',
         claim: '/cs/return-request',
-        receipt: 'placeholder',
-        refund: 'placeholder',
+        receipt: getMypageOrderReceiptHref(order.id),
+        refund: getMypageOrderReceiptHref(order.id),
         inquiry: '/mypage/inquiries',
       },
     }),

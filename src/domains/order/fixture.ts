@@ -3,6 +3,7 @@ import type {
   OrderDTO,
   OrderItemCancellationDTO,
   OrderItemDTO,
+  OrderPaymentMethod,
   OrderStatusHistoryDTO,
   OrderStatusHistoryStatus,
 } from './dto';
@@ -22,7 +23,10 @@ function createOrder(
     | 'postal_code'
     | 'payment_method'
     | 'delivered_at'
-  > & { delivered_at?: string | null },
+  > & {
+    delivered_at?: string | null;
+    payment_method?: OrderPaymentMethod;
+  },
 ): OrderDTO {
   return {
     ...value,
@@ -34,7 +38,7 @@ function createOrder(
     recipient_phone: ORDER_RECIPIENT_PHONE,
     shipping_address_text: ORDER_ADDRESS,
     postal_code: ORDER_POSTAL_CODE,
-    payment_method: '신용카드',
+    payment_method: value.payment_method ?? '신용카드',
   };
 }
 
@@ -66,6 +70,7 @@ export const ORDERS: readonly OrderDTO[] = [
     discount_amount: 20000,
     shipping_fee: 0,
     total_amount: 269000,
+    payment_method: '무통장 입금',
   }),
   createOrder({
     id: '20000000-0000-4000-8000-000000000003',
@@ -80,6 +85,7 @@ export const ORDERS: readonly OrderDTO[] = [
     discount_amount: 0,
     shipping_fee: 0,
     total_amount: 159000,
+    payment_method: '무통장 입금',
   }),
   createOrder({
     id: '20000000-0000-4000-8000-000000000004',
