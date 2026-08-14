@@ -17,6 +17,7 @@ export function MypageOrderCard({ order }: MypageOrderCardProps) {
         cancelledItemCount={order.cancelledItemCount}
       />
       <MypageOrderCardItems
+        orderId={order.id}
         items={order.items}
         finalAmountText={order.finalAmountText}
         refunds={order.refunds}

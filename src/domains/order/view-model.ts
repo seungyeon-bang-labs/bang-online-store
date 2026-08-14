@@ -1,9 +1,21 @@
 import type { PageSlice } from '@/shared/lib/pagination';
 import type { StatusViewModel } from '@/shared/types/status';
 import type { ProductCardViewModel } from '@/domains/product';
-import type { OrderStatus } from './dto';
+import type { OrderPaymentMethod, OrderStatus } from './dto';
+
+export type OrderItemActionType =
+  | 'payment'
+  | 'cancel'
+  | 'inquiry'
+  | 'receipt'
+  | 'tracking'
+  | 'review'
+  | 'claim'
+  | 'repurchase'
+  | 'refund';
 
 export interface OrderItemActionViewModel {
+  type: OrderItemActionType;
   label: string;
 }
 
@@ -32,15 +44,14 @@ export interface OrderItemBaseViewModel {
     refundAmountText: string;
   } | null;
   actions: OrderItemActionsViewModel | null;
-}
-
-export interface OrderItemViewModel extends OrderItemBaseViewModel {
   repurchaseItem: {
     productId: number;
     variantId: string;
     quantity: number;
   } | null;
 }
+
+export type OrderItemViewModel = OrderItemBaseViewModel;
 
 export type OrderDetailItemViewModel = OrderItemBaseViewModel;
 
@@ -67,7 +78,7 @@ export interface OrderDetailPaymentViewModel {
   shippingFeeText: string;
   isFreeShipping: boolean;
   totalAmountText: string;
-  paymentMethod: string;
+  paymentMethod: OrderPaymentMethod;
 }
 
 export interface OrderDetailShippingViewModel {
@@ -93,6 +104,7 @@ export interface OrderDetailViewModel {
   id: string;
   orderNumber: string;
   orderedAt: string;
+  paidAt: string | null;
   items: OrderDetailItemViewModel[];
   payment: OrderDetailPaymentViewModel;
   shipping: OrderDetailShippingViewModel;

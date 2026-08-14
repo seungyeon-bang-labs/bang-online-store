@@ -20,7 +20,7 @@ export function MypageOrderDetail({
     <div className="space-y-4">
       <MypageOrderDetailHeader order={order} />
       <MypageOrderDetailStatusHistory histories={order.statusHistory} />
-      <MypageOrderDetailItems items={order.items} />
+      <MypageOrderDetailItems items={order.items} orderId={order.id} />
       <MypageOrderDetailShipping shipping={order.shipping} />
       <MypageOrderDetailPayment payment={payment} />
       <MypageOrderDetailPointBenefits benefits={pointBenefits} />

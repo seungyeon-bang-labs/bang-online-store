@@ -10,12 +10,14 @@ import { MypageOrderItemActions } from './order-item-actions';
 import { MypageOrderCardPaymentSummary } from './card-payment-summary';
 
 interface MypageOrderCardItemsProps {
+  orderId: string;
   items: OrderItemViewModel[];
   finalAmountText: string;
   refunds: OrderRefundViewModel[];
 }
 
 export function MypageOrderCardItems({
+  orderId,
   items,
   finalAmountText,
   refunds,
@@ -37,7 +39,11 @@ export function MypageOrderCardItems({
           />
         ) : (
           items.map(item => (
-            <MypageOrderCardProductItem key={item.id} item={item} />
+            <MypageOrderCardProductItem
+              key={item.id}
+              item={item}
+              orderId={orderId}
+            />
           ))
         )}
       </div>
@@ -86,7 +92,7 @@ function MypageOrderCardCollapsedItemSummary({
     <div className="grid grid-cols-[72px_minmax(0,1fr)] grid-rows-[72px_auto] gap-x-4 p-4 sm:grid-cols-[88px_minmax(0,1fr)] sm:grid-rows-[88px_auto] md:p-5">
       <button
         type="button"
-        className="relative row-span-1 aspect-square overflow-hidden rounded-sm bg-zinc-100 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
+        className="relative row-span-1 aspect-square overflow-hidden rounded-sm bg-zinc-100 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
         aria-label={`상품 ${itemCount}개 펼쳐 보기`}
         aria-expanded={false}
         onClick={onExpand}
@@ -102,7 +108,7 @@ function MypageOrderCardCollapsedItemSummary({
       <div className="col-start-2 flex h-full min-w-0 flex-col justify-between">
         <button
           type="button"
-          className="text-left font-black text-black hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
+          className="text-left font-black text-black hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
           aria-expanded={false}
           onClick={onExpand}
         >
@@ -128,14 +134,18 @@ function MypageOrderCardCollapsedItemSummary({
 
 interface MypageOrderCardProductItemProps {
   item: OrderItemViewModel;
+  orderId: string;
 }
 
-function MypageOrderCardProductItem({ item }: MypageOrderCardProductItemProps) {
+function MypageOrderCardProductItem({
+  item,
+  orderId,
+}: MypageOrderCardProductItemProps) {
   return (
     <div className="grid grid-cols-[72px_minmax(0,1fr)] grid-rows-[auto_auto_auto] gap-x-4 p-4 sm:grid-cols-[88px_minmax(0,1fr)] md:p-5">
       <Link
         href={item.product.href}
-        className="relative row-span-3 aspect-square overflow-hidden rounded-sm bg-zinc-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
+        className="relative row-span-3 aspect-square overflow-hidden rounded-sm bg-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
       >
         <Image
           src={item.product.thumbnailUrl}
@@ -148,7 +158,7 @@ function MypageOrderCardProductItem({ item }: MypageOrderCardProductItemProps) {
       <div className="col-start-2 row-start-1 flex min-w-0 items-start gap-2">
         <Link
           href={item.product.href}
-          className="min-w-0 flex-1 font-black text-black hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
+          className="min-w-0 flex-1 font-black text-black hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
         >
           {item.productName}
         </Link>
@@ -170,6 +180,9 @@ function MypageOrderCardProductItem({ item }: MypageOrderCardProductItemProps) {
           <MypageOrderItemActions
             actions={item.actions}
             productName={item.productName}
+            orderId={orderId}
+            orderItemId={item.id}
+            repurchaseItem={item.repurchaseItem}
           />
         </div>
       ) : null}

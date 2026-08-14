@@ -103,40 +103,45 @@ function getOrderItemActions(
 ): OrderItemActionsViewModel {
   if (status === 'pending_payment') {
     return {
-      primary: { label: '입금 정보' },
-      secondary: { label: '주문 취소' },
-      more: [{ label: '1:1 문의' }],
+      primary: { type: 'payment', label: '입금 정보' },
+      secondary: { type: 'cancel', label: '주문 취소' },
+      more: [{ type: 'inquiry', label: '1:1 문의' }],
     };
   }
 
   if (status === 'payment_completed' || status === 'preparing_shipment') {
     return {
-      primary: { label: '주문 취소' },
-      secondary: { label: '1:1 문의' },
-      more: [{ label: '영수증' }],
+      primary: { type: 'cancel', label: '주문 취소' },
+      secondary: { type: 'inquiry', label: '1:1 문의' },
+      more: [{ type: 'receipt', label: '영수증' }],
     };
   }
 
   if (status === 'shipping') {
     return {
-      primary: { label: '배송 조회' },
-      secondary: { label: '1:1 문의' },
-      more: [{ label: '영수증' }],
+      primary: { type: 'tracking', label: '배송 조회' },
+      secondary: { type: 'inquiry', label: '1:1 문의' },
+      more: [{ type: 'receipt', label: '영수증' }],
     };
   }
 
   if (status === 'delivered') {
     return {
-      primary: { label: '리뷰 쓰기' },
-      secondary: { label: '교환/반품' },
-      more: canRepurchase ? [{ label: '다시 담기' }] : [{ label: '1:1 문의' }],
+      primary: { type: 'review', label: '리뷰 쓰기' },
+      secondary: { type: 'claim', label: '교환/반품' },
+      more: canRepurchase
+        ? [{ type: 'repurchase', label: '다시 담기' }]
+        : [{ type: 'inquiry', label: '1:1 문의' }],
     };
   }
 
   return {
-    primary: { label: canRepurchase ? '다시 담기' : '1:1 문의' },
-    secondary: { label: '환불 상세' },
-    more: [{ label: '주문 문의' }],
+    primary: {
+      type: canRepurchase ? 'repurchase' : 'inquiry',
+      label: canRepurchase ? '다시 담기' : '1:1 문의',
+    },
+    secondary: { type: 'refund', label: '환불 상세' },
+    more: [{ type: 'inquiry', label: '주문 문의' }],
   };
 }
 
@@ -159,6 +164,14 @@ function toOrderItemViewModelParts(
     orderedVariant !== undefined &&
     orderedVariant.stock >= item.quantity;
 
+  const repurchaseItem = canRepurchase
+    ? {
+        productId: item.product_id,
+        variantId: item.variant_id,
+        quantity: item.quantity,
+      }
+    : null;
+
   return {
     detailItem: {
       id: item.id,
@@ -175,14 +188,9 @@ function toOrderItemViewModelParts(
       actions: cancellation
         ? null
         : getOrderItemActions(order.status, canRepurchase),
+      repurchaseItem,
     },
-    repurchaseItem: canRepurchase
-      ? {
-          productId: item.product_id,
-          variantId: item.variant_id,
-          quantity: item.quantity,
-        }
-      : null,
+    repurchaseItem,
   };
 }
 
@@ -282,6 +290,7 @@ export function toOrderDetailViewModel(
     id: order.id,
     orderNumber: order.order_number,
     orderedAt: formatKoreanDate(order.ordered_at),
+    paidAt: order.paid_at ? formatKoreanDateTime(order.paid_at) : null,
     items: joinedItems.map(({ item, product, cancellation }) =>
       toOrderItemViewModelParts(order, item, product, cancellation).detailItem,
     ),

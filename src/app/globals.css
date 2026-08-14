@@ -123,3 +123,49 @@
     @apply bg-background text-foreground;
   }
 }
+
+@media print {
+  @page {
+    margin: 16mm;
+  }
+
+  body:has(.print-receipt-page) [data-main-layout] {
+    display: block;
+    min-height: 0;
+    padding: 0;
+  }
+
+  body:has(.print-receipt-page) [data-site-header],
+  body:has(.print-receipt-page) footer,
+  body:has(.print-receipt-page) [data-mobile-bottom-navigation],
+  body:has(.print-receipt-page) [data-mypage-navigation] {
+    display: none;
+  }
+
+  body:has(.print-receipt-page) [data-mypage-page-title] {
+    display: none !important;
+  }
+
+  body:has(.print-receipt-page) [data-mypage-layout] {
+    width: auto;
+    max-width: none;
+    padding: 0;
+  }
+
+  body:has(.print-receipt-page) [data-mypage-layout] > div {
+    display: block;
+  }
+
+  .print-receipt-page {
+    break-inside: avoid;
+    width: 100%;
+    border: 0;
+    border-radius: 0;
+    background: white;
+    color: black;
+  }
+
+  .print-receipt-action {
+    display: none;
+  }
+}

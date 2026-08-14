@@ -36,6 +36,25 @@ export const calculatePointBalance = (
   transactions: readonly PointTransactionDTO[],
 ) => transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
 
+export function calculateUsedPointAmount(
+  transactions: readonly PointTransactionDTO[],
+): number {
+  return transactions
+    .filter(transaction => transaction.transaction_type === 'use')
+    .reduce((total, transaction) => total + Math.abs(transaction.amount), 0);
+}
+
+export function calculateEarnedPointAmount(
+  transactions: readonly PointTransactionDTO[],
+): number {
+  return transactions
+    .filter(
+      transaction =>
+        transaction.transaction_type === 'earn' && transaction.amount > 0,
+    )
+    .reduce((total, transaction) => total + transaction.amount, 0);
+}
+
 export interface NextPointExpiration {
   expiresAt: string;
   amount: number;

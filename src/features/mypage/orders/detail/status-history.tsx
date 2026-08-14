@@ -20,7 +20,7 @@ export function MypageOrderDetailStatusHistory({
           >
             {index < histories.length - 1 ? (
               <span
-                className="absolute top-[18px] -bottom-1.5 left-[5px] w-0.5 bg-zinc-200"
+                className="absolute top-4.5 -bottom-1.5 left-1.25 w-0.5 bg-zinc-200"
                 aria-hidden="true"
               />
             ) : null}

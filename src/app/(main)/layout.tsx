@@ -19,9 +19,15 @@ interface LayoutProps {
 
 function Layout({ children, search, categories }: LayoutProps) {
   return (
-    <div className="flex min-h-screen flex-col items-center pt-15 md:pt-24 pb-20 font-sans dark:bg-black md:pb-0">
+    <div
+      className="flex min-h-screen flex-col items-center pt-15 md:pt-24 pb-20 font-sans dark:bg-black md:pb-0"
+      data-main-layout
+    >
       <OverlayRouteProvider>
-        <header className="fixed top-0 z-50 flex w-full items-center justify-center border-b border-gray-200 bg-white dark:border-gray-700">
+        <header
+          className="fixed top-0 z-50 flex w-full items-center justify-center border-b border-gray-200 bg-white dark:border-gray-700"
+          data-site-header
+        >
           <div className="flex flex-col w-full justify-center items-center">
             <Header />
             {search}
@@ -34,7 +40,7 @@ function Layout({ children, search, categories }: LayoutProps) {
 
       <Footer />
 
-      <div className="md:hidden">
+      <div className="md:hidden" data-mobile-bottom-navigation>
         <MobileBottomNav />
       </div>
       <Toaster

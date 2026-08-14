@@ -4,12 +4,26 @@ import type {
   OrderDTO,
   OrderItemCancellationDTO,
   OrderItemDTO,
+  OrderPaymentTransactionDTO,
   OrderStatusHistoryDTO,
 } from './dto';
 
 export interface OrderRepository {
   findById(orderId: string): Promise<OrderDTO | null>;
   findByUserId(userId: string): Promise<OrderDTO[]>;
+}
+
+export interface OrderMutationRepository {
+  replaceOrder(order: OrderDTO): Promise<void>;
+  createOrder(order: OrderDTO): Promise<void>;
+  createOrderItems(items: OrderItemDTO[]): Promise<void>;
+  createOrderItemCancellations(
+    cancellations: OrderItemCancellationDTO[],
+  ): Promise<void>;
+  createOrderStatusHistories(histories: OrderStatusHistoryDTO[]): Promise<void>;
+  createPaymentTransactions(
+    transactions: OrderPaymentTransactionDTO[],
+  ): Promise<void>;
 }
 
 export interface OrderItemRepository {
@@ -26,6 +40,10 @@ export interface OrderClaimRepository {
 
 export interface OrderStatusHistoryRepository {
   findByOrderIds(orderIds: string[]): Promise<OrderStatusHistoryDTO[]>;
+}
+
+export interface OrderPaymentTransactionRepository {
+  findByOrderIds(orderIds: string[]): Promise<OrderPaymentTransactionDTO[]>;
 }
 
 export interface OrderProductRepository {
