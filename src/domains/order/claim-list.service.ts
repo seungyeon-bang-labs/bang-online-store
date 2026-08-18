@@ -5,7 +5,7 @@ import {
 import { paginate } from '@/shared/lib/pagination';
 import { filterOrderClaims } from './domain';
 import type { OrderClaimListQuery } from './domain';
-import { toOrderClaimViewModel } from './mapper';
+import { toOrderClaimViewModel } from './claim.mapper';
 import type { OrderItemRelationsService } from './order-item-relations.service';
 import type {
   OrderClaimRepository,

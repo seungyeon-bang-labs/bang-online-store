@@ -53,4 +53,5 @@ export interface OrderPaymentTransactionRepository {
 
 export interface OrderProductRepository {
   findByIds(ids: number[]): Promise<Product[]>;
+  findByGroupId(groupId: number): Promise<Product[]>;
 }

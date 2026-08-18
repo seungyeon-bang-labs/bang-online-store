@@ -29,7 +29,7 @@ export const INQUIRY_TYPE_FILTER_LABELS: Record<
   all: '전체',
   order: '주문/결제',
   delivery: '배송',
-  return: '교환/반품',
+  return: '교환·반품',
   product: '상품',
   coupon: '쿠폰/이벤트',
   account: '회원/계정',

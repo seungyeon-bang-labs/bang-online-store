@@ -7,6 +7,7 @@ import {
 } from './product.domain';
 import type {
   ProductCardViewModel,
+  ProductColorViewModel,
   ProductDetailViewModel,
 } from './product.view-model';
 
@@ -27,22 +28,10 @@ export const toProductCardViewModel = (
   };
 };
 
-export const getGroupProductColors = (product: Product) => {
-  if (!product.group_id) {
-    const colorInfo = colorMap.find(color => color.id === product.colorId);
-
-    return [
-      {
-        id: product.id,
-        label: colorInfo?.label ?? '기본',
-        hex: colorInfo?.hexCode ?? '#000000',
-      },
-    ];
-  }
-
-  return products
-    .filter(item => item.group_id === product.group_id)
-    .map(item => {
+export const toProductColorViewModels = (
+  productItems: readonly Product[],
+): ProductColorViewModel[] =>
+  productItems.map(item => {
       const colorInfo = colorMap.find(color => color.id === item.colorId);
 
       return {
@@ -51,7 +40,13 @@ export const getGroupProductColors = (product: Product) => {
         hex: colorInfo?.hexCode ?? '#000000',
       };
     });
-};
+
+export const getGroupProductColors = (product: Product) =>
+  toProductColorViewModels(
+    product.group_id
+      ? products.filter(item => item.group_id === product.group_id)
+      : [product],
+  );
 
 export const toProductDetailViewModel = (
   product: Product,
@@ -64,4 +59,3 @@ export const toProductDetailViewModel = (
   variants: product.variants,
   groupColors: getGroupProductColors(product),
 });
-

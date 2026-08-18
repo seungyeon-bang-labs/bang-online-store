@@ -87,7 +87,7 @@ export const NOTICES: NoticeDTO[] = [
   },
   {
     id: 88,
-    title: '반품/환불 정책 변경 안내',
+    title: '교환·반품 정책 변경 안내',
     date: '2026.02.21',
     category: 'policy',
     tag: '정책',

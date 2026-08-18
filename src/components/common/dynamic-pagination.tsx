@@ -8,12 +8,14 @@ import {
   PaginationEllipsis,
 } from '@/components/ui/pagination';
 
+type PaginationRangeItem = number | '...';
+
 function getPaginationRange(currentPage: number, totalPages: number) {
   if (totalPages <= 0) return [];
 
   const delta = 2;
   const range: number[] = [];
-  const rangeWithDots: (number | string)[] = [];
+  const rangeWithDots: PaginationRangeItem[] = [];
 
   for (
     let i = Math.max(2, currentPage - delta);
@@ -46,7 +48,7 @@ function getPaginationRange(currentPage: number, totalPages: number) {
 interface DynamicPaginationProps {
   currentPage: number;
   totalPages: number;
-  getPageHref: (params: { page: number | string }) => string;
+  getPageHref: (params: { page: number }) => string;
 }
 
 export function DynamicPagination({

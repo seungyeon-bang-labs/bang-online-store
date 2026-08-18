@@ -10,7 +10,10 @@ import type {
   OrderItemActionViewModel,
   OrderItemActionsViewModel,
 } from '@/domains/order';
-import { getMypageOrderReceiptHref } from '@/shared/lib/mypage-routes';
+import {
+  getMypageOrderClaimRequestHref,
+  getMypageOrderReceiptHref,
+} from '@/shared/lib/mypage-routes';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -86,12 +89,14 @@ export function MypageOrderItemActions({
       <OrderItemActionButton
         action={actions.primary}
         orderId={orderId}
+        orderItemId={orderItemId}
         isPending={isPending}
         onAction={runAction}
       />
       <OrderItemActionButton
         action={actions.secondary}
         orderId={orderId}
+        orderItemId={orderItemId}
         isPending={isPending}
         onAction={runAction}
       />
@@ -116,6 +121,7 @@ export function MypageOrderItemActions({
                 key={action.type}
                 action={action}
                 orderId={orderId}
+                orderItemId={orderItemId}
                 isPending={isPending}
                 onAction={runAction}
               />
@@ -132,19 +138,23 @@ export function MypageOrderItemActions({
 interface OrderItemActionProps {
   action: OrderItemActionViewModel;
   orderId: string;
+  orderItemId: string;
   isPending: boolean;
   onAction: (action: OrderItemActionViewModel) => void;
 }
 
 function getOrderItemActionHref(
   orderId: string,
+  orderItemId: string,
   action: OrderItemActionViewModel,
 ): string | null {
   if (action.type === 'receipt' || action.type === 'refund') {
     return getMypageOrderReceiptHref(orderId);
   }
   if (action.type === 'review') return '/mypage/reviews?tab=available&page=1';
-  if (action.type === 'claim') return '/mypage/returns';
+  if (action.type === 'claim') {
+    return getMypageOrderClaimRequestHref(orderId, orderItemId);
+  }
   if (action.type === 'inquiry') return '/mypage/inquiries';
   return null;
 }
@@ -152,10 +162,11 @@ function getOrderItemActionHref(
 function OrderItemActionButton({
   action,
   orderId,
+  orderItemId,
   isPending,
   onAction,
 }: OrderItemActionProps) {
-  const href = getOrderItemActionHref(orderId, action);
+  const href = getOrderItemActionHref(orderId, orderItemId, action);
   const className =
     'w-full rounded-sm border-zinc-300 font-bold shadow-none hover:border-black hover:bg-black hover:text-white';
 
@@ -184,10 +195,11 @@ function OrderItemActionButton({
 function OrderItemMenuAction({
   action,
   orderId,
+  orderItemId,
   isPending,
   onAction,
 }: OrderItemActionProps) {
-  const href = getOrderItemActionHref(orderId, action);
+  const href = getOrderItemActionHref(orderId, orderItemId, action);
   const className = 'cursor-pointer font-bold focus:bg-black focus:text-white';
 
   if (href) {

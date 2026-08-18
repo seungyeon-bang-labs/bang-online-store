@@ -6,9 +6,6 @@ import {
 import type { StatusViewModel } from '@/shared/types/status';
 import { toProductCardViewModel, type Product } from '@/domains/product';
 import type {
-  OrderClaimDTO,
-  OrderClaimStatus,
-  OrderClaimType,
   OrderDTO,
   OrderItemCancellationDTO,
   OrderItemDTO,
@@ -17,7 +14,6 @@ import type {
   OrderStatusHistoryStatus,
 } from './dto';
 import type {
-  OrderClaimViewModel,
   OrderDetailItemViewModel,
   OrderDetailViewModel,
   OrderItemActionsViewModel,
@@ -77,26 +73,6 @@ const ORDER_STATUS_HISTORY_LABELS: Record<
   cancelled: '주문 취소',
 };
 
-const ORDER_CLAIM_TYPE_VIEW: Record<OrderClaimType, StatusViewModel> = {
-  exchange: { label: '교환', tone: 'info' },
-  return: { label: '반품', tone: 'warning' },
-};
-
-const ORDER_CLAIM_STATUS_VIEW: Record<OrderClaimStatus, StatusViewModel> = {
-  requested: { label: '신청', tone: 'warning' },
-  processing: { label: '처리중', tone: 'info' },
-  completed: { label: '처리완료', tone: 'success' },
-  rejected: { label: '반려', tone: 'danger' },
-};
-
-export const toOrderClaimTypeViewModel = (
-  type: OrderClaimType,
-): StatusViewModel => ORDER_CLAIM_TYPE_VIEW[type];
-
-export const toOrderClaimStatusViewModel = (
-  status: OrderClaimStatus,
-): StatusViewModel => ORDER_CLAIM_STATUS_VIEW[status];
-
 function getOrderItemActions(
   status: OrderStatus,
   canRepurchase: boolean,
@@ -128,7 +104,7 @@ function getOrderItemActions(
   if (status === 'delivered') {
     return {
       primary: { type: 'review', label: '리뷰 쓰기' },
-      secondary: { type: 'claim', label: '교환/반품' },
+      secondary: { type: 'claim', label: '교환·반품' },
       more: canRepurchase
         ? [{ type: 'repurchase', label: '다시 담기' }]
         : [{ type: 'inquiry', label: '1:1 문의' }],
@@ -329,33 +305,5 @@ export function toOrderDetailViewModel(
         occurredAt: formatKoreanDateTime(history.occurred_at),
         isCurrent: history.status === order.status,
       })),
-  };
-}
-
-export function toOrderClaimViewModel(
-  claim: OrderClaimDTO,
-  order: OrderDTO,
-  item: OrderItemDTO,
-  product: Product,
-): OrderClaimViewModel {
-  const type = toOrderClaimTypeViewModel(claim.claim_type);
-  const status = toOrderClaimStatusViewModel(claim.status);
-
-  return {
-    id: claim.id,
-    orderNumber: order.order_number,
-    product: toProductCardViewModel(product),
-    productName: item.product_name,
-    optionLabel: item.option_label,
-    lineTotalText: formatKoreanMoney(item.line_total_amount),
-    status: {
-      ...status,
-      label: `${type.label} ${status.label}`,
-    },
-    reason: claim.reason,
-    requestedAt: formatKoreanDate(claim.requested_at),
-    completedAt: claim.completed_at
-      ? formatKoreanDate(claim.completed_at)
-      : null,
   };
 }

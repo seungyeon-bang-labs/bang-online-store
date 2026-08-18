@@ -30,7 +30,7 @@ async function ReturnsPage({ searchParams }: ReturnsPageProps) {
 
   return (
     <div className="space-y-8">
-      <MypageSectionHeader title="교환/반품 내역" />
+      <MypageSectionHeader title="교환·반품 내역" />
       <MypageFilterCard
         filters={ORDER_CLAIM_LIST_FILTERS}
         values={{ type: query.type, status: query.status }}
@@ -41,7 +41,7 @@ async function ReturnsPage({ searchParams }: ReturnsPageProps) {
       ) : (
         <MypageEmptyState
           icon={RotateCcw}
-          title="교환/반품 내역이 없습니다."
+          title="교환·반품 내역이 없습니다."
           description="처리 중인 요청이 생기면 이곳에서 진행 상태를 확인할 수 있습니다."
         />
       )}

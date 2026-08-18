@@ -51,7 +51,7 @@ export function toMypageHomeRecentOrderViewModel({
         tracking: 'placeholder',
         reviewWrite: '/mypage/reviews?tab=available&page=1',
         reviewEdit: '/mypage/reviews?tab=completed&page=1',
-        claim: '/cs/return-request',
+        claim: orderHref,
         receipt: getMypageOrderReceiptHref(order.id),
         refund: getMypageOrderReceiptHref(order.id),
         inquiry: '/mypage/inquiries',

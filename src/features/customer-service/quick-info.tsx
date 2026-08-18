@@ -4,10 +4,10 @@ import { CS_MENU } from '@/lib/navigation';
 export function QuickInfo() {
   return (
     <div className="grid md:grid-cols-2 gap-0 bg-black text-white rounded-2xl overflow-hidden">
-      {/* 반품 및 환불 안내 */}
+      {/* 교환·반품 안내 */}
       <div className="p-12 md:p-16 flex flex-col justify-between border-b md:border-b-0 md:border-r border-gray-800">
         <div>
-          <h2 className="text-2xl font-black mb-8">반품 및 환불 안내</h2>
+          <h2 className="text-2xl font-black mb-8">교환·반품 안내</h2>
           <div className="space-y-4 mb-12">
             <div className="space-y-2">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
@@ -44,7 +44,7 @@ export function QuickInfo() {
           variant="ghost"
           className="border border-white text-white font-bold tracking-widest hover:bg-white hover:text-black transition-all"
         >
-          반품/환불 신청
+          교환·반품 신청
         </ButtonLink>
       </div>
 

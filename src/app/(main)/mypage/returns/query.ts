@@ -21,7 +21,7 @@ export interface ReturnsPageSearchParams {
 interface OrderClaimListHrefQuery {
   type: OrderClaimListQuery['type'];
   status: OrderClaimListQuery['status'];
-  page: string | number;
+  page: number;
 }
 
 const ORDER_CLAIM_TYPE_LINKS = ORDER_CLAIM_TYPE_FILTERS.map(value => ({

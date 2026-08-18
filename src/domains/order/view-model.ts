@@ -2,6 +2,7 @@ import type { PageSlice } from '@/shared/lib/pagination';
 import type { StatusViewModel } from '@/shared/types/status';
 import type { ProductCardViewModel } from '@/domains/product';
 import type { OrderPaymentMethod, OrderStatus } from './dto';
+import type { OrderClaimRequestUnavailableReason } from './domain';
 
 export type OrderItemActionType =
   | 'payment'
@@ -126,3 +127,38 @@ export interface OrderClaimViewModel {
 }
 
 export type OrderClaimPageViewModel = PageSlice<OrderClaimViewModel>;
+
+export interface OrderClaimRequestVariantOptionViewModel {
+  id: string;
+  label: string;
+  isAvailable: boolean;
+  stock: number;
+  unitAmount: number;
+}
+
+export interface OrderClaimRequestColorOptionViewModel {
+  productId: number;
+  label: string;
+  hex: string;
+  variants: OrderClaimRequestVariantOptionViewModel[];
+}
+
+export interface OrderClaimRequestViewModel {
+  orderId: string;
+  orderNumber: string;
+  orderedAt: string;
+  orderItemId: string;
+  product: ProductCardViewModel;
+  productName: string;
+  optionLabel: string;
+  quantity: number;
+  itemAmount: number;
+  itemAmountText: string;
+  collectionAddressText: string;
+  isEligible: boolean;
+  unavailableReason: OrderClaimRequestUnavailableReason | null;
+  currentProductId: number;
+  currentVariantId: string;
+  currentVariantLabel: string;
+  exchangeColorOptions: OrderClaimRequestColorOptionViewModel[];
+}
