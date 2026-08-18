@@ -30,7 +30,7 @@ const SHARED_MENU: { [key: string]: MenuItem } = {
   FAQ: { name: '자주 묻는 질문', href: '/cs/faq', icon: HelpCircle },
   INQUIRY: { name: '1:1 문의', href: '/cs/inquiry', icon: MessageSquare },
   RETURN_REQUEST: {
-    name: '반품 및 환불 안내',
+    name: '교환·반품 안내',
     href: '/cs/return-request',
     icon: RotateCcw,
   },

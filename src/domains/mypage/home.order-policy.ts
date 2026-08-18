@@ -141,7 +141,7 @@ export function buildMypageHomeOrderActions({
     links.reviewEdit,
   );
   const claim = canClaim
-    ? createNavigationAction('claim', '교환/반품', links.claim)
+    ? createNavigationAction('claim', '교환·반품', links.claim)
     : null;
   const repurchase =
     itemCount === 1 ? createRepurchaseAction(repurchaseItem) : null;

@@ -16,6 +16,14 @@ export type OrderClaimStatus =
   | 'completed'
   | 'rejected';
 
+export type OrderClaimProgressStage =
+  | 'collection_scheduled'
+  | 'collection_completed'
+  | 'inspecting'
+  | 'exchange_preparing_shipment'
+  | 'exchange_shipping'
+  | 'refund_processing';
+
 export type OrderRefundStatus = 'pending' | 'completed';
 
 export const ORDER_PAYMENT_METHODS = ['신용카드', '무통장 입금'] as const;
@@ -103,6 +111,7 @@ export interface OrderClaimDTO {
   order_item_id: string;
   claim_type: OrderClaimType;
   status: OrderClaimStatus;
+  progress_stage: OrderClaimProgressStage | null;
   reason: string;
   requested_at: string;
   completed_at: string | null;

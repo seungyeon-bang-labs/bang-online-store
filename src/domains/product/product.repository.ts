@@ -13,6 +13,10 @@ export const productRepository = {
     return products.filter(product => ids.includes(product.id));
   },
 
+  async findByGroupId(groupId: number) {
+    return products.filter(product => product.group_id === groupId);
+  },
+
   async findByCategory(categorySlug: string, subcategorySlug?: string) {
     return products.filter(product => {
       if (subcategorySlug && subcategorySlug !== 'all') {

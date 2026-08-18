@@ -44,7 +44,7 @@ export function InquiryForm() {
             </option>
             <option value="order">주문/결제</option>
             <option value="delivery">배송</option>
-            <option value="return">교환/반품</option>
+            <option value="return">교환·반품</option>
             <option value="product">상품</option>
             <option value="coupon">쿠폰/이벤트</option>
             <option value="account">회원/계정</option>
