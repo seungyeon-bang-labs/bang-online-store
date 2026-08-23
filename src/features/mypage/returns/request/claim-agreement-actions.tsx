@@ -1,7 +1,7 @@
 import { Button, ButtonLink } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { InputError } from '@/components/ui/input';
-import type { OrderClaimRequestType } from '@/domains/order/domain';
+import type { OrderClaimRequestType } from '@/domains/order/claim/domain';
 
 interface MypageClaimRequestAgreementActionsProps {
   agreed: boolean;

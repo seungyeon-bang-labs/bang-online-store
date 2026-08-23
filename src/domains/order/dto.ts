@@ -8,22 +8,6 @@ export type OrderStatus =
 
 export type OrderStatusHistoryStatus = OrderStatus | 'order_received';
 
-export type OrderClaimType = 'exchange' | 'return';
-
-export type OrderClaimStatus =
-  | 'requested'
-  | 'processing'
-  | 'completed'
-  | 'rejected';
-
-export type OrderClaimProgressStage =
-  | 'collection_scheduled'
-  | 'collection_completed'
-  | 'inspecting'
-  | 'exchange_preparing_shipment'
-  | 'exchange_shipping'
-  | 'refund_processing';
-
 export type OrderRefundStatus = 'pending' | 'completed';
 
 export const ORDER_PAYMENT_METHODS = ['신용카드', '무통장 입금'] as const;
@@ -102,17 +86,4 @@ export interface OrderStatusHistoryDTO {
   order_id: string;
   status: OrderStatusHistoryStatus;
   occurred_at: string;
-}
-
-export interface OrderClaimDTO {
-  id: string;
-  user_id: string;
-  order_id: string;
-  order_item_id: string;
-  claim_type: OrderClaimType;
-  status: OrderClaimStatus;
-  progress_stage: OrderClaimProgressStage | null;
-  reason: string;
-  requested_at: string;
-  completed_at: string | null;
 }

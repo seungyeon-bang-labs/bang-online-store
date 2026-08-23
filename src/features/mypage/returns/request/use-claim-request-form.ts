@@ -2,8 +2,8 @@ import { useState } from 'react';
 import type {
   OrderClaimRequestReason,
   OrderClaimRequestType,
-} from '@/domains/order/domain';
-import type { OrderClaimRequestViewModel } from '@/domains/order/view-model';
+} from '@/domains/order/claim/domain';
+import type { OrderClaimRequestViewModel } from '@/domains/order/claim/view-model';
 
 export interface ClaimRequestErrors {
   type?: string;

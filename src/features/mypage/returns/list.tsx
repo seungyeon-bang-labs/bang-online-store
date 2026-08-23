@@ -1,4 +1,4 @@
-import type { OrderClaimViewModel } from '@/domains/order';
+import type { OrderClaimViewModel } from '@/domains/order/claim/view-model';
 import { MypageClaimCard } from './card';
 
 interface MypageClaimListProps {

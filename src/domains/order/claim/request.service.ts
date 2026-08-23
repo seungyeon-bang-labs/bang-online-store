@@ -1,12 +1,12 @@
 import { getOrderClaimRequestUnavailableReason } from './domain';
-import { toOrderClaimRequestViewModel } from './claim.mapper';
+import { toOrderClaimRequestViewModel } from './mapper';
 import type {
-  OrderClaimRepository,
   OrderItemCancellationRepository,
   OrderItemRepository,
   OrderProductRepository,
   OrderRepository,
-} from './repository';
+} from '../repository';
+import type { OrderClaimRepository } from './repository';
 import type { OrderClaimRequestViewModel } from './view-model';
 
 interface ClaimRequestServiceDependencies {

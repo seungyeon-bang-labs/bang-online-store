@@ -1,9 +1,9 @@
 import type {
-  OrderClaimRepository,
   OrderItemCancellationRepository,
   OrderItemRepository,
   OrderRepository,
 } from '@/domains/order/repository';
+import type { OrderClaimRepository } from '@/domains/order/claim/repository';
 import { isReviewWritable } from './domain';
 import { toReviewFormPageViewModel } from './mapper';
 import type { ActivityProductRepository, ReviewRepository } from './repository';

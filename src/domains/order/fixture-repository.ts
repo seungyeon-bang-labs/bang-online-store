@@ -1,5 +1,4 @@
 import {
-  ORDER_CLAIMS,
   ORDER_ITEMS,
   ORDER_ITEM_CANCELLATIONS,
   ORDER_STATUS_HISTORIES,
@@ -15,7 +14,6 @@ import type {
 import type {
   OrderMutationRepository,
   OrderPaymentTransactionRepository,
-  OrderClaimRepository,
   OrderItemCancellationRepository,
   OrderItemRepository,
   OrderRepository,
@@ -163,20 +161,5 @@ export const fixtureOrderMutationRepository: OrderMutationRepository = {
       ...demoPaymentTransactions,
       ...transactions.map(cloneTransaction),
     ];
-  },
-};
-
-export const fixtureOrderClaimRepository: OrderClaimRepository = {
-  async findByOrderItemIds(orderItemIds) {
-    const orderItemIdSet = new Set(orderItemIds);
-
-    return ORDER_CLAIMS.filter(claim =>
-      orderItemIdSet.has(claim.order_item_id),
-    ).map(claim => ({ ...claim }));
-  },
-  async findByUserId(userId) {
-    return ORDER_CLAIMS.filter(claim => claim.user_id === userId).map(
-      claim => ({ ...claim }),
-    );
   },
 };

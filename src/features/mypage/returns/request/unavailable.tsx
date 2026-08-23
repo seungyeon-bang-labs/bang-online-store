@@ -1,6 +1,6 @@
 import { CircleAlert } from 'lucide-react';
 import { ButtonLink } from '@/components/ui/button';
-import type { OrderClaimRequestUnavailableReason } from '@/domains/order/domain';
+import type { OrderClaimRequestUnavailableReason } from '@/domains/order/claim/domain';
 import { MypageEmptyState } from '@/features/mypage/common';
 
 const UNAVAILABLE_COPY: Record<OrderClaimRequestUnavailableReason, string> = {
