@@ -22,7 +22,7 @@ import type {
 
 let demoOrders = ORDERS.map(order => ({ ...order }));
 let demoOrderItems = ORDER_ITEMS.map(item => ({ ...item }));
-let demoOrderItemCancellations = ORDER_ITEM_CANCELLATIONS.map(cancellation => ({
+const demoOrderItemCancellations = ORDER_ITEM_CANCELLATIONS.map(cancellation => ({
   ...cancellation,
 }));
 let demoOrderStatusHistories = ORDER_STATUS_HISTORIES.map(history => ({
@@ -133,22 +133,11 @@ export const fixtureOrderPaymentTransactionRepository: OrderPaymentTransactionRe
   };
 
 export const fixtureOrderMutationRepository: OrderMutationRepository = {
-  async replaceOrder(order) {
-    demoOrders = demoOrders.map(current =>
-      current.id === order.id ? cloneOrder(order) : current,
-    );
-  },
   async createOrder(order) {
     demoOrders = [...demoOrders, cloneOrder(order)];
   },
   async createOrderItems(items) {
     demoOrderItems = [...demoOrderItems, ...items.map(cloneOrderItem)];
-  },
-  async createOrderItemCancellations(cancellations) {
-    demoOrderItemCancellations = [
-      ...demoOrderItemCancellations,
-      ...cancellations.map(cloneCancellation),
-    ];
   },
   async createOrderStatusHistories(histories) {
     demoOrderStatusHistories = [

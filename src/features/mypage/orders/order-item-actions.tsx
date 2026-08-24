@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useTransition } from 'react';
 import { MoreHorizontal } from 'lucide-react';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/domains/cart';
@@ -11,6 +11,7 @@ import type {
   OrderItemActionsViewModel,
 } from '@/domains/order';
 import {
+  getMypageOrderCancellationHref,
   getMypageOrderClaimRequestHref,
   getMypageOrderReceiptHref,
 } from '@/shared/lib/mypage-routes';
@@ -20,7 +21,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { cancelDemoOrderItem } from '@/app/(main)/mypage/orders/actions';
 
 interface MypageOrderItemActionsProps {
   actions: OrderItemActionsViewModel;
@@ -41,27 +41,13 @@ export function MypageOrderItemActions({
   orderItemId,
   repurchaseItem,
 }: MypageOrderItemActionsProps) {
-  const [isPending, startTransition] = useTransition();
   const addToCart = useCartStore(state => state.addToCart);
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const search = searchParams.toString();
+  const returnTo = search ? `${pathname}?${search}` : pathname;
 
   const runAction = (action: OrderItemActionViewModel) => {
-    if (action.type === 'cancel') {
-      startTransition(async () => {
-        try {
-          await cancelDemoOrderItem(orderId, orderItemId);
-          toast.success('상품을 취소하고 환불 내역을 반영했습니다.', {
-            position: 'bottom-center',
-          });
-        } catch (error) {
-          toast.error(
-            error instanceof Error ? error.message : '주문 취소에 실패했습니다.',
-            { position: 'bottom-center' },
-          );
-        }
-      });
-      return;
-    }
-
     if (action.type === 'repurchase' && repurchaseItem) {
       addToCart(
         repurchaseItem.productId,
@@ -90,14 +76,14 @@ export function MypageOrderItemActions({
         action={actions.primary}
         orderId={orderId}
         orderItemId={orderItemId}
-        isPending={isPending}
+        returnTo={returnTo}
         onAction={runAction}
       />
       <OrderItemActionButton
         action={actions.secondary}
         orderId={orderId}
         orderItemId={orderItemId}
-        isPending={isPending}
+        returnTo={returnTo}
         onAction={runAction}
       />
       {actions.more.length > 0 ? (
@@ -122,7 +108,7 @@ export function MypageOrderItemActions({
                 action={action}
                 orderId={orderId}
                 orderItemId={orderItemId}
-                isPending={isPending}
+                returnTo={returnTo}
                 onAction={runAction}
               />
             ))}
@@ -139,17 +125,21 @@ interface OrderItemActionProps {
   action: OrderItemActionViewModel;
   orderId: string;
   orderItemId: string;
-  isPending: boolean;
+  returnTo: string;
   onAction: (action: OrderItemActionViewModel) => void;
 }
 
 function getOrderItemActionHref(
   orderId: string,
   orderItemId: string,
+  returnTo: string,
   action: OrderItemActionViewModel,
 ): string | null {
   if (action.type === 'receipt' || action.type === 'refund') {
     return getMypageOrderReceiptHref(orderId);
+  }
+  if (action.type === 'cancel') {
+    return getMypageOrderCancellationHref(orderId, orderItemId, returnTo);
   }
   if (action.type === 'review') return '/mypage/reviews?tab=available&page=1';
   if (action.type === 'claim') {
@@ -163,10 +153,10 @@ function OrderItemActionButton({
   action,
   orderId,
   orderItemId,
-  isPending,
+  returnTo,
   onAction,
 }: OrderItemActionProps) {
-  const href = getOrderItemActionHref(orderId, orderItemId, action);
+  const href = getOrderItemActionHref(orderId, orderItemId, returnTo, action);
   const className =
     'w-full rounded-sm border-zinc-300 font-bold shadow-none hover:border-black hover:bg-black hover:text-white';
 
@@ -183,7 +173,6 @@ function OrderItemActionButton({
       type="button"
       variant="outline"
       size="sm"
-      disabled={isPending}
       className={className}
       onClick={() => onAction(action)}
     >
@@ -196,10 +185,10 @@ function OrderItemMenuAction({
   action,
   orderId,
   orderItemId,
-  isPending,
+  returnTo,
   onAction,
 }: OrderItemActionProps) {
-  const href = getOrderItemActionHref(orderId, orderItemId, action);
+  const href = getOrderItemActionHref(orderId, orderItemId, returnTo, action);
   const className = 'cursor-pointer font-bold focus:bg-black focus:text-white';
 
   if (href) {
@@ -212,7 +201,6 @@ function OrderItemMenuAction({
 
   return (
     <DropdownMenuItem
-      disabled={isPending}
       className={className}
       onSelect={() => onAction(action)}
     >

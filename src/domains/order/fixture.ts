@@ -63,11 +63,11 @@ export const ORDERS: readonly OrderDTO[] = [
   }),
   createOrder({
     id: '20000000-0000-4000-8000-000000000002',
-    order_number: 'ORD-20260712-004',
+    order_number: 'ORD-20260820-004',
     status: 'payment_completed',
-    ordered_at: '2026-07-12T10:20:00+09:00',
+    ordered_at: '2026-08-20T10:20:00+09:00',
     payment_due_at: null,
-    paid_at: '2026-07-12T10:21:00+09:00',
+    paid_at: '2026-08-20T10:21:00+09:00',
     estimated_delivery_at: null,
     cancelled_at: null,
     subtotal_amount: 289000,
@@ -315,7 +315,7 @@ export const ORDER_ITEMS: readonly OrderItemDTO[] = [
     unit_price: 289000,
     discount_amount: 20000,
     line_total_amount: 269000,
-    created_at: '2026-07-12T10:20:00+09:00',
+    created_at: '2026-08-20T10:20:00+09:00',
   },
   {
     id: '21000000-0000-4000-8000-000000000004',

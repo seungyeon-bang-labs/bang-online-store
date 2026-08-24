@@ -13,12 +13,8 @@ export interface OrderRepository {
 }
 
 export interface OrderMutationRepository {
-  replaceOrder(order: OrderDTO): Promise<void>;
   createOrder(order: OrderDTO): Promise<void>;
   createOrderItems(items: OrderItemDTO[]): Promise<void>;
-  createOrderItemCancellations(
-    cancellations: OrderItemCancellationDTO[],
-  ): Promise<void>;
   createOrderStatusHistories(histories: OrderStatusHistoryDTO[]): Promise<void>;
   createPaymentTransactions(
     transactions: OrderPaymentTransactionDTO[],
