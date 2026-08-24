@@ -1,29 +1,22 @@
 import {
-  getOrderClaimExchangePriceAdjustment,
   getOrderClaimExpectedRefundAmount,
   getOrderClaimRequestShippingFee,
   isOrderClaimInspectionRequired,
   type OrderClaimRequestReason,
   type OrderClaimRequestType,
-} from '@/domains/order/domain';
-import type { OrderClaimRequestViewModel } from '@/domains/order/view-model';
+} from '@/domains/order/claim/domain';
+import type { OrderClaimRequestViewModel } from '@/domains/order/claim/view-model';
 import { formatKoreanMoney } from '@/shared/lib/format';
 
 interface MypageClaimRequestProcessingGuideProps {
-  hasChangedExchangeOption: boolean;
   reason: OrderClaimRequestReason | '';
   claimRequest: OrderClaimRequestViewModel;
-  selectedExchangeOptionId: string;
-  selectedExchangeProductId: number | null;
   type: OrderClaimRequestType;
 }
 
 export function MypageClaimRequestProcessingGuide({
-  hasChangedExchangeOption,
   reason,
   claimRequest,
-  selectedExchangeOptionId,
-  selectedExchangeProductId,
   type,
 }: MypageClaimRequestProcessingGuideProps) {
   const shippingFee = getOrderClaimRequestShippingFee(reason);
@@ -32,18 +25,6 @@ export function MypageClaimRequestProcessingGuide({
     reason,
   });
   const requiresInspection = isOrderClaimInspectionRequired(reason);
-  const selectedExchangeVariant = claimRequest.exchangeColorOptions
-    .find(option => option.productId === selectedExchangeProductId)
-    ?.variants.find(variant => variant.id === selectedExchangeOptionId);
-  const exchangePriceAdjustment =
-    hasChangedExchangeOption && selectedExchangeVariant
-      ? getOrderClaimExchangePriceAdjustment({
-          currentItemAmount: claimRequest.itemAmount,
-          targetUnitAmount: selectedExchangeVariant.unitAmount,
-          quantity: claimRequest.quantity,
-        })
-      : null;
-
   return (
     <div
       className="mt-7 rounded-sm bg-zinc-50 p-4"
@@ -72,33 +53,11 @@ export function MypageClaimRequestProcessingGuide({
             </dd>
           </div>
         )}
-        {type === 'exchange' && exchangePriceAdjustment && (
-          <div className="border-t border-zinc-200 pt-3">
-            {exchangePriceAdjustment.type === 'none' ? (
-              <p className="font-medium text-zinc-600">
-                추가 결제 및 환불 없음
-              </p>
-            ) : (
-              <div className="flex justify-between gap-4">
-                <dt className="font-black text-black">
-                  {exchangePriceAdjustment.type === 'additional_payment'
-                    ? '추가 결제 금액'
-                    : '환불 금액'}
-                </dt>
-                <dd
-                  className={
-                    exchangePriceAdjustment.type === 'additional_payment'
-                      ? 'font-black text-blue-700'
-                      : 'font-black text-red-700'
-                  }
-                >
-                  {formatKoreanMoney(
-                    Math.abs(exchangePriceAdjustment.differenceAmount),
-                  )}
-                </dd>
-              </div>
-            )}
-          </div>
+        {type === 'exchange' && (
+          <p className="border-t border-zinc-200 pt-3 font-medium text-zinc-600">
+            교환은 구매한 옵션과 동일한 가격의 옵션으로만 신청할 수 있습니다.
+            가격이 다른 옵션은 반품 후 재주문해 주세요.
+          </p>
         )}
         {type === 'return' && reason && (
           <>

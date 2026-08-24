@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import type { OrderClaimRequestViewModel } from '@/domains/order/view-model';
+import type { OrderClaimRequestViewModel } from '@/domains/order/claim/view-model';
 
 type ClaimRequestProductSummary = Pick<
   OrderClaimRequestViewModel,

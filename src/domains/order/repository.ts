@@ -1,6 +1,5 @@
 import type { Product } from '@/domains/product/product.dto';
 import type {
-  OrderClaimDTO,
   OrderDTO,
   OrderItemCancellationDTO,
   OrderItemDTO,
@@ -36,11 +35,6 @@ export interface OrderItemCancellationRepository {
     orderItemIds: string[],
   ): Promise<OrderItemCancellationDTO[]>;
   findByOrderIds(orderIds: string[]): Promise<OrderItemCancellationDTO[]>;
-}
-
-export interface OrderClaimRepository {
-  findByOrderItemIds(orderItemIds: string[]): Promise<OrderClaimDTO[]>;
-  findByUserId(userId: string): Promise<OrderClaimDTO[]>;
 }
 
 export interface OrderStatusHistoryRepository {

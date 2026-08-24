@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { InputError } from '@/components/ui/input';
-import type { OrderClaimRequestType } from '@/domains/order/domain';
+import type { OrderClaimRequestType } from '@/domains/order/claim/domain';
 
 interface MypageClaimRequestTypeSelectorProps {
   errorMessage?: string;

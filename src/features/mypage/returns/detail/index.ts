@@ -1,2 +1,1 @@
-export { MypageClaimList } from './list';
 export { MypageClaimDetail } from './detail';

@@ -6,4 +6,8 @@ export {
   type MypageFilterOption,
 } from './filter-links';
 export { MypageSectionHeader } from './section-header';
+export {
+  MypageProcessingHistory,
+  MypageProcessingHistoryList,
+} from './processing-history';
 export { MypageStatusBadge } from './status-badge';

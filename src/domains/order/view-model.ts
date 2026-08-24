@@ -1,8 +1,10 @@
-import type { PageSlice } from '@/shared/lib/pagination';
 import type { StatusViewModel } from '@/shared/types/status';
+import type { PageSlice } from '@/shared/lib/pagination';
 import type { ProductCardViewModel } from '@/domains/product';
-import type { OrderPaymentMethod, OrderStatus } from './dto';
-import type { OrderClaimRequestUnavailableReason } from './domain';
+import type {
+  OrderPaymentMethod,
+  OrderStatus,
+} from './dto';
 
 export type OrderItemActionType =
   | 'payment'
@@ -111,54 +113,4 @@ export interface OrderDetailViewModel {
   shipping: OrderDetailShippingViewModel;
   refund: OrderDetailRefundSummaryViewModel;
   statusHistory: OrderStatusHistoryViewModel[];
-}
-
-export interface OrderClaimViewModel {
-  id: string;
-  orderNumber: string;
-  product: ProductCardViewModel;
-  productName: string;
-  optionLabel: string;
-  lineTotalText: string;
-  status: StatusViewModel;
-  reason: string;
-  requestedAt: string;
-  completedAt: string | null;
-}
-
-export type OrderClaimPageViewModel = PageSlice<OrderClaimViewModel>;
-
-export interface OrderClaimRequestVariantOptionViewModel {
-  id: string;
-  label: string;
-  isAvailable: boolean;
-  stock: number;
-  unitAmount: number;
-}
-
-export interface OrderClaimRequestColorOptionViewModel {
-  productId: number;
-  label: string;
-  hex: string;
-  variants: OrderClaimRequestVariantOptionViewModel[];
-}
-
-export interface OrderClaimRequestViewModel {
-  orderId: string;
-  orderNumber: string;
-  orderedAt: string;
-  orderItemId: string;
-  product: ProductCardViewModel;
-  productName: string;
-  optionLabel: string;
-  quantity: number;
-  itemAmount: number;
-  itemAmountText: string;
-  collectionAddressText: string;
-  isEligible: boolean;
-  unavailableReason: OrderClaimRequestUnavailableReason | null;
-  currentProductId: number;
-  currentVariantId: string;
-  currentVariantLabel: string;
-  exchangeColorOptions: OrderClaimRequestColorOptionViewModel[];
 }

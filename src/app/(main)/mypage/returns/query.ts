@@ -3,8 +3,8 @@ import {
   ORDER_CLAIM_TYPE_FILTERS,
   toOrderClaimStatusViewModel,
   toOrderClaimTypeViewModel,
-} from '@/domains/order';
-import type { OrderClaimListQuery } from '@/domains/order';
+} from '@/domains/order/claim';
+import type { OrderClaimListQuery } from '@/domains/order/claim/domain';
 import {
   buildQueryHref,
   firstQueryValue,

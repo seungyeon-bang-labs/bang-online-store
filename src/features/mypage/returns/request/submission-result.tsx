@@ -1,6 +1,6 @@
 import { CheckCircle2 } from 'lucide-react';
 import { ButtonLink } from '@/components/ui/button';
-import type { OrderClaimRequestType } from '@/domains/order/domain';
+import type { OrderClaimRequestType } from '@/domains/order/claim/domain';
 
 interface MypageClaimRequestSubmissionResultProps {
   type: OrderClaimRequestType;

@@ -8,11 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  getOrderClaimExchangePriceAdjustment,
-} from '@/domains/order/domain';
-import type { OrderClaimRequestColorOptionViewModel } from '@/domains/order/view-model';
-import { formatKoreanMoney } from '@/shared/lib/format';
+import type { OrderClaimRequestColorOptionViewModel } from '@/domains/order/claim/view-model';
 
 interface MypageClaimExchangeOptionSelectorProps {
   colorOptions: readonly OrderClaimRequestColorOptionViewModel[];
@@ -21,8 +17,6 @@ interface MypageClaimExchangeOptionSelectorProps {
   currentVariantLabel: string;
   selectedProductId: number;
   selectedVariantId: string;
-  currentItemAmount: number;
-  quantity: number;
   errorMessage?: string;
   onSelectionChange: (productId: number, variantId: string) => void;
 }
@@ -45,8 +39,6 @@ export function MypageClaimExchangeOptionSelector({
   currentVariantLabel,
   selectedProductId,
   selectedVariantId,
-  currentItemAmount,
-  quantity,
   errorMessage,
   onSelectionChange,
 }: MypageClaimExchangeOptionSelectorProps) {
@@ -64,7 +56,10 @@ export function MypageClaimExchangeOptionSelector({
       option => option.productId === productId,
     );
     const nextVariantId = nextColorOption?.variants.find(
-      variant => variant.label === selectedSizeLabel && variant.isAvailable,
+      variant =>
+        variant.label === selectedSizeLabel &&
+        variant.isAvailable &&
+        variant.isExchangeable,
     )?.id;
 
     onSelectionChange(productId, nextVariantId ?? '');
@@ -117,44 +112,20 @@ export function MypageClaimExchangeOptionSelector({
                 const isCurrentOption =
                   selectedColorOption.productId === currentProductId &&
                   variant.id === currentVariantId;
-                const optionPriceAdjustment =
-                  getOrderClaimExchangePriceAdjustment({
-                    currentItemAmount,
-                    targetUnitAmount: variant.unitAmount,
-                    quantity,
-                  });
-
                 return (
                   <SelectItem
                     key={variant.id}
                     value={variant.id}
-                    disabled={!variant.isAvailable || isCurrentOption}
+                    disabled={
+                      !variant.isAvailable ||
+                      !variant.isExchangeable ||
+                      isCurrentOption
+                    }
                   >
                     <div className="flex w-full items-center justify-between gap-4">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <span className="text-sm font-bold text-zinc-800">
-                          {variant.label}
-                        </span>
-                        {!isCurrentOption && variant.isAvailable && (
-                          <span
-                            className={
-                              optionPriceAdjustment.type ===
-                              'additional_payment'
-                                ? 'text-sm font-bold text-blue-700'
-                                : optionPriceAdjustment.type === 'refund'
-                                  ? 'text-sm font-bold text-red-700'
-                                  : 'text-sm font-bold text-zinc-500'
-                            }
-                          >
-                            {optionPriceAdjustment.type ===
-                            'additional_payment'
-                              ? `추가 결제 ${formatKoreanMoney(optionPriceAdjustment.differenceAmount)}`
-                              : optionPriceAdjustment.type === 'refund'
-                                ? `환불 ${formatKoreanMoney(Math.abs(optionPriceAdjustment.differenceAmount))}`
-                                : '차액 없음'}
-                          </span>
-                        )}
-                      </div>
+                      <span className="text-sm font-bold text-zinc-800">
+                        {variant.label}
+                      </span>
                       <div className="flex items-center gap-3">
                         {!variant.isAvailable ? (
                           <span className="text-sm font-bold text-red-500">
@@ -163,6 +134,10 @@ export function MypageClaimExchangeOptionSelector({
                         ) : isCurrentOption ? (
                           <span className="text-sm font-bold text-zinc-400">
                             현재 옵션
+                          </span>
+                        ) : !variant.isExchangeable ? (
+                          <span className="text-sm font-bold text-zinc-500">
+                            가격 차이로 교환 불가
                           </span>
                         ) : variant.stock < 5 ? (
                           <span className="text-sm font-bold text-orange-500">
@@ -176,6 +151,9 @@ export function MypageClaimExchangeOptionSelector({
               })}
             </SelectContent>
           </Select>
+          <p className="mt-2 text-sm font-medium text-zinc-500">
+            가격이 다른 옵션은 반품 후 재주문해 주세요.
+          </p>
         </section>
       </div>
       <InputError message={errorMessage} />

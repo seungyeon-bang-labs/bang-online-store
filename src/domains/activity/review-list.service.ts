@@ -4,11 +4,11 @@ import {
 } from '@/shared/lib/data-integrity';
 import { paginate } from '@/shared/lib/pagination';
 import type {
-  OrderClaimRepository,
   OrderItemCancellationRepository,
   OrderItemRepository,
   OrderRepository,
 } from '@/domains/order/repository';
+import type { OrderClaimRepository } from '@/domains/order/claim/repository';
 import {
   isReviewWritable,
   type ReviewListQuery,

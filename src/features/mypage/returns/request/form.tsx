@@ -11,8 +11,8 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   type OrderClaimRequestReason,
   type OrderClaimRequestType,
-} from '@/domains/order/domain';
-import type { OrderClaimRequestViewModel } from '@/domains/order/view-model';
+} from '@/domains/order/claim/domain';
+import type { OrderClaimRequestViewModel } from '@/domains/order/claim/view-model';
 import { MypageClaimRequestAgreementActions } from './claim-agreement-actions';
 import { MypageClaimRequestProcessingGuide } from './claim-processing-guide';
 import { MypageClaimRequestTypeSelector } from './claim-type-selector';
@@ -45,7 +45,6 @@ export function MypageClaimRequestForm({
     errors,
     exchangeOptionId,
     exchangeProductId,
-    hasChangedExchangeOption,
     isDescriptionRequired,
     reason,
     selectExchangeOption,
@@ -143,8 +142,6 @@ export function MypageClaimRequestForm({
                   exchangeProductId ?? claimRequest.currentProductId
                 }
                 selectedVariantId={exchangeOptionId}
-                currentItemAmount={claimRequest.itemAmount}
-                quantity={claimRequest.quantity}
                 errorMessage={errors.exchangeOption}
                 onSelectionChange={selectExchangeOption}
               />
@@ -185,9 +182,6 @@ export function MypageClaimRequestForm({
               claimRequest={claimRequest}
               type={type}
               reason={reason}
-              hasChangedExchangeOption={hasChangedExchangeOption}
-              selectedExchangeProductId={exchangeProductId}
-              selectedExchangeOptionId={exchangeOptionId}
             />
           </>
         )}

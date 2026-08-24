@@ -5,12 +5,10 @@ import {
 import { paginate } from '@/shared/lib/pagination';
 import { filterOrderClaims } from './domain';
 import type { OrderClaimListQuery } from './domain';
-import { toOrderClaimViewModel } from './claim.mapper';
-import type { OrderItemRelationsService } from './order-item-relations.service';
-import type {
-  OrderClaimRepository,
-  OrderRepository,
-} from './repository';
+import { toOrderClaimViewModel } from './mapper';
+import type { OrderItemRelationsService } from '../order-item-relations.service';
+import type { OrderRepository } from '../repository';
+import type { OrderClaimRepository } from './repository';
 import type { OrderClaimPageViewModel } from './view-model';
 
 interface ClaimListServiceDependencies {

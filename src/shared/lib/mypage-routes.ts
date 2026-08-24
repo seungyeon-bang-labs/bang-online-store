@@ -9,6 +9,10 @@ export function getMypageOrderClaimRequestHref(
   return `/mypage/orders/${orderId}/claim/${orderItemId}`;
 }
 
+export function getMypageOrderClaimDetailHref(claimId: string): string {
+  return `/mypage/returns/${claimId}`;
+}
+
 export function getMypageOrderReceiptHref(
   orderId: string,
   type?: 'purchase' | 'card' | 'cash' | 'refund',

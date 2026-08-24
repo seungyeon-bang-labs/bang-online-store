@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import type { OrderClaimRequestType } from '@/domains/order/domain';
-import type { OrderClaimRequestViewModel } from '@/domains/order/view-model';
+import type { OrderClaimRequestType } from '@/domains/order/claim/domain';
+import type { OrderClaimRequestViewModel } from '@/domains/order/claim/view-model';
 import { MypageClaimRequestForm } from './form';
 import { MypageClaimRequestSubmissionResult } from './submission-result';
 
