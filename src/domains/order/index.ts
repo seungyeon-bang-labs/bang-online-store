@@ -13,6 +13,7 @@ import {
   fixtureOrderClaimSettlementRepository,
 } from './claim/fixture-repository';
 import { createOrderCommandService } from './order-command.service';
+import { createOrderCancellationPreviewService } from './cancellation/preview.service';
 import { createClaimListService } from './claim/list.service';
 import { createClaimDetailService } from './claim/detail.service';
 import { createClaimRequestService } from './claim/request.service';
@@ -23,6 +24,7 @@ import { createOrderListService } from './order-list.service';
 export * from './domain';
 export * from './dto';
 export * from './claim';
+export * from './cancellation';
 export * from './mapper';
 export * from './order-command.service';
 export * from './repository';
@@ -61,10 +63,14 @@ const orderDetailService = createOrderDetailService({
 });
 
 const orderCommandService = createOrderCommandService({
+  orderMutationRepository,
+  productRepository,
+});
+
+const orderCancellationPreviewService = createOrderCancellationPreviewService({
   orderRepository,
   orderItemRepository,
   orderItemCancellationRepository,
-  orderMutationRepository,
   productRepository,
 });
 
@@ -95,6 +101,8 @@ export const getOrderListViewModel =
   orderListService.getOrderListViewModel;
 export const getOrderDetailViewModel =
   orderDetailService.getOrderDetailViewModel;
+export const getOrderCancellationPreviewViewModel =
+  orderCancellationPreviewService.getOrderCancellationPreviewViewModel;
 export const getOrderClaimListViewModel =
   claimListService.getOrderClaimListViewModel;
 export const getOrderClaimDetailViewModel =
@@ -102,4 +110,3 @@ export const getOrderClaimDetailViewModel =
 export const getOrderClaimRequestViewModel =
   claimRequestService.getOrderClaimRequestViewModel;
 export const createDemoOrder = orderCommandService.createDemoOrder;
-export const cancelOrderItems = orderCommandService.cancelOrderItems;

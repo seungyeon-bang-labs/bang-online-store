@@ -2,6 +2,7 @@ import { getOrderActionEligibility } from '@/domains/order';
 import type { OrderDTO } from '@/domains/order/dto';
 import type { OrderListItemViewModel } from '@/domains/order/view-model';
 import {
+  getMypageOrderCancellationHref,
   getMypageOrderDetailHref,
   getMypageOrderReceiptHref,
 } from '@/shared/lib/mypage-routes';
@@ -23,6 +24,16 @@ export function toMypageHomeRecentOrderViewModel({
   reviewedOrderItemIds,
 }: MypageHomeRecentOrderMapperInput): MypageHomeRecentOrderViewModel {
   const orderHref = getMypageOrderDetailHref(order.id);
+  const singleItem =
+    orderViewModel.items.length === 1 ? orderViewModel.items[0] ?? null : null;
+  const cancellationHref =
+    singleItem
+      ? getMypageOrderCancellationHref(
+          order.id,
+          singleItem.id,
+          '/mypage',
+        )
+      : orderHref;
   const reviewState = getMypageHomeReviewState(
     orderViewModel,
     writableReviewOrderItemIds,
@@ -40,13 +51,10 @@ export function toMypageHomeRecentOrderViewModel({
       itemCount: orderViewModel.items.length,
       canCancel,
       canClaim,
-      repurchaseItem:
-        orderViewModel.items.length === 1
-          ? orderViewModel.items[0].repurchaseItem
-          : null,
+      repurchaseItem: singleItem?.repurchaseItem ?? null,
       links: {
         payment: 'placeholder',
-        cancel: orderHref,
+        cancel: cancellationHref,
         order: orderHref,
         tracking: 'placeholder',
         reviewWrite: '/mypage/reviews?tab=available&page=1',

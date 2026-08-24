@@ -10,20 +10,6 @@ import type {
   OrderStatus,
 } from './dto';
 
-export interface OrderCancellationRefundInput {
-  itemId: string;
-  itemAmount: number;
-}
-
-export interface OrderCancellationRefundAllocation {
-  itemId: string;
-  itemAmount: number;
-  orderDiscountAmount: number;
-  pointUsageAmount: number;
-  shippingAdjustmentAmount: number;
-  refundAmount: number;
-}
-
 export interface OrderJoinedItem {
   item: OrderItemDTO;
   product: Product;
@@ -52,6 +38,9 @@ export const ORDER_STATUS_FILTERS = [
 
 export type OrderStatusFilter = (typeof ORDER_STATUS_FILTERS)[number];
 
+export const ORDER_FREE_SHIPPING_THRESHOLD = 50_000;
+export const ORDER_STANDARD_SHIPPING_FEE = 3_000;
+
 export interface OrderListQuery {
   period: OrderPeriod;
   status: OrderStatusFilter;
@@ -73,6 +62,13 @@ export function getOrderActionEligibility(
       status === 'preparing_shipment',
     canClaim: status === 'delivered',
   };
+}
+
+export function getOrderShippingFee(itemTotalAmount: number): number {
+  return itemTotalAmount === 0 ||
+    itemTotalAmount >= ORDER_FREE_SHIPPING_THRESHOLD
+    ? 0
+    : ORDER_STANDARD_SHIPPING_FEE;
 }
 
 function getMinimumDate(period: OrderPeriod, now: Date): Date | null {
@@ -145,73 +141,4 @@ export function indexOrderItemCancellations(
       cancellation,
     ]),
   );
-}
-
-function allocateProportionally(
-  totalAmount: number,
-  items: readonly OrderCancellationRefundInput[],
-): ReadonlyMap<string, number> {
-  const totalWeight = items.reduce((sum, item) => sum + item.itemAmount, 0);
-  if (totalAmount <= 0 || totalWeight <= 0) {
-    return new Map(items.map(item => [item.itemId, 0]));
-  }
-
-  let allocatedAmount = 0;
-  return new Map(
-    items.map((item, index) => {
-      const amount =
-        index === items.length - 1
-          ? totalAmount - allocatedAmount
-          : Math.floor((totalAmount * item.itemAmount) / totalWeight);
-      allocatedAmount += amount;
-      return [item.itemId, amount];
-    }),
-  );
-}
-
-/**
- * 주문 단위 할인·적립금 사용액은 취소 상품의 결제 금액 비율로 배분한다.
- * 소수점으로 남은 금액은 마지막 취소 상품에 더해 총액 보존을 보장한다.
- */
-export function calculateCancellationRefundAllocations({
-  cancelledItems,
-  orderDiscountAmount,
-  pointUsageAmount,
-  shippingAdjustmentAmount = 0,
-}: {
-  cancelledItems: readonly OrderCancellationRefundInput[];
-  orderDiscountAmount: number;
-  pointUsageAmount: number;
-  shippingAdjustmentAmount?: number;
-}): OrderCancellationRefundAllocation[] {
-  const orderDiscountByItem = allocateProportionally(
-    orderDiscountAmount,
-    cancelledItems,
-  );
-  const pointUsageByItem = allocateProportionally(
-    pointUsageAmount,
-    cancelledItems,
-  );
-  const shippingAdjustmentByItem = allocateProportionally(
-    shippingAdjustmentAmount,
-    cancelledItems,
-  );
-
-  return cancelledItems.map(item => {
-    const orderDiscount = orderDiscountByItem.get(item.itemId) ?? 0;
-    const pointUsage = pointUsageByItem.get(item.itemId) ?? 0;
-    const shippingAdjustment = shippingAdjustmentByItem.get(item.itemId) ?? 0;
-
-    return {
-      itemId: item.itemId,
-      itemAmount: item.itemAmount,
-      orderDiscountAmount: orderDiscount,
-      pointUsageAmount: pointUsage,
-      shippingAdjustmentAmount: shippingAdjustment,
-      refundAmount: Math.max(
-        0,
-        item.itemAmount - orderDiscount - pointUsage - shippingAdjustment,
-      ),
-    };
-  });
 }

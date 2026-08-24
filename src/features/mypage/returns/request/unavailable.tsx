@@ -5,7 +5,7 @@ import { MypageEmptyState } from '@/features/mypage/common';
 
 const UNAVAILABLE_COPY: Record<OrderClaimRequestUnavailableReason, string> = {
   not_delivered: '배송 완료된 상품만 교환 또는 반품을 신청할 수 있습니다.',
-  expired: '상품 수령 후 7일 이내에만 교환 또는 반품을 신청할 수 있습니다.',
+  expired: '상품 수령 후 14일 이내에만 교환 또는 반품을 신청할 수 있습니다.',
   cancelled: '취소된 상품은 교환 또는 반품을 신청할 수 없습니다.',
   already_claimed: '이미 교환 또는 반품이 접수된 상품입니다.',
 };
