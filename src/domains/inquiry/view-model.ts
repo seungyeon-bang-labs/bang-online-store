@@ -4,7 +4,6 @@ import type { ProductCardViewModel } from '@/domains/product/product.view-model'
 export type InquiryContextViewModel =
   | {
       kind: 'order';
-      orderNumber: string;
       product: ProductCardViewModel;
       productCount: number;
       representativeOptionLabel: string | null;

@@ -20,6 +20,77 @@ export function getMypageOrderCancellationHref(
     : cancellationHref;
 }
 
+export function getMypageInquiryWriteHref({
+  orderId,
+  orderItemId,
+  productId,
+  returnTo,
+}: {
+  orderId?: string;
+  orderItemId?: string;
+  productId?: number;
+  returnTo?: string;
+} = {}): string {
+  const search = new URLSearchParams();
+
+  if (orderId) {
+    search.set('orderId', orderId);
+    if (orderItemId) search.set('orderItemId', orderItemId);
+  } else if (productId) {
+    search.set('productId', String(productId));
+  }
+  if (returnTo) search.set('returnTo', returnTo);
+
+  const query = search.toString();
+  return query ? `/mypage/inquiries/write?${query}` : '/mypage/inquiries/write';
+}
+
+export function getMypageInquiryEditHref(
+  inquiryId: string,
+  returnTo?: string,
+): string {
+  const editHref = `/mypage/inquiries/${inquiryId}/edit`;
+  return returnTo
+    ? `${editHref}?returnTo=${encodeURIComponent(returnTo)}`
+    : editHref;
+}
+
+export function resolveMypageInquiryWriteReturnHref({
+  orderId,
+  returnTo,
+}: {
+  orderId?: string;
+  returnTo?: string;
+}): string {
+  const fallbackHref = '/mypage/inquiries';
+  if (!returnTo) return fallbackHref;
+
+  const returnPathname = returnTo.split('?')[0];
+  const orderDetailHref = orderId
+    ? getMypageOrderDetailHref(orderId)
+    : null;
+  const isAllowedPath =
+    returnPathname === '/mypage' ||
+    returnPathname === '/mypage/inquiries' ||
+    returnPathname === '/mypage/orders' ||
+    returnPathname === orderDetailHref;
+
+  return isAllowedPath ? returnTo : fallbackHref;
+}
+
+export function resolveMypageInquiryEditReturnHref({
+  returnTo,
+}: {
+  returnTo?: string;
+}): string {
+  const fallbackHref = '/mypage/inquiries?type=all&status=all&page=1';
+  if (!returnTo) return fallbackHref;
+
+  return returnTo.split('?')[0] === '/mypage/inquiries'
+    ? returnTo
+    : fallbackHref;
+}
+
 export function resolveMypageOrderCancellationReturnHref(
   orderId: string,
   returnTo?: string | string[],

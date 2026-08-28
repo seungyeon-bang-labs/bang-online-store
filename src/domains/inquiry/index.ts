@@ -2,15 +2,23 @@ import { orderRepository } from '@/domains/order';
 import { orderItemRepository } from '@/domains/order';
 import { productRepository } from '@/domains/product';
 import { fixtureInquiryRepository } from './fixture-repository';
+import { createInquiryCancelService } from './cancel.service';
+import { createInquiryEditService } from './edit.service';
 import { createInquiryService } from './service';
+import { createInquiryWriteService } from './write.service';
 
 export * from './domain';
 export * from './dto';
+export * from './cancel.service';
+export * from './edit.service';
+export * from './edit.view-model';
 export * from './inquiry-context-resolver';
 export * from './mapper';
 export * from './repository';
 export * from './service';
 export * from './view-model';
+export * from './write.service';
+export * from './write.view-model';
 
 export const inquiryRepository = fixtureInquiryRepository;
 
@@ -21,5 +29,26 @@ const inquiryService = createInquiryService({
   productRepository,
 });
 
+const inquiryWriteService = createInquiryWriteService({
+  orderRepository,
+  orderItemRepository,
+  productRepository,
+});
+
+const inquiryEditService = createInquiryEditService({
+  inquiryRepository,
+  inquiryWriteService,
+});
+
+const inquiryCancelService = createInquiryCancelService({
+  inquiryRepository,
+});
+
 export const getInquiryPageViewModel =
   inquiryService.getInquiryPageViewModel;
+export const getInquiryWriteViewModel =
+  inquiryWriteService.getInquiryWriteViewModel;
+export const getInquiryEditViewModel =
+  inquiryEditService.getInquiryEditViewModel;
+export const updateInquiry = inquiryEditService.updateInquiry;
+export const cancelInquiry = inquiryCancelService.cancelInquiry;

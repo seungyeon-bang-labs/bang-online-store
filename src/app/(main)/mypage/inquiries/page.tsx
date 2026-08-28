@@ -9,6 +9,7 @@ import {
   MypageSectionHeader,
 } from '@/features/mypage/common';
 import { MypageInquiryList } from '@/features/mypage/inquiries';
+import { getMypageInquiryWriteHref } from '@/shared/lib/mypage-routes';
 import {
   buildInquiryListFilterHref,
   buildInquiryListHref,
@@ -16,6 +17,7 @@ import {
   parseInquiryListQuery,
   type InquiriesPageSearchParams,
 } from './query';
+import { cancelMypageInquiryAction } from './actions';
 
 interface InquiriesPageProps {
   searchParams: Promise<InquiriesPageSearchParams>;
@@ -28,6 +30,7 @@ async function InquiriesPage({ searchParams }: InquiriesPageProps) {
     ? await getInquiryPageViewModel(user.id, query)
     : { items: [], currentPage: 1, totalPages: 1, totalItems: 0 };
   const { items: inquiries, currentPage, totalPages } = inquiryPageViewModel;
+  const inquiryListHref = buildInquiryListHref(query);
 
   return (
     <div className="space-y-8">
@@ -35,7 +38,7 @@ async function InquiriesPage({ searchParams }: InquiriesPageProps) {
         title="1:1 문의 내역"
         action={
           <ButtonLink
-            href="/cs/inquiry"
+            href={getMypageInquiryWriteHref()}
             size="lg"
             className="w-full bg-black font-bold text-white hover:bg-zinc-800 md:w-auto"
           >
@@ -44,7 +47,7 @@ async function InquiriesPage({ searchParams }: InquiriesPageProps) {
         }
       />
       <ButtonLink
-        href="/cs/inquiry"
+        href={getMypageInquiryWriteHref()}
         size="lg"
         className="w-full bg-black font-bold text-white hover:bg-zinc-800 md:hidden"
       >
@@ -56,7 +59,11 @@ async function InquiriesPage({ searchParams }: InquiriesPageProps) {
         getHref={buildInquiryListFilterHref}
       />
       {inquiries.length > 0 ? (
-        <MypageInquiryList inquiries={inquiries} />
+        <MypageInquiryList
+          inquiries={inquiries}
+          returnHref={inquiryListHref}
+          cancelInquiryAction={cancelMypageInquiryAction}
+        />
       ) : (
         <MypageEmptyState
           icon={MessageSquare}
