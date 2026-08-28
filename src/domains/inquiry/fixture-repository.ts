@@ -7,4 +7,11 @@ export const fixtureInquiryRepository: InquiryRepository = {
       .map(row => ({ ...row }))
       .sort((a, b) => b.created_at.localeCompare(a.created_at));
   },
+  async findByIdAndUserId(inquiryId, userId) {
+    const inquiry = INQUIRIES.find(
+      row => row.id === inquiryId && row.user_id === userId,
+    );
+
+    return inquiry ? { ...inquiry } : null;
+  },
 };

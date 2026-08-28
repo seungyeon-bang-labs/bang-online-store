@@ -3,7 +3,7 @@ import type { StatusViewModel } from '@/shared/types/status';
 import type { InquiryDTO, InquiryStatus } from './dto';
 import {
   getInquiryActionEligibility,
-  INQUIRY_STATUS_FILTER_LABELS,
+  INQUIRY_STATUS_LABELS,
   INQUIRY_TYPE_FILTER_LABELS,
 } from './domain';
 import type {
@@ -14,6 +14,7 @@ import type {
 const INQUIRY_STATUS_TONES: Record<InquiryStatus, StatusViewModel['tone']> = {
   pending: 'warning',
   answered: 'success',
+  cancelled: 'neutral',
 };
 
 export function toInquiryViewModel(
@@ -27,7 +28,7 @@ export function toInquiryViewModel(
     content: row.content,
     context,
     status: {
-      label: INQUIRY_STATUS_FILTER_LABELS[row.status],
+      label: INQUIRY_STATUS_LABELS[row.status],
       tone: INQUIRY_STATUS_TONES[row.status],
     },
     actions: getInquiryActionEligibility(row.status),

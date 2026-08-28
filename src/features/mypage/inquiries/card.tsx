@@ -1,13 +1,21 @@
-import { Button } from '@/components/ui/button';
+import { ButtonLink } from '@/components/ui/button';
 import type { InquiryViewModel } from '@/domains/inquiry';
+import { getMypageInquiryEditHref } from '@/shared/lib/mypage-routes';
 import { MypageStatusBadge } from '../common/status-badge';
 import { MypageInquiryContext } from './context';
+import { MypageInquiryCancelButton } from './cancel-button';
 
 interface MypageInquiryCardProps {
   inquiry: InquiryViewModel;
+  returnHref: string;
+  cancelInquiryAction: (inquiryId: string) => Promise<boolean>;
 }
 
-export function MypageInquiryCard({ inquiry }: MypageInquiryCardProps) {
+export function MypageInquiryCard({
+  inquiry,
+  returnHref,
+  cancelInquiryAction,
+}: MypageInquiryCardProps) {
   return (
     <article className="overflow-hidden rounded-md border border-zinc-300 bg-white">
       <header className="flex items-center justify-between gap-3 border-b border-zinc-200 p-4 md:p-5">
@@ -57,24 +65,20 @@ export function MypageInquiryCard({ inquiry }: MypageInquiryCardProps) {
             }`}
           >
             {inquiry.actions.canCancel ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="w-full rounded-sm border-red-200 font-bold text-red-700 shadow-none hover:border-red-600 hover:bg-red-50 hover:text-red-700"
-              >
-                문의 취소
-              </Button>
+              <MypageInquiryCancelButton
+                inquiryId={inquiry.id}
+                cancelInquiryAction={cancelInquiryAction}
+              />
             ) : null}
             {inquiry.actions.canEdit ? (
-              <Button
-                type="button"
+              <ButtonLink
+                href={getMypageInquiryEditHref(inquiry.id, returnHref)}
                 variant="outline"
                 size="sm"
                 className="w-full rounded-sm border-zinc-300 font-bold shadow-none hover:border-black hover:bg-black hover:text-white"
               >
                 수정
-              </Button>
+              </ButtonLink>
             ) : null}
           </div>
         ) : null}

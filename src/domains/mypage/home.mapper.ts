@@ -4,6 +4,7 @@ import type { OrderListItemViewModel } from '@/domains/order/view-model';
 import {
   getMypageOrderCancellationHref,
   getMypageOrderDetailHref,
+  getMypageInquiryWriteHref,
   getMypageOrderReceiptHref,
 } from '@/shared/lib/mypage-routes';
 import { getMypageHomeReviewState } from './home.domain';
@@ -34,6 +35,13 @@ export function toMypageHomeRecentOrderViewModel({
           '/mypage',
         )
       : orderHref;
+  const inquiryHref = singleItem
+    ? getMypageInquiryWriteHref({
+        orderId: order.id,
+        orderItemId: singleItem.id,
+        returnTo: '/mypage',
+      })
+    : null;
   const reviewState = getMypageHomeReviewState(
     orderViewModel,
     writableReviewOrderItemIds,
@@ -62,7 +70,7 @@ export function toMypageHomeRecentOrderViewModel({
         claim: orderHref,
         receipt: getMypageOrderReceiptHref(order.id),
         refund: getMypageOrderReceiptHref(order.id),
-        inquiry: '/mypage/inquiries',
+        inquiry: inquiryHref,
       },
     }),
   };

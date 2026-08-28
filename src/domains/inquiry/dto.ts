@@ -7,7 +7,7 @@ export type InquiryType =
   | 'account'
   | 'etc';
 
-export type InquiryStatus = 'pending' | 'answered';
+export type InquiryStatus = 'pending' | 'answered' | 'cancelled';
 
 export interface InquiryDTO {
   id: string;

@@ -13,6 +13,7 @@ import type {
 import {
   getMypageOrderCancellationHref,
   getMypageOrderClaimRequestHref,
+  getMypageInquiryWriteHref,
   getMypageOrderReceiptHref,
 } from '@/shared/lib/mypage-routes';
 import {
@@ -145,7 +146,9 @@ function getOrderItemActionHref(
   if (action.type === 'claim') {
     return getMypageOrderClaimRequestHref(orderId, orderItemId);
   }
-  if (action.type === 'inquiry') return '/mypage/inquiries';
+  if (action.type === 'inquiry') {
+    return getMypageInquiryWriteHref({ orderId, orderItemId, returnTo });
+  }
   return null;
 }
 

@@ -1,0 +1,1 @@
+export { MypageInquiryWriteFlow } from './flow';

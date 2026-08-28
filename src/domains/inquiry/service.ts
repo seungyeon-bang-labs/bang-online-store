@@ -7,6 +7,7 @@ import type { Product } from '@/domains/product/product.dto';
 import {
   filterInquiries,
   INQUIRY_PAGE_SIZE,
+  isVisibleInquiryStatus,
   type InquiryListQuery,
 } from './domain';
 import { createInquiryContextResolver } from './inquiry-context-resolver';
@@ -47,7 +48,10 @@ export function createInquiryService({
       orderRepository.findByUserId(userId),
     ]);
     const page = paginate(
-      filterInquiries(inquiries, query),
+      filterInquiries(
+        inquiries.filter(inquiry => isVisibleInquiryStatus(inquiry.status)),
+        query,
+      ),
       query.page,
       INQUIRY_PAGE_SIZE,
     );
