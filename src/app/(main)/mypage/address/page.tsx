@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,6 +11,7 @@ import {
   MypageSectionHeader,
 } from '@/features/mypage/common';
 import { MypageAddressList } from '@/features/mypage/addresses';
+import { getMypageAddressWriteHref } from '@/shared/lib/mypage-routes';
 
 async function AddressPage() {
   const user = await currentUserRepository.findCurrent();
@@ -25,20 +27,20 @@ async function AddressPage() {
         title="배송지 관리"
         action={
           <Button
-            type="button"
             size="lg"
+            asChild
             className="w-full bg-black font-bold text-white hover:bg-zinc-800 md:w-auto"
           >
-            배송지 추가
+            <Link href={getMypageAddressWriteHref()}>배송지 추가</Link>
           </Button>
         }
       />
       <Button
-        type="button"
         size="lg"
+        asChild
         className="h-12 w-full bg-black font-bold text-white hover:bg-zinc-800 md:hidden"
       >
-        배송지 추가
+        <Link href={getMypageAddressWriteHref()}>배송지 추가</Link>
       </Button>
       {addresses.length !== 0 ? (
         <MypageAddressList addresses={addresses} />

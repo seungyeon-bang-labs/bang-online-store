@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -7,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { UserAddressViewModel } from '@/domains/member';
+import { getMypageAddressEditHref } from '@/shared/lib/mypage-routes';
 import { MoreVertical } from 'lucide-react';
 
 interface MypageAddressCardProps {
@@ -40,8 +42,8 @@ export function MypageAddressCard({ address }: MypageAddressCardProps) {
                 기본 배송지로 설정
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem className="h-11 justify-center text-center font-bold whitespace-nowrap">
-              수정
+            <DropdownMenuItem asChild className="h-11 justify-center text-center font-bold whitespace-nowrap">
+              <Link href={getMypageAddressEditHref(address.id)}>수정</Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -89,12 +91,12 @@ export function MypageAddressCard({ address }: MypageAddressCardProps) {
             삭제
           </Button>
           <Button
-            type="button"
             variant="outline"
             size="sm"
+            asChild
             className="w-full rounded-sm border-zinc-300 font-bold shadow-none hover:border-black hover:bg-black hover:text-white"
           >
-            수정
+            <Link href={getMypageAddressEditHref(address.id)}>수정</Link>
           </Button>
         </div>
       </div>

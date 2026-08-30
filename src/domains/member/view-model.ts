@@ -17,3 +17,14 @@ export interface UserAddressViewModel {
   deliveryNote: string | null;
   isDefault: boolean;
 }
+
+export interface UserAddressFormViewModel {
+  id: string;
+  recipientName: string;
+  phoneNumber: string;
+  postalCode: string;
+  addressLine1: string;
+  addressLine2: string;
+  deliveryNote: string;
+  isDefault: boolean;
+}

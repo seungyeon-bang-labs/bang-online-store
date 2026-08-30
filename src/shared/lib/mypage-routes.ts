@@ -2,6 +2,18 @@ export function getMypageOrderDetailHref(orderId: string): string {
   return `/mypage/orders/${orderId}`;
 }
 
+export function getMypageAddressHref(): string {
+  return '/mypage/address';
+}
+
+export function getMypageAddressWriteHref(): string {
+  return '/mypage/address/write';
+}
+
+export function getMypageAddressEditHref(addressId: string): string {
+  return `/mypage/address/${addressId}/edit`;
+}
+
 export function getMypageOrderClaimRequestHref(
   orderId: string,
   orderItemId: string,

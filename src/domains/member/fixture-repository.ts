@@ -20,6 +20,11 @@ export const fixtureUserAddressRepository: UserAddressRepository = {
       )
       .map(address => ({ ...address }));
   },
+  async findById(addressId) {
+    const address = USER_ADDRESSES.find(item => item.id === addressId) ?? null;
+
+    return address ? { ...address } : null;
+  },
   async findDefaultByUserId(userId) {
     const address =
       USER_ADDRESSES.find(
