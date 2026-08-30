@@ -6,5 +6,6 @@ export interface CurrentUserRepository {
 
 export interface UserAddressRepository {
   findByUserId(userId: string): Promise<UserAddressDTO[]>;
+  findById(addressId: string): Promise<UserAddressDTO | null>;
   findDefaultByUserId(userId: string): Promise<UserAddressDTO | null>;
 }
