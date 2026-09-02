@@ -16,7 +16,10 @@ export interface OrderClaimViewModel {
   completedAt: string | null;
 }
 
-export type OrderClaimPageViewModel = PageSlice<OrderClaimViewModel>;
+export interface OrderClaimPageViewModel
+  extends PageSlice<OrderClaimViewModel> {
+  unfilteredItemCount: number;
+}
 
 export interface OrderClaimHistoryViewModel {
   id: string;

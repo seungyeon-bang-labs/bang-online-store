@@ -1,4 +1,4 @@
-import { paginate, type PageSlice } from '@/shared/lib/pagination';
+import { paginate } from '@/shared/lib/pagination';
 import type {
   OrderItemRepository,
   OrderRepository,
@@ -13,7 +13,7 @@ import {
 import { createInquiryContextResolver } from './inquiry-context-resolver';
 import { toInquiryViewModel } from './mapper';
 import type { InquiryRepository } from './repository';
-import type { InquiryViewModel } from './view-model';
+import type { InquiryPageViewModel } from './view-model';
 
 interface InquiryProductRepository {
   findByIds(ids: number[]): Promise<Product[]>;
@@ -30,7 +30,7 @@ export interface InquiryService {
   getInquiryPageViewModel(
     userId: string,
     query: InquiryListQuery,
-  ): Promise<PageSlice<InquiryViewModel>>;
+  ): Promise<InquiryPageViewModel>;
 }
 
 export function createInquiryService({
@@ -42,16 +42,16 @@ export function createInquiryService({
   async function getInquiryPageViewModel(
     userId: string,
     query: InquiryListQuery,
-  ): Promise<PageSlice<InquiryViewModel>> {
+  ): Promise<InquiryPageViewModel> {
     const [inquiries, orders] = await Promise.all([
       inquiryRepository.findByUserId(userId),
       orderRepository.findByUserId(userId),
     ]);
+    const sourceInquiries = inquiries.filter(inquiry =>
+      isVisibleInquiryStatus(inquiry.status),
+    );
     const page = paginate(
-      filterInquiries(
-        inquiries.filter(inquiry => isVisibleInquiryStatus(inquiry.status)),
-        query,
-      ),
+      filterInquiries(sourceInquiries, query),
       query.page,
       INQUIRY_PAGE_SIZE,
     );
@@ -91,6 +91,7 @@ export function createInquiryService({
       items: page.items.map(inquiry =>
         toInquiryViewModel(inquiry, contextResolver.resolve(inquiry)),
       ),
+      unfilteredItemCount: sourceInquiries.length,
     };
   }
 

@@ -61,7 +61,8 @@ export function createUserCouponService({
     query: UserCouponListQuery,
     now = new Date(),
   ): Promise<UserCouponListViewModel> => {
-    const items = (await getUserCouponItems(userId, now)).filter(
+    const sourceItems = await getUserCouponItems(userId, now);
+    const items = sourceItems.filter(
       item => query.tab === 'all' || item.statusCode === query.tab,
     );
     const page = paginate(items, query.page, 10);
@@ -71,6 +72,7 @@ export function createUserCouponService({
       currentPage: page.currentPage,
       totalPages: page.totalPages,
       totalItems: page.totalItems,
+      unfilteredItemCount: sourceItems.length,
     };
   };
 

@@ -6,6 +6,7 @@ import { currentUserRepository } from '@/domains/member';
 import {
   MypageEmptyState,
   MypageFilterCard,
+  MypageFilterEmptyState,
   MypageSectionHeader,
 } from '@/features/mypage/common';
 import { MypageInquiryList } from '@/features/mypage/inquiries';
@@ -28,12 +29,25 @@ async function InquiriesPage({ searchParams }: InquiriesPageProps) {
   const query = parseInquiryListQuery(await searchParams);
   const inquiryPageViewModel = user
     ? await getInquiryPageViewModel(user.id, query)
-    : { items: [], currentPage: 1, totalPages: 1, totalItems: 0 };
-  const { items: inquiries, currentPage, totalPages } = inquiryPageViewModel;
+    : {
+        items: [],
+        currentPage: 1,
+        totalPages: 1,
+        totalItems: 0,
+        unfilteredItemCount: 0,
+      };
+  const { items: inquiries, currentPage, totalPages, unfilteredItemCount } =
+    inquiryPageViewModel;
   const inquiryListHref = buildInquiryListHref(query);
+  const hasItems = inquiries.length > 0;
+  const isFilterResultEmpty = !hasItems && unfilteredItemCount > 0;
 
   return (
-    <div className="space-y-8">
+    <div
+      className={
+        isFilterResultEmpty ? 'flex flex-col gap-8 md:h-full' : 'space-y-8'
+      }
+    >
       <MypageSectionHeader
         title="1:1 문의 내역"
         action={
@@ -58,11 +72,20 @@ async function InquiriesPage({ searchParams }: InquiriesPageProps) {
         values={{ type: query.type, status: query.status }}
         getHref={buildInquiryListFilterHref}
       />
-      {inquiries.length > 0 ? (
+      {hasItems ? (
         <MypageInquiryList
           inquiries={inquiries}
           returnHref={inquiryListHref}
           cancelInquiryAction={cancelMypageInquiryAction}
+        />
+      ) : isFilterResultEmpty ? (
+        <MypageFilterEmptyState
+          resetHref={buildInquiryListHref({
+            type: 'all',
+            status: 'all',
+            page: 1,
+          })}
+          className="flex-1"
         />
       ) : (
         <MypageEmptyState
@@ -71,13 +94,15 @@ async function InquiriesPage({ searchParams }: InquiriesPageProps) {
           description="상품, 주문, 배송과 관련해 궁금한 내용을 1:1 문의로 남겨보세요."
         />
       )}
-      <DynamicPagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        getPageHref={({ page }) =>
-          buildInquiryListHref({ ...query, page })
-        }
-      />
+      {hasItems && (
+        <DynamicPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          getPageHref={({ page }) =>
+            buildInquiryListHref({ ...query, page })
+          }
+        />
+      )}
     </div>
   );
 }

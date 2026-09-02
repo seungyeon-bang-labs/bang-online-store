@@ -37,11 +37,8 @@ export function createOrderListService({
     query: OrderListQuery,
     now = new Date(),
   ): Promise<OrderListPageViewModel> {
-    const orders = filterOrders(
-      await orderRepository.findByUserId(userId),
-      query,
-      now,
-    );
+    const sourceOrders = await orderRepository.findByUserId(userId);
+    const orders = filterOrders(sourceOrders, query, now);
     const orderIds = orders.map(order => order.id);
     const [relations, cancellations] = await Promise.all([
       orderItemRelationsService.getOrderItemRelations(orderIds),
@@ -60,7 +57,10 @@ export function createOrderListService({
       ),
     );
 
-    return paginate(items, query.page, 10);
+    return {
+      ...paginate(items, query.page, 10),
+      unfilteredItemCount: sourceOrders.length,
+    };
   }
 
   return { getOrderListViewModel };

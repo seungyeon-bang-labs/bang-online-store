@@ -5,6 +5,7 @@ import { currentUserRepository } from '@/domains/member';
 import {
   MypageEmptyState,
   MypageFilterCard,
+  MypageFilterEmptyState,
   MypageSectionHeader,
 } from '@/features/mypage/common';
 import { MypageReviewList } from '@/features/mypage/reviews';
@@ -32,9 +33,16 @@ async function ReviewsPage({ searchParams }: ReviewsPageProps) {
         totalPages: 1,
         totalItems: 0,
         availableCount: 0,
+        unfilteredItemCount: 0,
       };
-  const { items: reviews, currentPage, totalPages, availableCount } =
-    reviewPageViewModel;
+  const {
+    items: reviews,
+    currentPage,
+    totalPages,
+    availableCount,
+    unfilteredItemCount,
+  } = reviewPageViewModel;
+  const alternateTab = query.tab === 'available' ? 'completed' : 'available';
 
   return (
     <div className="space-y-8">
@@ -46,6 +54,10 @@ async function ReviewsPage({ searchParams }: ReviewsPageProps) {
       />
       {reviews.length > 0 ? (
         <MypageReviewList reviews={reviews} />
+      ) : unfilteredItemCount > 0 ? (
+        <MypageFilterEmptyState
+          resetHref={buildReviewListHref({ tab: alternateTab, page: 1 })}
+        />
       ) : (
         <MypageEmptyState
           icon={Star}
@@ -61,13 +73,15 @@ async function ReviewsPage({ searchParams }: ReviewsPageProps) {
           }
         />
       )}
-      <DynamicPagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        getPageHref={({ page }) =>
-          buildReviewListHref({ tab: query.tab, page })
-        }
-      />
+      {reviews.length > 0 && (
+        <DynamicPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          getPageHref={({ page }) =>
+            buildReviewListHref({ tab: query.tab, page })
+          }
+        />
+      )}
     </div>
   );
 }

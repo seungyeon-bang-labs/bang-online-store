@@ -158,6 +158,7 @@ export function createReviewListService({
     return {
       ...paginate(items, query.page, REVIEW_PAGE_SIZE),
       availableCount: availableItems.length,
+      unfilteredItemCount: availableItems.length + reviews.length,
     };
   }
 
