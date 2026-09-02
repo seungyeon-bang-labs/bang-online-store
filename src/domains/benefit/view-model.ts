@@ -60,6 +60,7 @@ export interface PointTransactionListViewModel {
   currentPage: number;
   totalPages: number;
   totalItems: number;
+  unfilteredItemCount: number;
 }
 
 export interface PointPageViewModel {
@@ -82,4 +83,5 @@ export interface UserCouponListViewModel {
   currentPage: number;
   totalPages: number;
   totalItems: number;
+  unfilteredItemCount: number;
 }

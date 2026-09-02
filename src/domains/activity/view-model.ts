@@ -48,6 +48,7 @@ export type ReviewItemViewModel =
 
 export interface ReviewPageViewModel extends PageSlice<ReviewItemViewModel> {
   availableCount: number;
+  unfilteredItemCount: number;
 }
 
 export type ReviewFormMode = 'create' | 'edit';

@@ -43,40 +43,41 @@ export function createClaimListService({
     const orderById = new Map(orders.map(order => [order.id, order]));
     const filteredClaims = filterOrderClaims(claims, query);
 
-    return paginate(
-      filteredClaims.map(claim => {
-        const order = requireRelation(
-          orderById.get(claim.order_id),
-          'order_claims.order_id -> orders.id',
+    const items = filteredClaims.map(claim => {
+      const order = requireRelation(
+        orderById.get(claim.order_id),
+        'order_claims.order_id -> orders.id',
+        claim.id,
+      );
+      const item = requireRelation(
+        relations.itemById.get(claim.order_item_id),
+        'order_claims.order_item_id -> order_items.id',
+        claim.id,
+      );
+
+      if (item.order_id !== order.id) {
+        throw new DataIntegrityError(
+          'order_claims order and order_item mismatch',
           claim.id,
         );
-        const item = requireRelation(
-          relations.itemById.get(claim.order_item_id),
-          'order_claims.order_item_id -> order_items.id',
-          claim.id,
-        );
+      }
 
-        if (item.order_id !== order.id) {
-          throw new DataIntegrityError(
-            'order_claims order and order_item mismatch',
-            claim.id,
-          );
-        }
+      return toOrderClaimViewModel(
+        claim,
+        order,
+        item,
+        requireRelation(
+          relations.productById.get(item.product_id),
+          'order_items.product_id -> products.id',
+          item.id,
+        ),
+      );
+    });
 
-        return toOrderClaimViewModel(
-          claim,
-          order,
-          item,
-          requireRelation(
-            relations.productById.get(item.product_id),
-            'order_items.product_id -> products.id',
-            item.id,
-          ),
-        );
-      }),
-      query.page,
-      10,
-    );
+    return {
+      ...paginate(items, query.page, 10),
+      unfilteredItemCount: claims.length,
+    };
   }
 
   return { getOrderClaimListViewModel };

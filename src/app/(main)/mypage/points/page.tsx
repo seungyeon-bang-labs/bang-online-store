@@ -5,6 +5,7 @@ import { getMypagePointPageViewModel } from '@/domains/mypage';
 import {
   MypageEmptyState,
   MypageFilterCard,
+  MypageFilterEmptyState,
   MypageSectionHeader,
 } from '@/features/mypage/common';
 import {
@@ -43,13 +44,21 @@ async function PointsPage({ searchParams }: PointsPageProps) {
           currentPage: 1,
           totalPages: 1,
           totalItems: 0,
+          unfilteredItemCount: 0,
         },
       };
   const { summary, transactionList } = pointPage;
-  const { dateGroups, currentPage, totalPages } = transactionList;
+  const { dateGroups, currentPage, totalPages, unfilteredItemCount } =
+    transactionList;
+  const hasItems = dateGroups.length > 0;
+  const isFilterResultEmpty = !hasItems && unfilteredItemCount > 0;
 
   return (
-    <div className="space-y-8">
+    <div
+      className={
+        isFilterResultEmpty ? 'flex flex-col gap-8 md:h-full' : 'space-y-8'
+      }
+    >
       <MypageSectionHeader title="적립금 내역" />
       <MypagePointSummary summary={summary} />
       <MypageFilterCard
@@ -57,8 +66,13 @@ async function PointsPage({ searchParams }: PointsPageProps) {
         values={{ filter: query.filter }}
         getHref={buildPointListFilterHref}
       />
-      {dateGroups.length > 0 ? (
+      {hasItems ? (
         <MypagePointTransactionList dateGroups={dateGroups} />
+      ) : isFilterResultEmpty ? (
+        <MypageFilterEmptyState
+          resetHref={buildPointListHref({ filter: 'all', page: 1 })}
+          className="flex-1"
+        />
       ) : (
         <MypageEmptyState
           icon={Wallet}
@@ -66,11 +80,13 @@ async function PointsPage({ searchParams }: PointsPageProps) {
           description="적립금 유형을 변경해 지급, 사용, 소멸 내역을 확인해 주세요."
         />
       )}
-      <DynamicPagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        getPageHref={({ page }) => buildPointListHref({ ...query, page })}
-      />
+      {hasItems && (
+        <DynamicPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          getPageHref={({ page }) => buildPointListHref({ ...query, page })}
+        />
+      )}
     </div>
   );
 }

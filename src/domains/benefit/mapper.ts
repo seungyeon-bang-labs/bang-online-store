@@ -149,6 +149,7 @@ export function toPointPageViewModel(
       currentPage: page.currentPage,
       totalPages: page.totalPages,
       totalItems: page.totalItems,
+      unfilteredItemCount: rows.length,
     },
   };
 }

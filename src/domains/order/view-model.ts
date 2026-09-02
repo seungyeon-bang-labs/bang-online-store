@@ -72,7 +72,10 @@ export interface OrderListItemViewModel {
   items: OrderItemViewModel[];
 }
 
-export type OrderListPageViewModel = PageSlice<OrderListItemViewModel>;
+export interface OrderListPageViewModel
+  extends PageSlice<OrderListItemViewModel> {
+  unfilteredItemCount: number;
+}
 
 export interface OrderDetailPaymentViewModel {
   subtotalAmountText: string;
