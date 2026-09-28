@@ -11,7 +11,6 @@ import {
   type MypageMenuItem,
 } from './mypage-menu';
 
-type MypageNavigationLinkVariant = 'mobile' | 'desktop';
 type NextLinkProps = ComponentPropsWithoutRef<typeof Link>;
 
 interface MypageNavigationLinkProps
@@ -21,27 +20,14 @@ interface MypageNavigationLinkProps
   > {
   pathname: string;
   item: MypageMenuItem;
-  variant: MypageNavigationLinkVariant;
   className?: string;
 }
-
-const variantClassNames: Record<MypageNavigationLinkVariant, string> = {
-  mobile:
-    'w-full cursor-pointer justify-center rounded-sm px-3 py-2 text-sm font-bold transition-colors',
-  desktop:
-    'flex w-full items-center rounded-sm px-3 py-2 text-sm font-bold transition-colors',
-};
-
-const inactiveClassNames: Record<MypageNavigationLinkVariant, string> = {
-  mobile: 'text-zinc-800 hover:bg-zinc-100',
-  desktop: 'text-zinc-800 hover:bg-zinc-100 hover:text-black',
-};
 
 export const MypageNavigationLink = forwardRef<
   HTMLAnchorElement,
   MypageNavigationLinkProps
 >(function MypageNavigationLink(
-  { pathname, item, variant, className, ...props },
+  { pathname, item, className, ...props },
   forwardedRef,
 ) {
   const isActive = isMypagePathActive(pathname, item.href);
@@ -54,8 +40,10 @@ export const MypageNavigationLink = forwardRef<
       aria-current={isActive ? 'page' : undefined}
       className={cn(
         className,
-        variantClassNames[variant],
-        isActive ? 'bg-black text-white' : inactiveClassNames[variant],
+        'flex w-full items-center rounded-sm px-3 py-2 text-sm font-bold transition-colors',
+        isActive
+          ? 'bg-black text-white'
+          : 'text-zinc-800 hover:bg-zinc-100 hover:text-black',
       )}
     >
       {item.label}

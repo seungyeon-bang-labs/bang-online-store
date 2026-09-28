@@ -12,12 +12,11 @@ function DesktopMypageNavigation({ pathname }: DesktopMypageNavigationProps) {
     <aside className="hidden shrink-0 md:block md:w-44">
       <nav
         aria-label="마이페이지 메뉴"
-        className="rounded-md border border-zinc-200 bg-white p-3 md:sticky md:top-35"
+        className="rounded-md border border-zinc-200 bg-white p-3 md:sticky md:top-28"
       >
         <MypageNavigationLink
           pathname={pathname}
           item={MYPAGE_HOME}
-          variant="desktop"
         />
 
         <div className="mt-6 space-y-6">
@@ -32,7 +31,6 @@ function DesktopMypageNavigation({ pathname }: DesktopMypageNavigationProps) {
                     <MypageNavigationLink
                       pathname={pathname}
                       item={item}
-                      variant="desktop"
                     />
                   </li>
                 ))}
