@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { ChevronDown } from 'lucide-react';
-import { CS_MENU } from '@/lib/navigation';
+import { CS_MENU } from '@/shared/lib/navigation';
 
 export function NoticeAndFAQPreview() {
   return (

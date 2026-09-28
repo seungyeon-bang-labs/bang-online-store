@@ -17,6 +17,7 @@ interface OrderDetailServiceDependencies {
 
 export interface OrderDetailService {
   getOrderDetailViewModel(
+    userId: string,
     orderId: string,
   ): Promise<OrderDetailViewModel | null>;
 }
@@ -28,9 +29,10 @@ export function createOrderDetailService({
   orderItemRelationsService,
 }: OrderDetailServiceDependencies): OrderDetailService {
   async function getOrderDetailViewModel(
+    userId: string,
     orderId: string,
   ): Promise<OrderDetailViewModel | null> {
-    const order = await orderRepository.findById(orderId);
+    const order = await orderRepository.findByIdAndUserId(orderId, userId);
 
     if (!order) return null;
 

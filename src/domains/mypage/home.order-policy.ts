@@ -169,10 +169,7 @@ export function buildMypageHomeOrderActions({
     );
   }
 
-  if (
-    status === 'payment_completed' ||
-    status === 'preparing_shipment'
-  ) {
+  if (status === 'payment_completed') {
     return arrangeActions(
       [order, inquiry],
       [cancel, inquiry, receipt],

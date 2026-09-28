@@ -9,3 +9,12 @@ export interface InquiryEditViewModel extends InquiryWriteViewModel {
     content: string;
   };
 }
+
+export type InquiryEditPageViewModel =
+  | {
+      kind: 'editable';
+      form: InquiryEditViewModel;
+    }
+  | { kind: 'answered' };
+
+export type InquiryUpdateResult = 'updated' | 'answered' | 'invalid';

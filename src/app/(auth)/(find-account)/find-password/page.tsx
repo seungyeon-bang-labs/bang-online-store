@@ -5,10 +5,10 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { EmailVerification } from '@/features/auth/email-verification';
-import { FormSubmitButton } from '@/components/ui/button';
-import { InputError } from '@/components/ui/input';
-import { findPasswordFormSchema } from '@/lib/form-schemas';
-import { IconInput } from '@/features/auth/icon-input';
+import { FormSubmitButton } from '@/shared/components/ui/button';
+import { InputError } from '@/shared/components/ui/input';
+import { findPasswordFormSchema } from '@/shared/lib/form-schemas';
+import { IconInput } from '@/shared/components/common/icon-input';
 import { User } from 'lucide-react';
 import { AccountRecoveryLinks } from '@/features/auth/account-recovery-links';
 

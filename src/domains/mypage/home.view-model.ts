@@ -1,3 +1,5 @@
+import type { MembershipProgressViewModel } from '@/domains/benefit/view-model';
+import type { MembershipTierCode } from '@/domains/benefit/dto';
 import type { ActivityProductViewModel } from '@/domains/activity/view-model';
 import type { OrderStatus } from '@/domains/order/dto';
 import type { OrderListItemViewModel } from '@/domains/order/view-model';
@@ -68,12 +70,14 @@ export interface MypageHomeSummaryViewModel {
   memberName: string;
   defaultAddressText: string;
   membershipTierName: string;
+  membershipTierCode: MembershipTierCode;
+  membershipProgress: MembershipProgressViewModel | null;
   pointBalanceText: string;
   availableCouponCount: number;
 }
 
 export interface MypageHomeOrderStatusViewModel {
-  status: Exclude<OrderStatus, 'cancelled'>;
+  status: OrderStatus;
   label: string;
   count: number;
 }

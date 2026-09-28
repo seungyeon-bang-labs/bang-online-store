@@ -5,7 +5,9 @@ import { toProductCardViewModel } from '@/domains/product/product.presenter';
 import type { ReviewDTO } from './dto';
 import {
   getReviewDeadlineDday,
+  getReviewDeleteAvailableAt,
   getReviewWriteDeadline,
+  isReviewDeletable,
 } from './domain';
 import type {
   ActivityProductViewModel,
@@ -31,15 +33,21 @@ export function toWrittenReviewViewModel(
   review: ReviewDTO,
   item: OrderItemDTO,
   product: Product,
+  now: Date,
 ): WrittenReviewViewModel {
   return {
     kind: 'written',
     id: review.id,
+    orderId: item.order_id,
     product: toProductCardViewModel(product),
     optionLabel: item.option_label,
     rating: review.rating,
     content: review.content,
     createdAt: formatKoreanDate(review.created_at),
+    canDelete: isReviewDeletable(review.created_at, now),
+    deleteAvailableAt: formatKoreanDate(
+      getReviewDeleteAvailableAt(review.created_at).toISOString(),
+    ),
   };
 }
 
@@ -57,6 +65,7 @@ export function toAvailableReviewViewModel(
 
   return {
     kind: 'available',
+    orderId: order.id,
     orderItemId: item.id,
     product: toProductCardViewModel(product),
     productName: item.product_name,
@@ -75,6 +84,8 @@ export function toReviewFormPageViewModel(
 ): ReviewFormPageViewModel {
   return {
     mode,
+    orderId: item.order_id,
+    orderItemId: item.id,
     product: toProductCardViewModel(product),
     productName: item.product_name,
     optionLabel: item.option_label,

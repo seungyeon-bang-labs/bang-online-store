@@ -1,18 +1,18 @@
 'use client';
 
 import { Mail, Loader2, CheckCircle2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/shared/components/ui/button';
 import {
   InputGroup,
   InputGroupInput,
   InputGroupAddon,
   InputGroupButton,
-} from '@/components/ui/input-group';
+} from '@/shared/components/ui/input-group';
 import {
   InputOTP,
   InputOTPGroup,
   InputOTPSlot,
-} from '@/components/ui/input-otp';
+} from '@/shared/components/ui/input-otp';
 import { useEffect, useMemo, useState } from 'react';
 import {
   Controller,

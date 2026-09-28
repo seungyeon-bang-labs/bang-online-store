@@ -37,10 +37,12 @@ export interface PointTransactionViewModel {
   id: string;
   type: StatusViewModel;
   description: string;
-  showProductDetailIndicator: boolean;
+  orderId: string | null;
   amountText: string;
+  isDeduction: boolean;
   occurredDate: string;
   occurredTime: string;
+  expirationText: string;
 }
 
 export interface PointSummaryViewModel {

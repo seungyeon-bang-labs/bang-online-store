@@ -45,7 +45,7 @@ export function EventCard({ eventCardViewModel }: EventCardProps) {
         <div
           className={cn(
             'mt-4 px-1 flex flex-col gap-2',
-            eventCardViewModel.isExpired ? 'opacity-40' : 'opacity-100',
+            eventCardViewModel.isExpired ? 'opacity-60' : 'opacity-100',
           )}
         >
           <h3 className="text-lg font-black tracking-tighter leading-tight text-zinc-900 transition-colors md:text-xl">

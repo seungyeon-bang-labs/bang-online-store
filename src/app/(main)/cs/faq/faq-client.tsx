@@ -3,12 +3,12 @@
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { ChevronDown, Megaphone } from 'lucide-react';
-import { ButtonLink } from '@/components/ui/button';
-import { PageTitle } from '@/components/common/page-title';
-import { Tabs } from '@/components/common/tabs';
-import { SearchInput } from '@/components/common/search-input';
-import { FAQ_TABS } from '@/lib/navigation';
-import { FAQ_DATA } from '@/lib/faq-data';
+import { ButtonLink } from '@/shared/components/ui/button';
+import { PageTitle } from '@/shared/components/common/page-title';
+import { Tabs } from '@/shared/components/common/tabs';
+import { SearchInput } from '@/shared/components/common/search-input';
+import { FAQ_TABS } from '@/shared/lib/navigation';
+import { FAQ_DATA } from '@/domains/customer-service';
 
 function FAQClient() {
   const searchParams = useSearchParams();
@@ -51,10 +51,14 @@ function FAQClient() {
       <PageTitle
         parent={{ label: '고객센터', href: '/cs' }}
         current="자주 묻는 질문"
-        className="mb-5"
+        className="mb-5 hidden md:flex"
       >
         <SearchInput initialValue={currentSearch} />
       </PageTitle>
+
+      <div className="mb-5 md:hidden">
+        <SearchInput initialValue={currentSearch} />
+      </div>
 
       <section className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <Tabs

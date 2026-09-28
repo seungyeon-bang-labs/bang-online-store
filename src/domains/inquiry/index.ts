@@ -30,6 +30,7 @@ const inquiryService = createInquiryService({
 });
 
 const inquiryWriteService = createInquiryWriteService({
+  inquiryRepository,
   orderRepository,
   orderItemRepository,
   productRepository,
@@ -48,7 +49,10 @@ export const getInquiryPageViewModel =
   inquiryService.getInquiryPageViewModel;
 export const getInquiryWriteViewModel =
   inquiryWriteService.getInquiryWriteViewModel;
+export const createInquiry = inquiryWriteService.createInquiry;
 export const getInquiryEditViewModel =
   inquiryEditService.getInquiryEditViewModel;
+export const getInquiryEditPageViewModel =
+  inquiryEditService.getInquiryEditPageViewModel;
 export const updateInquiry = inquiryEditService.updateInquiry;
 export const cancelInquiry = inquiryCancelService.cancelInquiry;

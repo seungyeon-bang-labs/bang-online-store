@@ -1,20 +1,56 @@
-import { Heart, Plus, Tag } from 'lucide-react';
+import { Heart, Plus } from 'lucide-react';
 import { Suspense } from 'react';
-import { ButtonLink } from '@/components/ui/button';
+import { ButtonLink } from '@/shared/components/ui/button';
 import Link from 'next/link';
-import { PageTitle } from '@/components/common/page-title';
-import { SearchInput } from '@/components/common/search-input';
+import { PageTitle } from '@/shared/components/common/page-title';
+import { SearchInput } from '@/shared/components/common/search-input';
 import Image from 'next/image';
-import { snapshotData } from '@/lib/snapshot-data';
-import { Container } from '@/components/layout/container';
+import { snapshotData } from '@/domains/snapshot';
+import { Container } from '@/shared/components/layout/container';
 
-const SnapshotPage = () => {
+const compactNumberFormatter = new Intl.NumberFormat('ko-KR', {
+  notation: 'compact',
+  maximumFractionDigits: 1,
+});
+
+interface SnapshotPageProps {
+  searchParams: Promise<{ q?: string }>;
+}
+
+const SnapshotPage = async ({ searchParams }: SnapshotPageProps) => {
+  const { q } = await searchParams;
+  const query = q?.trim() ?? '';
+  const normalizedQuery = query.toLocaleLowerCase();
+  const snapshots = normalizedQuery
+    ? snapshotData.filter(snapshot =>
+        [
+          snapshot.author.nickname,
+          snapshot.content,
+          ...snapshot.taggedProducts.map(product => product.productName),
+        ].some(value => value.toLocaleLowerCase().includes(normalizedQuery)),
+      )
+    : snapshotData;
+
   return (
     <Container>
-      <PageTitle current="SNAPSHOT">
+      <div className="flex items-center gap-2 md:hidden">
+        <Suspense fallback={<div className="h-10 min-w-0 flex-1" />}>
+          <SearchInput initialValue={query} className="min-w-0 flex-1" />
+        </Suspense>
+        <ButtonLink
+          href="/snapshot/upload"
+          aria-label="스냅샷 업로드"
+          variant="default"
+          size="icon-lg"
+        >
+          <Plus className="size-5" aria-hidden="true" />
+        </ButtonLink>
+      </div>
+
+      <PageTitle current="SNAPSHOT" className="hidden md:flex">
         <div className="flex items-center gap-4">
           <Suspense fallback={<div className="w-full md:w-80" />}>
-            <SearchInput initialValue={''} />
+            <SearchInput initialValue={query} />
           </Suspense>
           <ButtonLink href="/snapshot/upload" variant="default" size="lg">
             <Plus className="size-4" /> 업로드
@@ -23,34 +59,37 @@ const SnapshotPage = () => {
       </PageTitle>
 
       {/* 2. 스냅샷 그리드 */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-20">
-        {snapshotData.map(snap => (
+      <div className="mb-20 grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-3 lg:grid-cols-4">
+        {snapshots.map(snap => (
           <Link
             href={`/snapshots/${snap.id}`}
             key={snap.id}
-            className="group relative block aspect-3/4 w-full overflow-hidden rounded-md bg-zinc-100 transition-all duration-300 hover:shadow-2xl hover:shadow-black/10"
+            className="group relative block aspect-3/4 w-full overflow-hidden rounded-md bg-zinc-100 transition-all duration-300 md:hover:shadow-2xl md:hover:shadow-black/10"
           >
             <Image
               src={`/images/${snap.images[0].url}`}
               alt={`${snap.author.nickname}'s Snap`}
               fill
               sizes="(max-width: 768px) 50vw, 33vw"
-              className="object-cover transition-transform duration-500 group-hover:scale-105" // hover 시 이미지 살짝 확대
+              className="object-cover transition-transform duration-500 md:group-hover:scale-105"
               priority
             />
 
             <div className="absolute bottom-0 h-1/2 w-full bg-linear-to-t from-black/80 to-transparent" />
 
-            <div className="absolute inset-0 flex flex-col justify-end p-5 text-white">
-              <div className="space-y-3 translate-y-2 transition-transform duration-300 group-hover:translate-y-0">
-                <div className="flex items-center gap-3 justify-between">
-                  <p className="text-sm font-black tracking-tighter uppercase text-white/90">
+            <div className="absolute inset-0 flex flex-col justify-end p-3 text-white md:p-5">
+              <div className="space-y-2 transition-transform duration-300 md:translate-y-2 md:space-y-3 md:group-hover:translate-y-0">
+                <div className="flex items-center justify-between gap-1.5 md:gap-3">
+                  <p className="min-w-0 truncate text-[10px] font-black tracking-tighter uppercase text-white/90 md:text-sm">
                     {snap.author.nickname}
                   </p>
 
-                  <div className="flex items-center gap-2">
-                    <Heart className="size-4 text-white hover:text-red-500 transition-colors" />
-                    <span className="text-sm font-bold">
+                  <div className="flex shrink-0 items-center gap-1.5 md:gap-2">
+                    <Heart className="size-3.5 text-white transition-colors md:size-4 md:hover:text-red-500" />
+                    <span className="text-xs font-bold md:hidden">
+                      {compactNumberFormatter.format(snap.stats.likes)}
+                    </span>
+                    <span className="hidden text-sm font-bold md:inline">
                       {snap.stats.likes.toLocaleString()}
                     </span>
                   </div>
@@ -59,6 +98,17 @@ const SnapshotPage = () => {
             </div>
           </Link>
         ))}
+
+        {snapshots.length === 0 ? (
+          <div className="col-span-full flex flex-col items-center justify-center gap-4 py-20 text-center">
+            <p className="text-sm font-medium text-gray-500">
+              &quot;{query}&quot;에 대한 스냅샷이 없습니다.
+            </p>
+            <ButtonLink href="/snapshot" variant="outline" size="sm">
+              전체 스냅샷 보기
+            </ButtonLink>
+          </div>
+        ) : null}
       </div>
     </Container>
   );

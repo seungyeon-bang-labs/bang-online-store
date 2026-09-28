@@ -4,9 +4,12 @@ import { useState } from 'react';
 import type {
   InquiryEditViewModel,
   InquiryTextInput,
+  InquiryUpdateResult,
 } from '@/domains/inquiry';
+import { MypageFormUnavailable } from '@/features/mypage/common';
 import { MypageInquiryForm } from '../form';
 import { MypageInquiryEditSubmissionResult } from './submission-result';
+import { INQUIRY_EDIT_UNAVAILABLE } from './constants';
 
 interface MypageInquiryEditFlowProps {
   viewModel: InquiryEditViewModel;
@@ -14,7 +17,7 @@ interface MypageInquiryEditFlowProps {
   updateInquiryAction: (
     inquiryId: string,
     input: InquiryTextInput,
-  ) => Promise<boolean>;
+  ) => Promise<InquiryUpdateResult>;
 }
 
 export function MypageInquiryEditFlow({
@@ -23,8 +26,14 @@ export function MypageInquiryEditFlow({
   updateInquiryAction,
 }: MypageInquiryEditFlowProps) {
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isUnavailable, setIsUnavailable] = useState(false);
 
-  return isSubmitted ? (
+  return isUnavailable ? (
+    <MypageFormUnavailable
+      {...INQUIRY_EDIT_UNAVAILABLE}
+      action={{ href: returnHref, label: '1:1 문의 내역으로' }}
+    />
+  ) : isSubmitted ? (
     <MypageInquiryEditSubmissionResult returnHref={returnHref} />
   ) : (
     <MypageInquiryForm
@@ -33,13 +42,14 @@ export function MypageInquiryEditFlow({
       mode="edit"
       initialValues={viewModel.inquiry}
       onSubmitted={async values => {
-        const isUpdated = await updateInquiryAction(
+        const result = await updateInquiryAction(
           viewModel.inquiry.id,
           values,
         );
-        if (isUpdated) setIsSubmitted(true);
+        if (result === 'updated') setIsSubmitted(true);
+        if (result === 'answered') setIsUnavailable(true);
 
-        return isUpdated;
+        return result === 'updated';
       }}
     />
   );

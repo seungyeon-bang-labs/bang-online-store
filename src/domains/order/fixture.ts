@@ -49,11 +49,11 @@ function createOrder(
 export const ORDERS: readonly OrderDTO[] = [
   createOrder({
     id: '20000000-0000-4000-8000-000000000001',
-    order_number: 'ORD-20260715-001',
+    order_number: 'ORD-20260910-001',
     status: 'payment_completed',
-    ordered_at: '2026-07-15T13:00:00+09:00',
+    ordered_at: '2026-09-10T13:00:00+09:00',
     payment_due_at: null,
-    paid_at: '2026-07-15T13:01:00+09:00',
+    paid_at: '2026-09-10T13:01:00+09:00',
     estimated_delivery_at: null,
     cancelled_at: null,
     subtotal_amount: 248000,
@@ -79,11 +79,11 @@ export const ORDERS: readonly OrderDTO[] = [
   createOrder({
     id: '20000000-0000-4000-8000-000000000003',
     order_number: 'ORD-20260708-002',
-    status: 'preparing_shipment',
+    status: 'payment_completed',
     ordered_at: '2026-07-08T18:40:00+09:00',
     payment_due_at: null,
     paid_at: '2026-07-08T18:41:00+09:00',
-    estimated_delivery_at: '2026-07-11T18:00:00+09:00',
+    estimated_delivery_at: null,
     cancelled_at: null,
     subtotal_amount: 159000,
     discount_amount: 0,
@@ -135,13 +135,13 @@ export const ORDERS: readonly OrderDTO[] = [
   }),
   createOrder({
     id: '20000000-0000-4000-8000-000000000007',
-    order_number: 'ORD-20260415-001',
+    order_number: 'ORD-20260912-001',
     status: 'cancelled',
-    ordered_at: '2026-04-15T16:00:00+09:00',
+    ordered_at: '2026-09-12T16:00:00+09:00',
     payment_due_at: null,
-    paid_at: '2026-04-15T16:01:00+09:00',
+    paid_at: '2026-09-12T16:01:00+09:00',
     estimated_delivery_at: null,
-    cancelled_at: '2026-04-16T09:00:00+09:00',
+    cancelled_at: '2026-09-13T09:00:00+09:00',
     subtotal_amount: 289000,
     discount_amount: 0,
     shipping_fee: 0,
@@ -268,12 +268,57 @@ export const ORDERS: readonly OrderDTO[] = [
     payment_due_at: null,
     paid_at: '2026-08-15T11:21:00+09:00',
     estimated_delivery_at: '2026-08-16T18:00:00+09:00',
-    delivered_at: '2026-08-16T14:30:00+09:00',
+    delivered_at: '2026-09-09T14:30:00+09:00',
     cancelled_at: null,
     subtotal_amount: 294000,
     discount_amount: 0,
     shipping_fee: 0,
     total_amount: 294000,
+  }),
+  createOrder({
+    id: '20000000-0000-4000-8000-000000000017',
+    order_number: 'ORD-20260908-001',
+    status: 'pending_payment',
+    ordered_at: '2026-09-08T10:30:00+09:00',
+    payment_due_at: '2026-09-09T23:59:00+09:00',
+    paid_at: null,
+    estimated_delivery_at: null,
+    cancelled_at: null,
+    subtotal_amount: 129000,
+    discount_amount: 0,
+    shipping_fee: 0,
+    total_amount: 129000,
+    payment_method: '무통장 입금',
+  }),
+  createOrder({
+    id: '20000000-0000-4000-8000-000000000018',
+    order_number: 'ORD-20260909-001',
+    status: 'delivered',
+    ordered_at: '2026-09-05T11:20:00+09:00',
+    payment_due_at: null,
+    paid_at: '2026-09-05T11:21:00+09:00',
+    estimated_delivery_at: '2026-09-09T14:00:00+09:00',
+    delivered_at: '2026-09-09T14:30:00+09:00',
+    cancelled_at: null,
+    subtotal_amount: 85000,
+    discount_amount: 0,
+    shipping_fee: 0,
+    total_amount: 85000,
+  }),
+  createOrder({
+    id: '20000000-0000-4000-8000-000000000019',
+    order_number: 'ORD-20260911-001',
+    status: 'delivered',
+    ordered_at: '2026-09-08T13:20:00+09:00',
+    payment_due_at: null,
+    paid_at: '2026-09-08T13:21:00+09:00',
+    estimated_delivery_at: '2026-09-11T14:00:00+09:00',
+    delivered_at: '2026-09-11T14:30:00+09:00',
+    cancelled_at: null,
+    subtotal_amount: 85000,
+    discount_amount: 0,
+    shipping_fee: 0,
+    total_amount: 85000,
   }),
 ];
 
@@ -289,7 +334,7 @@ export const ORDER_ITEMS: readonly OrderItemDTO[] = [
     unit_price: 159000,
     discount_amount: 0,
     line_total_amount: 159000,
-    created_at: '2026-07-15T13:00:00+09:00',
+    created_at: '2026-09-10T13:00:00+09:00',
   },
   {
     id: '21000000-0000-4000-8000-000000000002',
@@ -302,7 +347,7 @@ export const ORDER_ITEMS: readonly OrderItemDTO[] = [
     unit_price: 89000,
     discount_amount: 0,
     line_total_amount: 89000,
-    created_at: '2026-07-15T13:00:00+09:00',
+    created_at: '2026-09-10T13:00:00+09:00',
   },
   {
     id: '21000000-0000-4000-8000-000000000003',
@@ -393,7 +438,7 @@ export const ORDER_ITEMS: readonly OrderItemDTO[] = [
     unit_price: 289000,
     discount_amount: 0,
     line_total_amount: 289000,
-    created_at: '2026-04-15T16:00:00+09:00',
+    created_at: '2026-09-12T16:00:00+09:00',
   },
   {
     id: '21000000-0000-4000-8000-000000000010',
@@ -668,6 +713,45 @@ export const ORDER_ITEMS: readonly OrderItemDTO[] = [
     line_total_amount: 294000,
     created_at: '2026-08-15T11:20:00+09:00',
   },
+  {
+    id: '21000000-0000-4000-8000-000000000034',
+    order_id: '20000000-0000-4000-8000-000000000017',
+    product_id: 12,
+    variant_id: '10-RD-M',
+    product_name: '레드 후드 윈드브레이커 자켓',
+    option_label: '레드 / M',
+    quantity: 1,
+    unit_price: 129000,
+    discount_amount: 0,
+    line_total_amount: 129000,
+    created_at: '2026-09-08T10:30:00+09:00',
+  },
+  {
+    id: '21000000-0000-4000-8000-000000000035',
+    order_id: '20000000-0000-4000-8000-000000000018',
+    product_id: 20,
+    variant_id: '18-NV-M',
+    product_name: '네이비 경량 다운 패딩 조끼',
+    option_label: '네이비 / M',
+    quantity: 1,
+    unit_price: 85000,
+    discount_amount: 0,
+    line_total_amount: 85000,
+    created_at: '2026-09-05T11:20:00+09:00',
+  },
+  {
+    id: '21000000-0000-4000-8000-000000000036',
+    order_id: '20000000-0000-4000-8000-000000000019',
+    product_id: 20,
+    variant_id: '18-NV-M',
+    product_name: '네이비 경량 다운 패딩 조끼',
+    option_label: '네이비 / M',
+    quantity: 1,
+    unit_price: 85000,
+    discount_amount: 0,
+    line_total_amount: 85000,
+    created_at: '2026-09-08T13:20:00+09:00',
+  },
 ];
 
 export const ORDER_CLAIMS: readonly OrderClaimDTO[] = [
@@ -677,7 +761,7 @@ export const ORDER_CLAIMS: readonly OrderClaimDTO[] = [
     order_id: '20000000-0000-4000-8000-000000000014',
     order_item_id: '21000000-0000-4000-8000-000000000026',
     claim_type: 'exchange',
-    status: 'requested',
+    status: 'processing',
     progress_stage: 'collection_scheduled',
     reason: '색상 교환',
     description: '다크 색상의 M 사이즈로 교환을 요청합니다.',
@@ -686,6 +770,7 @@ export const ORDER_CLAIMS: readonly OrderClaimDTO[] = [
     exchange_variant_id: '1-DK-M',
     requested_at: '2026-07-06T15:00:00+09:00',
     completed_at: null,
+    cancelled_at: null,
   },
   {
     id: '22000000-0000-4000-8000-000000000002',
@@ -702,6 +787,7 @@ export const ORDER_CLAIMS: readonly OrderClaimDTO[] = [
     exchange_variant_id: '1-DK-XL',
     requested_at: '2026-08-16T16:00:00+09:00',
     completed_at: null,
+    cancelled_at: null,
   },
   {
     id: '22000000-0000-4000-8000-000000000005',
@@ -718,6 +804,7 @@ export const ORDER_CLAIMS: readonly OrderClaimDTO[] = [
     exchange_variant_id: '1-GY-L',
     requested_at: '2026-06-24T09:30:00+09:00',
     completed_at: '2026-06-27T14:20:00+09:00',
+    cancelled_at: null,
   },
   {
     id: '22000000-0000-4000-8000-000000000006',
@@ -734,6 +821,7 @@ export const ORDER_CLAIMS: readonly OrderClaimDTO[] = [
     exchange_variant_id: '1-CM-L',
     requested_at: '2026-08-15T11:00:00+09:00',
     completed_at: '2026-08-16T10:30:00+09:00',
+    cancelled_at: null,
   },
   {
     id: '22000000-0000-4000-8000-000000000007',
@@ -741,7 +829,7 @@ export const ORDER_CLAIMS: readonly OrderClaimDTO[] = [
     order_id: '20000000-0000-4000-8000-000000000010',
     order_item_id: '21000000-0000-4000-8000-000000000012',
     claim_type: 'return',
-    status: 'requested',
+    status: 'processing',
     progress_stage: 'collection_scheduled',
     reason: '단순 변심',
     description: null,
@@ -750,6 +838,7 @@ export const ORDER_CLAIMS: readonly OrderClaimDTO[] = [
     exchange_variant_id: null,
     requested_at: '2026-06-17T13:40:00+09:00',
     completed_at: null,
+    cancelled_at: null,
   },
   {
     id: '22000000-0000-4000-8000-000000000008',
@@ -766,6 +855,7 @@ export const ORDER_CLAIMS: readonly OrderClaimDTO[] = [
     exchange_variant_id: null,
     requested_at: '2026-06-12T16:10:00+09:00',
     completed_at: null,
+    cancelled_at: null,
   },
   {
     id: '22000000-0000-4000-8000-000000000009',
@@ -782,6 +872,7 @@ export const ORDER_CLAIMS: readonly OrderClaimDTO[] = [
     exchange_variant_id: null,
     requested_at: '2026-06-04T10:20:00+09:00',
     completed_at: '2026-06-08T11:30:00+09:00',
+    cancelled_at: null,
   },
   {
     id: '22000000-0000-4000-8000-000000000003',
@@ -798,6 +889,41 @@ export const ORDER_CLAIMS: readonly OrderClaimDTO[] = [
     exchange_variant_id: null,
     requested_at: '2026-05-15T14:00:00+09:00',
     completed_at: '2026-05-17T09:30:00+09:00',
+    cancelled_at: null,
+  },
+  {
+    id: '22000000-0000-4000-8000-000000000010',
+    user_id: USER_ID,
+    order_id: '20000000-0000-4000-8000-000000000018',
+    order_item_id: '21000000-0000-4000-8000-000000000035',
+    claim_type: 'return',
+    status: 'requested',
+    progress_stage: null,
+    reason: '단순 변심',
+    description: null,
+    rejection_reason: null,
+    exchange_product_id: null,
+    exchange_variant_id: null,
+    requested_at: '2026-09-10T11:00:00+09:00',
+    completed_at: null,
+    cancelled_at: null,
+  },
+  {
+    id: '22000000-0000-4000-8000-000000000011',
+    user_id: USER_ID,
+    order_id: '20000000-0000-4000-8000-000000000015',
+    order_item_id: '21000000-0000-4000-8000-000000000032',
+    claim_type: 'exchange',
+    status: 'cancelled',
+    progress_stage: null,
+    reason: '사이즈 교환',
+    description: null,
+    rejection_reason: null,
+    exchange_product_id: 7,
+    exchange_variant_id: '5-KGY-L',
+    requested_at: '2026-08-18T13:00:00+09:00',
+    completed_at: null,
+    cancelled_at: '2026-08-19T10:20:00+09:00',
   },
 ];
 
@@ -994,6 +1120,24 @@ export const ORDER_CLAIM_HISTORIES = [
     event: 'rejected',
     occurred_at: '2026-05-17T09:30:00+09:00',
   },
+  {
+    id: '22100000-0000-4000-8000-000000000033',
+    claim_id: '22000000-0000-4000-8000-000000000010',
+    event: 'requested',
+    occurred_at: '2026-09-10T11:00:00+09:00',
+  },
+  {
+    id: '22100000-0000-4000-8000-000000000034',
+    claim_id: '22000000-0000-4000-8000-000000000011',
+    event: 'requested',
+    occurred_at: '2026-08-18T13:00:00+09:00',
+  },
+  {
+    id: '22100000-0000-4000-8000-000000000035',
+    claim_id: '22000000-0000-4000-8000-000000000011',
+    event: 'cancelled',
+    occurred_at: '2026-08-19T10:20:00+09:00',
+  },
 ] as const satisfies readonly OrderClaimHistoryDTO[];
 
 export const ORDER_CLAIM_SETTLEMENTS = [
@@ -1024,20 +1168,24 @@ export const ORDER_ITEM_CANCELLATIONS: readonly OrderItemCancellationDTO[] = [
     id: '23000000-0000-4000-8000-000000000001',
     order_id: '20000000-0000-4000-8000-000000000007',
     order_item_id: '21000000-0000-4000-8000-000000000009',
-    cancelled_at: '2026-04-16T09:00:00+09:00',
+    cancelled_at: '2026-09-13T09:00:00+09:00',
+    reason: '단순 변심',
+    reason_detail: null,
     refund_amount: 289000,
     refund_status: 'completed',
-    refund_expected_at: '2026-04-18T18:00:00+09:00',
-    refunded_at: '2026-04-18T14:12:00+09:00',
+    refund_expected_at: '2026-09-15T18:00:00+09:00',
+    refunded_at: '2026-09-14T14:12:00+09:00',
   },
   {
     id: '23000000-0000-4000-8000-000000000002',
     order_id: '20000000-0000-4000-8000-000000000001',
     order_item_id: '21000000-0000-4000-8000-000000000002',
-    cancelled_at: '2026-07-16T10:00:00+09:00',
+    cancelled_at: '2026-09-11T10:00:00+09:00',
+    reason: '기타',
+    reason_detail: '동일한 상품을 다른 옵션으로 다시 주문했습니다.',
     refund_amount: 89000,
     refund_status: 'pending',
-    refund_expected_at: '2026-07-18T18:00:00+09:00',
+    refund_expected_at: '2026-09-13T18:00:00+09:00',
     refunded_at: null,
   },
 ];
@@ -1062,9 +1210,13 @@ function createOrderStatusHistory(
 function createOrderStatusHistories(
   order: OrderDTO,
 ): OrderStatusHistoryDTO[] {
-  const histories = [
-    createOrderStatusHistory(order, 'order_received', order.ordered_at),
-  ];
+  const histories: OrderStatusHistoryDTO[] = [];
+
+  if (order.status === 'pending_payment') {
+    histories.push(
+      createOrderStatusHistory(order, 'pending_payment', order.ordered_at),
+    );
+  }
 
   if (order.paid_at) {
     histories.push(
@@ -1072,20 +1224,6 @@ function createOrderStatusHistories(
         order,
         'payment_completed',
         order.paid_at,
-      ),
-    );
-  }
-
-  if (
-    order.status === 'preparing_shipment' ||
-    order.status === 'shipping' ||
-    order.status === 'delivered'
-  ) {
-    histories.push(
-      createOrderStatusHistory(
-        order,
-        'preparing_shipment',
-        addHours(order.paid_at ?? order.ordered_at, 8),
       ),
     );
   }

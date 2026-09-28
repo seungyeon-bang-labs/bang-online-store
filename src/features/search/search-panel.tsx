@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense } from 'react';
-import { SearchInput } from '@/components/common/search-input';
+import { SearchInput } from '@/shared/components/common/search-input';
 import {
   POPULAR_SEARCH_KEYWORDS,
   RECENT_SEARCH_KEYWORDS,
@@ -20,7 +20,7 @@ export function SearchPanel({ className }: SearchPanelProps) {
   return (
     <div
       className={cn(
-        'w-full bg-white px-5 pb-4 pt-2 sm:px-6 md:px-0 md:pb-5 md:pt-3',
+        'w-full bg-white px-0 pb-4 pt-2 md:pb-5 md:pt-3',
         className,
       )}
     >

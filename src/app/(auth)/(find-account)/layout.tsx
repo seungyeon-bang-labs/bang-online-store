@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
-import { Separator } from '@/components/ui/separator';
-import { ButtonLink } from '@/components/ui/button';
+import { Separator } from '@/shared/components/ui/separator';
+import { ButtonLink } from '@/shared/components/ui/button';
 
 interface LayoutProps {
   children: ReactNode;

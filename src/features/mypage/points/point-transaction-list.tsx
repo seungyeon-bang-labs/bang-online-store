@@ -1,5 +1,11 @@
 import type { PointDateGroupViewModel } from '@/domains/benefit';
+import { MypageCard } from '@/features/mypage/common';
+import {
+  MYPAGE_DATE_GROUP_HEADER_CLASS_NAME,
+  MYPAGE_DATE_GROUP_TITLE_CLASS_NAME,
+} from '@/features/mypage/common/styles';
 import { MypagePointTransactionCard } from './point-transaction-card';
+import { MypagePointTransactionTable } from './point-transaction-table';
 
 interface MypagePointTransactionListProps {
   dateGroups: PointDateGroupViewModel[];
@@ -8,18 +14,26 @@ interface MypagePointTransactionListProps {
 export function MypagePointTransactionList({
   dateGroups,
 }: MypagePointTransactionListProps) {
+  const transactions = dateGroups.flatMap(dateGroup => dateGroup.transactions);
+
   return (
-    <div className="space-y-6">
-      {dateGroups.map(({ date, transactions }) => (
-        <section key={date} aria-labelledby={`point-date-${date}`}>
-          <div className="overflow-hidden rounded-md border border-zinc-300 bg-white">
-            <h2
-              id={`point-date-${date}`}
-              className="border-b border-zinc-200 px-4 py-3 text-sm font-black text-black md:px-5"
-            >
-              {date}
-            </h2>
-            <div className="divide-y divide-zinc-100">
+    <>
+      <MypageCard mobileLayout="full-bleed" className="lg:hidden">
+        {dateGroups.map(({ date, transactions }, index) => (
+          <section
+            key={date}
+            aria-labelledby={`point-date-${date}`}
+            className={index > 0 ? 'border-t border-zinc-200' : undefined}
+          >
+            <header className={`border-b border-zinc-200 ${MYPAGE_DATE_GROUP_HEADER_CLASS_NAME}`}>
+              <MypageCard.Title
+                id={`point-date-${date}`}
+                className={MYPAGE_DATE_GROUP_TITLE_CLASS_NAME}
+              >
+                {date}
+              </MypageCard.Title>
+            </header>
+            <div className="divide-y divide-zinc-300">
               {transactions.map(transaction => (
                 <MypagePointTransactionCard
                   key={transaction.id}
@@ -27,9 +41,10 @@ export function MypagePointTransactionList({
                 />
               ))}
             </div>
-          </div>
-        </section>
-      ))}
-    </div>
+          </section>
+        ))}
+      </MypageCard>
+      <MypagePointTransactionTable transactions={transactions} />
+    </>
   );
 }

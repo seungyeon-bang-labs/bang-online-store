@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { termsAcceptedData } from '@/lib/terms';
+import { termsAcceptedData } from '@/shared/lib/terms';
 
 export const loginFormSchema = z.object({
   userid: z.string().trim().min(1, '아이디를 입력해주세요.'),

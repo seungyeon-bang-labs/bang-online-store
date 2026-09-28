@@ -10,10 +10,19 @@ export interface OrderClaimViewModel {
   productName: string;
   optionLabel: string;
   lineTotalText: string;
+  type: StatusViewModel;
   status: StatusViewModel;
+  statusDescription: string;
   reason: string;
-  requestedAt: string;
-  completedAt: string | null;
+  refundAmount: OrderClaimRefundAmountViewModel | null;
+  actions: {
+    canCancel: boolean;
+  };
+}
+
+export interface OrderClaimRefundAmountViewModel {
+  label: '환불 예정 금액' | '환불 완료 금액';
+  amountText: string;
 }
 
 export interface OrderClaimPageViewModel
@@ -47,6 +56,7 @@ export interface OrderClaimDetailInformationViewModel {
   orderNumber: string;
   requestedAt: string;
   completedAt: string | null;
+  cancelledAt: string | null;
 }
 
 export interface OrderClaimDetailRequestViewModel {

@@ -46,11 +46,11 @@ export function MypageFilterLinks<T extends string>({
           id={current === option.value ? activeOptionId : undefined}
           aria-current={current === option.value ? 'page' : undefined}
           className={cn(
-            'rounded-sm border px-3 py-2 text-sm font-bold',
+            'rounded-sm border px-3 py-2 text-sm font-bold focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-black/20',
             mobileScrollable && 'shrink-0 scroll-mx-4',
             current === option.value
               ? 'border-black bg-black text-white'
-              : 'border-zinc-300 bg-white text-zinc-600 hover:border-black',
+              : 'border-zinc-300 bg-white text-zinc-600 hover:border-zinc-400 hover:bg-zinc-100 hover:text-black',
           )}
         >
           {option.label}

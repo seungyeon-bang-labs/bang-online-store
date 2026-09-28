@@ -4,6 +4,8 @@ import type {
   UserAddressRepository,
 } from './repository';
 
+let demoUserAddresses = USER_ADDRESSES.map(address => ({ ...address }));
+
 export const fixtureCurrentUserRepository: CurrentUserRepository = {
   async findCurrent() {
     return { ...CURRENT_USER };
@@ -11,8 +13,18 @@ export const fixtureCurrentUserRepository: CurrentUserRepository = {
 };
 
 export const fixtureUserAddressRepository: UserAddressRepository = {
+  async create(address) {
+    if (address.is_default) {
+      demoUserAddresses = demoUserAddresses.map(current =>
+        current.user_id === address.user_id
+          ? { ...current, is_default: false }
+          : current,
+      );
+    }
+    demoUserAddresses = [{ ...address }, ...demoUserAddresses];
+  },
   async findByUserId(userId) {
-    return USER_ADDRESSES.filter(address => address.user_id === userId)
+    return demoUserAddresses.filter(address => address.user_id === userId)
       .sort(
         (a, b) =>
           Number(b.is_default) - Number(a.is_default) ||
@@ -21,13 +33,21 @@ export const fixtureUserAddressRepository: UserAddressRepository = {
       .map(address => ({ ...address }));
   },
   async findById(addressId) {
-    const address = USER_ADDRESSES.find(item => item.id === addressId) ?? null;
+    const address = demoUserAddresses.find(item => item.id === addressId) ?? null;
+
+    return address ? { ...address } : null;
+  },
+  async findByIdAndUserId(addressId, userId) {
+    const address =
+      demoUserAddresses.find(
+        item => item.id === addressId && item.user_id === userId,
+      ) ?? null;
 
     return address ? { ...address } : null;
   },
   async findDefaultByUserId(userId) {
     const address =
-      USER_ADDRESSES.find(
+      demoUserAddresses.find(
         item => item.user_id === userId && item.is_default,
       ) ?? null;
 

@@ -4,7 +4,7 @@ import {
   PackageSearch,
   Truck,
 } from 'lucide-react';
-import { ButtonLink } from '@/components/ui/button';
+import { ButtonLink } from '@/shared/components/ui/button';
 
 const RETURN_GUIDE_STEPS = [
   [

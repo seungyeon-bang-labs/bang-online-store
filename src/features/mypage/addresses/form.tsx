@@ -1,36 +1,51 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { Button, ButtonLink } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input, InputError } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { Button, ButtonLink } from '@/shared/components/ui/button';
+import { Checkbox } from '@/shared/components/ui/checkbox';
+import { Input, InputError } from '@/shared/components/ui/input';
+import { Textarea } from '@/shared/components/ui/textarea';
 import {
   formatKoreanPhoneNumber,
   validateUserAddressFormInput,
   type UserAddressFormViewModel,
+  type UserAddressCreateInput,
 } from '@/domains/member';
+import {
+  MypageFormCard,
+  MypageFormField,
+  MypageFormFooter,
+  MypageFormLabel,
+} from '@/features/mypage/common/form';
+import { MypageCard } from '@/features/mypage/common/card';
+import {
+  MYPAGE_INPUT_CLASS_NAME,
+  MYPAGE_TEXTAREA_CLASS_NAME,
+  MYPAGE_ACTION_CLASS_NAME,
+  MYPAGE_FORM_ACTION_BUTTON_CLASS_NAME,
+} from '@/features/mypage/common/styles';
 import { MypageAddressSearchField } from './address-search-field';
 import { MypageAddressSubmissionResult } from './submission-result';
 import type { MypageAddressFormMode, MypageAddressFormValues } from './types';
+
+const fieldLabelClassName =
+  'text-xs leading-4 font-medium text-zinc-600 md:text-sm md:leading-5 md:font-bold md:text-black';
+const addressInputClassName =
+  `${MYPAGE_INPUT_CLASS_NAME} h-9 text-xs md:h-10 md:text-sm`;
 
 interface AddressFormErrors {
   recipientName?: string;
   phoneNumber?: string;
   address?: string;
+  submission?: string;
 }
 
 interface MypageAddressFormProps {
   mode: MypageAddressFormMode;
   returnHref: string;
   initialAddress?: UserAddressFormViewModel;
+  onCreateAddress?: (input: UserAddressCreateInput) => Promise<boolean>;
 }
-
-const inputClassName =
-  'border-zinc-300 bg-white font-medium shadow-none hover:ring-[3px] hover:ring-black/70 focus-visible:border-zinc-300 focus-visible:ring-black/70';
-const fieldLabelClassName = 'text-sm font-black text-black md:pt-2';
-const fieldRowClassName =
-  'grid gap-3 md:grid-cols-[120px_minmax(0,1fr)] md:items-start';
 
 function getInitialFormValues(
   initialAddress?: UserAddressFormViewModel,
@@ -50,20 +65,37 @@ export function MypageAddressForm({
   mode,
   returnHref,
   initialAddress,
+  onCreateAddress,
 }: MypageAddressFormProps) {
-  const [values, setValues] = useState(() => getInitialFormValues(initialAddress));
+  const initialValues = getInitialFormValues(initialAddress);
+  const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState<AddressFormErrors>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const isEditMode = mode === 'edit';
+  const isDirty =
+    values.recipientName !== initialValues.recipientName ||
+    values.phoneNumber !== initialValues.phoneNumber ||
+    values.postalCode !== initialValues.postalCode ||
+    values.addressLine1 !== initialValues.addressLine1 ||
+    values.addressLine2 !== initialValues.addressLine2 ||
+    values.deliveryNote !== initialValues.deliveryNote ||
+    values.isDefault !== initialValues.isDefault;
 
   function updateValue<Key extends keyof MypageAddressFormValues>(
     key: Key,
     value: MypageAddressFormValues[Key],
   ) {
     setValues(currentValues => ({ ...currentValues, [key]: value }));
+    setErrors(currentErrors => ({
+      ...currentErrors,
+      submission: undefined,
+    }));
   }
 
-  function submitAddress() {
+  async function submitAddress() {
+    if (isSubmitting) return;
+
     const validation = validateUserAddressFormInput(values);
     const nextErrors: AddressFormErrors = {
       ...(validation.isRecipientNameValid
@@ -80,7 +112,30 @@ export function MypageAddressForm({
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
-    setIsSubmitted(true);
+    if (mode !== 'create' || !onCreateAddress) {
+      setIsSubmitted(true);
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const isCreated = await onCreateAddress(values);
+
+      if (isCreated) {
+        setIsSubmitted(true);
+      } else {
+        setErrors({
+          submission: '배송지를 등록하지 못했습니다. 다시 시도해 주세요.',
+        });
+      }
+    } catch {
+      setErrors({
+        submission: '배송지를 등록하지 못했습니다. 다시 시도해 주세요.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   const handleAddressSearchUnavailable = useCallback(() => {
@@ -90,169 +145,167 @@ export function MypageAddressForm({
     }));
   }, []);
 
-  if (isSubmitted) {
-    return (
-      <MypageAddressSubmissionResult
-        mode={mode}
-        returnHref={returnHref}
-      />
-    );
-  }
-
   return (
-    <form
-      noValidate
-      onSubmit={event => {
-        event.preventDefault();
-        submitAddress();
-      }}
-      className="overflow-hidden rounded-md border border-zinc-300 bg-white"
+    <MypageFormCard
+      title={isEditMode ? '배송지 수정' : '배송지 추가'}
+      as="section"
+      titleSize="card"
+      mobileLayout="full-bleed"
+      mobileHeader="hide"
     >
-      <header className="px-5 py-4 md:px-6">
-        <h2 className="text-base font-black text-black">
-          {isEditMode ? '배송지 수정' : '배송지 추가'}
-        </h2>
-      </header>
+      {isSubmitted ? (
+        <MypageAddressSubmissionResult mode={mode} returnHref={returnHref} />
+      ) : (
+        <form
+          noValidate
+          onSubmit={event => {
+            event.preventDefault();
+            void submitAddress();
+          }}
+        >
+        <MypageCard.Body className="space-y-5">
+          <MypageFormField
+            className="gap-2 md:grid-cols-[120px_minmax(0,1fr)] md:items-center"
+          >
+            <MypageFormLabel htmlFor="recipient-name" className={fieldLabelClassName}>
+              수령인 <span aria-hidden="true" className="text-red-600">*</span>
+            </MypageFormLabel>
+            <div>
+              <Input
+                id="recipient-name"
+                autoComplete="name"
+                value={values.recipientName}
+                onChange={event => {
+                  updateValue('recipientName', event.target.value);
+                  setErrors(currentErrors => ({
+                    ...currentErrors,
+                    recipientName: undefined,
+                  }));
+                }}
+                placeholder="수령인을 입력해 주세요"
+                aria-invalid={Boolean(errors.recipientName)}
+                aria-describedby={
+                  errors.recipientName ? 'recipient-name-error' : undefined
+                }
+                className={addressInputClassName}
+              />
+              <InputError id="recipient-name-error" message={errors.recipientName} />
+            </div>
+          </MypageFormField>
 
-      <div className="space-y-5 border-t border-zinc-300 p-5 md:p-6">
-        <div className={fieldRowClassName}>
-          <label htmlFor="recipient-name" className={fieldLabelClassName}>
-            수령인{' '}
-            <span className="ml-1 text-sm font-medium text-zinc-500">
-              (필수)
-            </span>
-          </label>
-          <div>
-            <Input
-              id="recipient-name"
-              autoComplete="name"
-              value={values.recipientName}
-              onChange={event => {
-                updateValue('recipientName', event.target.value);
+          <MypageFormField
+            className="gap-2 md:grid-cols-[120px_minmax(0,1fr)] md:items-center"
+          >
+            <MypageFormLabel htmlFor="phone-number" className={fieldLabelClassName}>
+              연락처 <span aria-hidden="true" className="text-red-600">*</span>
+            </MypageFormLabel>
+            <div>
+              <Input
+                id="phone-number"
+                inputMode="tel"
+                autoComplete="tel"
+                value={values.phoneNumber}
+                onChange={event => {
+                  updateValue(
+                    'phoneNumber',
+                    formatKoreanPhoneNumber(event.target.value),
+                  );
+                  setErrors(currentErrors => ({
+                    ...currentErrors,
+                    phoneNumber: undefined,
+                  }));
+                }}
+                placeholder="숫자만 입력해 주세요"
+                aria-invalid={Boolean(errors.phoneNumber)}
+                aria-describedby={
+                  errors.phoneNumber ? 'phone-number-error' : undefined
+                }
+                className={addressInputClassName}
+              />
+              <InputError id="phone-number-error" message={errors.phoneNumber} />
+            </div>
+          </MypageFormField>
+
+          <MypageFormField layout="horizontal">
+            <MypageFormLabel as="p" id="address-label" className={fieldLabelClassName}>
+              주소 <span aria-hidden="true" className="text-red-600">*</span>
+            </MypageFormLabel>
+            <MypageAddressSearchField
+              postalCode={values.postalCode}
+              addressLine1={values.addressLine1}
+              addressLine2={values.addressLine2}
+              error={errors.address}
+              onAddressSelect={({ postalCode, addressLine1 }) => {
+                updateValue('postalCode', postalCode);
+                updateValue('addressLine1', addressLine1);
                 setErrors(currentErrors => ({
                   ...currentErrors,
-                  recipientName: undefined,
+                  address: undefined,
                 }));
               }}
-              placeholder="수령인을 입력해 주세요"
-              aria-invalid={Boolean(errors.recipientName)}
-              className={inputClassName}
+              onAddressLine2Change={value => updateValue('addressLine2', value)}
+              onSearchUnavailable={handleAddressSearchUnavailable}
             />
-            <InputError message={errors.recipientName} />
-          </div>
-        </div>
+          </MypageFormField>
 
-        <div className={fieldRowClassName}>
-          <label htmlFor="phone-number" className={fieldLabelClassName}>
-            연락처{' '}
-            <span className="ml-1 text-sm font-medium text-zinc-500">
-              (필수)
-            </span>
-          </label>
-          <div>
-            <Input
-              id="phone-number"
-              inputMode="tel"
-              autoComplete="tel"
-              value={values.phoneNumber}
-              onChange={event => {
-                updateValue(
-                  'phoneNumber',
-                  formatKoreanPhoneNumber(event.target.value),
-                );
-                setErrors(currentErrors => ({
-                  ...currentErrors,
-                  phoneNumber: undefined,
-                }));
-              }}
-              placeholder="숫자만 입력해 주세요"
-              aria-invalid={Boolean(errors.phoneNumber)}
-              className={inputClassName}
+          <MypageFormField layout="horizontal">
+            <MypageFormLabel htmlFor="delivery-note" className={fieldLabelClassName}>
+              배송 메모
+            </MypageFormLabel>
+            <Textarea
+              id="delivery-note"
+              value={values.deliveryNote}
+              onChange={event => updateValue('deliveryNote', event.target.value)}
+              placeholder="배송 시 요청사항을 입력해 주세요"
+              className={`min-h-24 ${MYPAGE_TEXTAREA_CLASS_NAME} !text-xs md:!text-sm`}
             />
-            <InputError message={errors.phoneNumber} />
-          </div>
-        </div>
+          </MypageFormField>
 
-        <div className={fieldRowClassName}>
-          <p id="address-label" className={fieldLabelClassName}>
-            주소{' '}
-            <span className="ml-1 text-sm font-medium text-zinc-500">
-              (필수)
-            </span>
-          </p>
-          <MypageAddressSearchField
-            postalCode={values.postalCode}
-            addressLine1={values.addressLine1}
-            addressLine2={values.addressLine2}
-            error={errors.address}
-            onAddressSelect={({ postalCode, addressLine1 }) => {
-              updateValue('postalCode', postalCode);
-              updateValue('addressLine1', addressLine1);
-              setErrors(currentErrors => ({
-                ...currentErrors,
-                address: undefined,
-              }));
-            }}
-            onAddressLine2Change={value => updateValue('addressLine2', value)}
-            onSearchUnavailable={handleAddressSearchUnavailable}
-          />
-        </div>
+          <MypageFormField
+            layout="horizontal"
+            className="grid-cols-1 items-center gap-3 md:grid-cols-[120px_minmax(0,1fr)] md:items-center"
+          >
+            <MypageFormLabel as="p" className={`hidden md:block ${fieldLabelClassName}`}>
+              기본 배송지
+            </MypageFormLabel>
+            <div className="flex h-10 items-center gap-2">
+              <Checkbox
+                id="is-default-address"
+                checked={values.isDefault}
+                onCheckedChange={checked =>
+                  updateValue('isDefault', checked === true)
+                }
+              />
+              <label
+                htmlFor="is-default-address"
+                className="cursor-pointer text-xs font-medium text-zinc-700 md:text-sm md:font-bold md:text-black"
+              >
+                기본 배송지로 설정
+              </label>
+            </div>
+          </MypageFormField>
+        </MypageCard.Body>
 
-        <div className={fieldRowClassName}>
-          <label htmlFor="delivery-note" className={fieldLabelClassName}>
-            배송 메모{' '}
-            <span className="ml-1 text-sm font-medium text-zinc-500">
-              (선택)
-            </span>
-          </label>
-          <Textarea
-            id="delivery-note"
-            value={values.deliveryNote}
-            onChange={event => updateValue('deliveryNote', event.target.value)}
-            placeholder="배송 시 요청사항을 입력해 주세요"
-            className="min-h-24 border-zinc-300 bg-white text-sm font-medium shadow-none hover:ring-[3px] hover:ring-black/70 focus-visible:border-zinc-300 focus-visible:ring-black/70"
-          />
-        </div>
-
-        <div className={fieldRowClassName}>
-          <p className={fieldLabelClassName}>기본 배송지</p>
-          <div className="flex h-9 items-center gap-2">
-            <Checkbox
-              id="is-default-address"
-              checked={values.isDefault}
-              onCheckedChange={checked =>
-                updateValue('isDefault', checked === true)
-              }
-            />
-            <label
-              htmlFor="is-default-address"
-              className="cursor-pointer text-sm font-bold text-black"
-            >
-              기본 배송지로 설정
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex justify-end px-5 pt-3 pb-6 md:px-6">
-        <div className="flex w-full gap-2 md:w-auto">
+        <MypageFormFooter errorMessage={errors.submission}>
           <ButtonLink
             href={returnHref}
             variant="outline"
             size="lg"
-            className="flex-1 border-zinc-300 bg-white font-bold shadow-none hover:border-black hover:bg-white hover:text-black md:w-30 md:flex-none"
+            className={`${MYPAGE_FORM_ACTION_BUTTON_CLASS_NAME} ${MYPAGE_ACTION_CLASS_NAME.outline}`}
           >
             취소
           </ButtonLink>
           <Button
             type="submit"
             size="lg"
-            className="flex-1 bg-black font-bold text-white hover:bg-zinc-800 md:w-30 md:flex-none"
+            disabled={isSubmitting || (isEditMode && !isDirty)}
+            className={`${MYPAGE_FORM_ACTION_BUTTON_CLASS_NAME} ${MYPAGE_ACTION_CLASS_NAME.primary}`}
           >
-            {isEditMode ? '수정' : '등록'}
+            {isSubmitting ? (isEditMode ? '수정 중' : '등록 중') : isEditMode ? '수정' : '등록'}
           </Button>
-        </div>
-      </div>
-    </form>
+        </MypageFormFooter>
+        </form>
+      )}
+    </MypageFormCard>
   );
 }

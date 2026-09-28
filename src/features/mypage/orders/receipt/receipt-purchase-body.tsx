@@ -77,7 +77,7 @@ function ReceiptPaymentSummary({
           />
           {paymentSummary.hasDiscount ? (
             <ReceiptPaymentRow
-              label="할인 금액"
+              label="상품 할인"
               amount={`- ${paymentSummary.discountAmountText}`}
               tone="discount"
             />

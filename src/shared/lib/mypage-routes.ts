@@ -17,8 +17,48 @@ export function getMypageAddressEditHref(addressId: string): string {
 export function getMypageOrderClaimRequestHref(
   orderId: string,
   orderItemId: string,
+  returnTo?: string,
 ): string {
-  return `/mypage/orders/${orderId}/claim/${orderItemId}`;
+  const claimRequestHref = `/mypage/orders/${orderId}/claim/${orderItemId}`;
+  return returnTo
+    ? `${claimRequestHref}?returnTo=${encodeURIComponent(returnTo)}`
+    : claimRequestHref;
+}
+
+export function getMypageReviewWriteHref(
+  orderItemId: string,
+  returnTo?: string,
+): string {
+  const reviewWriteHref = `/mypage/reviews/write/${orderItemId}`;
+  return returnTo
+    ? `${reviewWriteHref}?returnTo=${encodeURIComponent(returnTo)}`
+    : reviewWriteHref;
+}
+
+export function getMypageReviewEditHref(
+  reviewId: string,
+  returnTo?: string,
+): string {
+  const reviewEditHref = `/mypage/reviews/${reviewId}/edit`;
+  return returnTo
+    ? `${reviewEditHref}?returnTo=${encodeURIComponent(returnTo)}`
+    : reviewEditHref;
+}
+
+export function getMypageCompletedReviewListHref(): string {
+  return '/mypage/reviews?tab=completed&page=1';
+}
+
+export function getMypageCancelledOrderListHref(): string {
+  return '/mypage/orders?period=all&status=cancelled&includePartialCancellation=true&page=1';
+}
+
+export function getMypageOrderClaimListHref(): string {
+  return '/mypage/returns?type=all&status=all&page=1';
+}
+
+export function getMypageInquiryListHref(): string {
+  return '/mypage/inquiries?type=all&status=all&page=1';
 }
 
 export function getMypageOrderCancellationHref(
@@ -104,6 +144,41 @@ export function resolveMypageInquiryEditReturnHref({
 }
 
 export function resolveMypageOrderCancellationReturnHref(
+  orderId: string,
+  returnTo?: string | string[],
+): string {
+  return resolveMypageOrderItemActionReturnHref(orderId, returnTo);
+}
+
+export function resolveMypageOrderClaimRequestReturnHref(
+  orderId: string,
+  returnTo?: string | string[],
+): string {
+  return resolveMypageOrderItemActionReturnHref(orderId, returnTo);
+}
+
+export function resolveMypageReviewReturnHref({
+  orderId,
+  returnTo,
+  fallbackHref,
+}: {
+  orderId: string;
+  returnTo?: string | string[];
+  fallbackHref: string;
+}): string {
+  if (typeof returnTo !== 'string') return fallbackHref;
+
+  const returnPathname = returnTo.split('?')[0];
+  const orderDetailHref = getMypageOrderDetailHref(orderId);
+  return returnPathname === '/mypage' ||
+    returnPathname === '/mypage/reviews' ||
+    returnPathname === '/mypage/orders' ||
+    returnPathname === orderDetailHref
+    ? returnTo
+    : fallbackHref;
+}
+
+function resolveMypageOrderItemActionReturnHref(
   orderId: string,
   returnTo?: string | string[],
 ): string {

@@ -128,12 +128,17 @@ export async function getMypageHomeViewModel(
       })
       .map(item => item.id),
   );
-  const recentOrders = filterOrders(
+  const recentStatusOrders = filterOrders(
     orderRows,
     { period: '1-month', status: 'all' },
     now,
+  );
+  const recentOrders = filterOrders(
+    orderRows,
+    { period: 'all', status: 'all' },
+    now,
   )
-    .filter(order => order.status !== 'cancelled')
+    .slice(0, 3)
     .map(order => {
       const orderViewModel = toOrderListItemViewModel(
         order,
@@ -167,21 +172,19 @@ export async function getMypageHomeViewModel(
         .sort((a, b) => a.level - b.level)[0] ?? null
     : null;
 
+  const membershipViewModel = membership && currentMembership
+    ? toMembershipViewModel(membership, currentMembership, nextMembership, membershipTiers)
+    : null;
+
   return {
     summary: {
       memberName: user.name,
       defaultAddressText: defaultAddress
         ? getUserAddressText(defaultAddress)
         : '등록된 배송지 없음',
-      membershipTierName:
-        membership && currentMembership
-          ? toMembershipViewModel(
-              membership,
-              currentMembership,
-              nextMembership,
-            membershipTiers,
-            ).currentTier.currentTierName
-          : '브론즈',
+      membershipTierCode: currentMembership?.code ?? 'BRONZE',
+      membershipTierName: membershipViewModel?.currentTier.currentTierName ?? '브론즈',
+      membershipProgress: membershipViewModel?.progress ?? null,
       pointBalanceText: toPointPageViewModel(pointTransactions, {
         filter: 'all',
         page: 1,
@@ -199,7 +202,7 @@ export async function getMypageHomeViewModel(
     orderStatuses: MYPAGE_HOME_ORDER_STATUS_SUMMARY_STATUSES.map(status => ({
       status,
       label: toOrderStatusViewModel(status).label,
-      count: recentOrders.filter(order => order.statusCode === status).length,
+      count: recentStatusOrders.filter(order => order.status === status).length,
     })),
     recentOrders,
     recentProducts,

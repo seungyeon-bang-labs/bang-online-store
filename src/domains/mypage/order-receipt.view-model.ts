@@ -37,7 +37,16 @@ export interface MypageOrderPurchaseReceiptViewModel
 export interface MypageOrderPaymentReceiptViewModel
   extends MypageOrderReceiptBaseViewModel {
   type: 'card' | 'cash';
+  paymentDetail: MypageOrderReceiptPaymentDetailViewModel;
   paymentTransactions: MypageOrderReceiptPaymentTransactionViewModel[];
+}
+
+export interface MypageOrderReceiptPaymentDetailViewModel {
+  title: string;
+  rows: readonly {
+    label: string;
+    value: string;
+  }[];
 }
 
 export interface MypageOrderRefundReceiptViewModel

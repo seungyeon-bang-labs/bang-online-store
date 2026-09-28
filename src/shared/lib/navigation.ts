@@ -1,6 +1,7 @@
 import {
   type LucideIcon,
   User,
+  Search,
   ShoppingCart,
   House,
   LayoutGrid,
@@ -13,6 +14,7 @@ import {
 
 export type MenuItem = {
   name: string;
+  mobileLabel?: string;
   href: string;
   icon?: LucideIcon;
   requiresAuth?: boolean;
@@ -23,7 +25,12 @@ const SHARED_MENU: { [key: string]: MenuItem } = {
   NEW: { name: 'NEW', href: '/new' },
   BEST: { name: 'BEST', href: '/best' },
   SALE: { name: 'SALE', href: '/sale' },
-  SNAPSHOT: { name: 'SNAPSHOT', href: '/snapshot', icon: Aperture },
+  SNAPSHOT: {
+    name: 'SNAPSHOT',
+    mobileLabel: '스냅샷',
+    href: '/snapshot',
+    icon: Aperture,
+  },
   EVENT: { name: 'EVENT', href: '/event' },
   CS: { name: '고객센터', href: '/cs' },
   NOTICE: { name: '공지사항', href: '/cs/notice', icon: Megaphone },
@@ -41,6 +48,7 @@ const SHARED_MENU: { [key: string]: MenuItem } = {
     requiresAuth: true,
   },
   CART: { name: '장바구니', href: '/cart', icon: ShoppingCart },
+  SEARCH: { name: '검색', href: '/search', icon: Search },
   ORDER_TRACKING: {
     name: '비회원 주문조회',
     href: '/order-tracking',
@@ -53,7 +61,7 @@ const SHARED_MENU: { [key: string]: MenuItem } = {
     guestOnly: true,
   },
   HOME: { name: '홈', href: '/', icon: House },
-  CATEGORIES: { name: '카테고리', href: '/categories', icon: LayoutGrid },
+  CATEGORIES: { name: '카테고리', href: '/category', icon: LayoutGrid },
   LOGOUT: { name: '로그아웃', href: '/logout', requiresAuth: true },
 };
 
@@ -73,13 +81,22 @@ export const PC_MAIN_MENU: MenuItem[] = [
   SHARED_MENU.SNAPSHOT,
   SHARED_MENU.EVENT,
 ];
+
+export const MOBILE_PRODUCT_MENU: MenuItem[] = [
+  SHARED_MENU.HOME,
+  SHARED_MENU.NEW,
+  SHARED_MENU.BEST,
+  SHARED_MENU.SALE,
+  SHARED_MENU.EVENT,
+];
+
 export const MOBILE_DRAWER_MENU: MenuItem[] = [...PC_MAIN_MENU, SHARED_MENU.CS];
 
 export const MOBILE_FOOTER_MENU: MenuItem[] = [
   SHARED_MENU.HOME,
   SHARED_MENU.CATEGORIES,
   SHARED_MENU.SNAPSHOT,
-  SHARED_MENU.CART,
+  SHARED_MENU.SEARCH,
   SHARED_MENU.LOGIN_SIGNUP,
   SHARED_MENU.MY_PAGE,
 ];

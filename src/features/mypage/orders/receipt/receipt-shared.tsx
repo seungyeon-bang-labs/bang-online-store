@@ -89,8 +89,8 @@ export function ReceiptInformationRow({
       <dt className="shrink-0 font-bold text-zinc-500">{label}</dt>
       <dd
         className={
-          stackOnMobile
-            ? 'min-w-0 self-end break-all text-right font-bold text-black sm:self-auto'
+        stackOnMobile
+            ? 'min-w-0 self-start break-all text-left font-bold text-black sm:self-auto sm:text-right'
             : 'min-w-0 break-all text-right font-bold text-black'
         }
       >

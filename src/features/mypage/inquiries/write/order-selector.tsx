@@ -3,14 +3,17 @@
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { InputError } from '@/components/ui/input';
-import { Dialog, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { InputError } from '@/shared/components/ui/input';
+import { Dialog, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
 import type {
   InquiryWriteOrderItemOptionViewModel,
   InquiryWriteOrderOptionViewModel,
 } from '@/domains/inquiry';
+import { MypageFormLabel } from '@/features/mypage/common/form';
+import { MYPAGE_SELECTOR_TRIGGER_CLASS_NAME } from '@/features/mypage/common/styles';
 import { MypageInquirySelectorDialogContent } from './selector-dialog-content';
 import { MypageInquirySelectorSearchInput } from './selector-search-input';
+import { MypageInquirySelectionOption } from './selection-option';
 
 interface MypageInquiryWriteOrderSelectorProps {
   orders: readonly InquiryWriteOrderOptionViewModel[];
@@ -19,6 +22,7 @@ interface MypageInquiryWriteOrderSelectorProps {
   selectedOrderItemId: string;
   initialOrderIdForItemSelection?: string;
   error?: string;
+  errorId?: string;
   isReadOnly?: boolean;
   onOrderChange: (orderId: string) => void;
   onOrderItemContextChange: (context: {
@@ -34,6 +38,7 @@ export function MypageInquiryWriteOrderSelector({
   selectedOrderItemId,
   initialOrderIdForItemSelection,
   error,
+  errorId,
   isReadOnly = false,
   onOrderChange,
   onOrderItemContextChange,
@@ -117,18 +122,18 @@ export function MypageInquiryWriteOrderSelector({
 
   return (
     <div>
-      <label htmlFor="inquiry-order-selector" className="font-bold text-black">
-        {isOrderItemRequired ? '주문 상품 선택' : '주문 선택'}{' '}
-        <span className="ml-1 text-sm font-medium text-zinc-500">(필수)</span>
-      </label>
+      <MypageFormLabel htmlFor="inquiry-order-selector" requirement="required">
+        {isOrderItemRequired ? '주문 상품 선택' : '주문 선택'}
+      </MypageFormLabel>
 
       {hasSelectedContext && selectedOrder ? (
         <button
           id="inquiry-order-selector"
           type="button"
           disabled={isReadOnly}
+          aria-describedby={error ? errorId : undefined}
           onClick={openOrderSelector}
-          className="mt-2 flex w-full items-center gap-3 rounded-sm border border-zinc-300 bg-white p-3 text-left transition-colors hover:bg-zinc-50 focus-visible:border-black focus-visible:outline-none disabled:cursor-default disabled:hover:bg-white"
+          className={`mt-2 flex w-full items-center gap-3 rounded-sm border border-zinc-300 bg-white p-3 text-left transition-colors hover:bg-zinc-50 disabled:cursor-default disabled:hover:bg-white ${MYPAGE_SELECTOR_TRIGGER_CLASS_NAME}`}
         >
           {isOrderItemRequired && selectedOrderItem ? (
             <>
@@ -174,8 +179,9 @@ export function MypageInquiryWriteOrderSelector({
           id="inquiry-order-selector"
           type="button"
           data-invalid={Boolean(error)}
+          aria-describedby={error ? errorId : undefined}
           onClick={openOrderSelector}
-          className="mt-2 flex h-10 w-full items-center justify-between rounded-sm border border-zinc-300 bg-white px-3 text-left text-sm font-medium text-zinc-500 hover:border-black focus-visible:border-black focus-visible:outline-none data-[invalid=true]:border-red-500"
+          className={`mt-2 flex h-10 w-full items-center justify-between rounded-sm border border-zinc-300 bg-white px-3 text-left text-sm font-medium text-zinc-500 hover:border-black data-[invalid=true]:border-red-500 ${MYPAGE_SELECTOR_TRIGGER_CLASS_NAME}`}
         >
           {isOrderItemRequired
             ? '주문 상품을 선택해 주세요'
@@ -183,7 +189,7 @@ export function MypageInquiryWriteOrderSelector({
           <ChevronRight className="size-4 text-zinc-500" strokeWidth={2} />
         </button>
       )}
-      <InputError message={error} />
+      <InputError id={errorId} message={error} />
 
       <Dialog open={isOpen} onOpenChange={handleOpenChange}>
         <MypageInquirySelectorDialogContent>
@@ -195,41 +201,35 @@ export function MypageInquiryWriteOrderSelector({
             />
           ) : (
             <>
-              <DialogHeader className="shrink-0 border-b border-zinc-300 px-5 py-5 text-center sm:text-center">
+              <DialogHeader className="shrink-0 border-b border-zinc-300 px-4 py-4 text-center md:px-5 md:py-5 sm:text-center">
                 <DialogTitle className="font-black text-black">
                   주문 선택
                 </DialogTitle>
               </DialogHeader>
-              <div className="shrink-0 p-5 pb-0">
+              <div className="shrink-0 p-4 pb-0 md:p-5 md:pb-0">
                 <MypageInquirySelectorSearchInput
                   value={searchTerm}
                   onValueChange={setSearchTerm}
                   placeholder="주문번호 또는 상품명을 입력해 주세요"
                 />
               </div>
-              <div className="min-h-0 flex-1 overflow-y-auto p-5">
+              <div className="min-h-0 flex-1 overflow-y-auto p-4 md:p-5">
                 {filteredOrders.length > 0 ? (
                   <ul className="divide-y divide-zinc-200 border-y border-zinc-200">
                     {filteredOrders.map(order => (
                       <li key={order.id}>
-                        <button
-                          type="button"
-                          onClick={() => selectOrder(order)}
-                          className="flex w-full items-center gap-3 py-3 text-left hover:bg-zinc-50 focus-visible:bg-zinc-50 focus-visible:outline-none"
+                        <MypageInquirySelectionOption
+                          thumbnailUrl={order.representativeThumbnailUrl}
+                          title={order.orderNumber}
+                          onSelect={() => selectOrder(order)}
                         >
-                          <OrderThumbnail order={order} />
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-bold text-black">
-                              {order.orderNumber}
-                            </p>
-                            <p className="mt-0.5 truncate text-sm font-medium text-zinc-700">
-                              {order.productSummary}
-                            </p>
-                            <p className="mt-0.5 text-xs font-medium text-zinc-500">
-                              {order.orderedAt}
-                            </p>
-                          </div>
-                        </button>
+                          <p className="mt-0.5 truncate text-sm font-medium text-zinc-700">
+                            {order.productSummary}
+                          </p>
+                          <p className="mt-0.5 text-xs font-medium text-zinc-500">
+                            {order.orderedAt}
+                          </p>
+                        </MypageInquirySelectionOption>
                       </li>
                     ))}
                   </ul>
@@ -258,21 +258,20 @@ function OrderItemSelectionContent({
 }) {
   return (
     <>
-      <DialogHeader className="relative shrink-0 border-b border-zinc-300 px-5 py-5 text-center sm:text-center">
+      <DialogHeader className="relative shrink-0 border-b border-zinc-300 px-4 py-4 text-center md:px-5 md:py-5 sm:text-center">
         <button
           type="button"
           onClick={onBack}
           aria-label="주문 선택으로 돌아가기"
-          className="absolute top-1/2 left-5 flex -translate-y-1/2 items-center gap-1 text-sm font-bold text-zinc-600 hover:text-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
+          className="absolute top-1/2 left-2 flex size-10 -translate-y-1/2 items-center justify-center text-zinc-600 hover:text-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
         >
-          <ChevronLeft className="size-4" strokeWidth={2} />
-          주문 선택
+          <ChevronLeft className="size-5" strokeWidth={2} />
         </button>
         <DialogTitle className="font-black text-black">
           주문 상품 선택
         </DialogTitle>
       </DialogHeader>
-      <div className="shrink-0 p-5 pb-0">
+      <div className="shrink-0 p-4 pb-0 md:p-5 md:pb-0">
         <div className="flex items-center gap-3 rounded-sm border border-zinc-300 bg-white p-3">
           <OrderThumbnail order={order} />
           <div className="min-w-0 flex-1">
@@ -284,25 +283,19 @@ function OrderItemSelectionContent({
           </div>
         </div>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-5">
+      <div className="min-h-0 flex-1 overflow-y-auto p-4 md:p-5">
         <ul className="divide-y divide-zinc-200 border-y border-zinc-200">
           {order.items.map(item => (
             <li key={item.id}>
-              <button
-                type="button"
-                onClick={() => onSelect(item)}
-                className="flex w-full items-center gap-3 py-3 text-left hover:bg-zinc-50 focus-visible:bg-zinc-50 focus-visible:outline-none"
+              <MypageInquirySelectionOption
+                thumbnailUrl={item.thumbnailUrl}
+                title={item.productName}
+                onSelect={() => onSelect(item)}
               >
-                <OrderItemThumbnail item={item} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-bold text-black">
-                    {item.productName}
-                  </p>
-                  <p className="mt-0.5 text-sm font-medium text-zinc-500">
-                    {item.optionLabel} · {item.quantity}개
-                  </p>
-                </div>
-              </button>
+                <p className="mt-0.5 text-sm font-medium text-zinc-500">
+                  {item.optionLabel} · {item.quantity}개
+                </p>
+              </MypageInquirySelectionOption>
             </li>
           ))}
         </ul>

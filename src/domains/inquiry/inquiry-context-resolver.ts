@@ -46,6 +46,7 @@ export function createInquiryContextResolver({
 
       return {
         kind: 'order',
+        orderId: order.id,
         product: toProductCardViewModel(
           requireRelation(
             productById.get(representativeItem.product_id),

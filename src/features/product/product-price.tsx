@@ -5,6 +5,7 @@ interface ProductPriceProps {
   discount: number;
   isOutOfStock?: boolean;
   size?: 'sm' | 'md' | 'lg' | 'compact';
+  variant?: 'default' | 'product-card';
   quantity?: number;
   priceOffset?: number;
   className?: string;
@@ -42,6 +43,7 @@ export function ProductPrice({
   discount,
   isOutOfStock = false,
   size = 'md',
+  variant = 'default',
   quantity = 1,
   priceOffset = 0,
   className,
@@ -54,6 +56,26 @@ export function ProductPrice({
   const styles = sizeStyles[size];
 
   const totalPrice = discountedPrice * quantity + priceOffset * quantity;
+
+  if (variant === 'product-card') {
+    return (
+      <div
+        className={cn(
+          'flex items-center justify-start gap-1 text-sm font-bold md:text-base',
+          className,
+        )}
+      >
+        {hasDiscount ? (
+          <span className={isOutOfStock ? 'text-gray-300' : 'text-red-600'}>
+            {discount}%
+          </span>
+        ) : null}
+        <span className={isOutOfStock ? 'text-gray-400' : 'text-gray-900'}>
+          {totalPrice.toLocaleString()}원
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className={cn('flex flex-col', className)}>

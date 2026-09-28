@@ -119,6 +119,9 @@
   * {
     @apply border-border outline-ring/50;
   }
+  button:not(:disabled):not([aria-disabled='true']) {
+    cursor: pointer;
+  }
   body {
     @apply bg-background text-foreground;
   }
@@ -158,6 +161,7 @@
 
   .print-receipt-page {
     break-inside: avoid;
+    margin: 0;
     width: 100%;
     border: 0;
     border-radius: 0;

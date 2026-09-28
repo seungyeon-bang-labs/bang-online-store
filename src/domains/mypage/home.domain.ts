@@ -5,10 +5,10 @@ import type { MypageHomeReviewState } from './home.view-model';
 export const MYPAGE_HOME_ORDER_STATUS_SUMMARY_STATUSES = [
   'pending_payment',
   'payment_completed',
-  'preparing_shipment',
   'shipping',
   'delivered',
-] as const satisfies readonly Exclude<OrderStatus, 'cancelled'>[];
+  'cancelled',
+] as const satisfies readonly OrderStatus[];
 
 export function getMypageHomeReviewState(
   order: OrderListItemViewModel,

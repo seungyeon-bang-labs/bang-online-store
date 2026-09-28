@@ -112,10 +112,10 @@ export const INQUIRIES: readonly InquiryDTO[] = [
     order_id: '20000000-0000-4000-8000-000000000003',
     product_id: null,
     title: '배송지 변경 가능 여부',
-    content: '배송 준비 중인 주문의 배송지를 변경할 수 있는지 문의드립니다.',
+    content: '결제 완료 후 배송 전인 주문의 배송지를 변경할 수 있는지 문의드립니다.',
     status: 'answered',
     answer_content:
-      '배송 준비 단계에서는 고객센터를 통해 배송지 변경 가능 여부를 확인해 드립니다.',
+      '배송 전 주문은 고객센터를 통해 배송지 변경 가능 여부를 확인해 드립니다.',
     answered_at: '2026-07-09T15:00:00+09:00',
     created_at: '2026-07-08T10:00:00+09:00',
     updated_at: '2026-07-09T15:00:00+09:00',

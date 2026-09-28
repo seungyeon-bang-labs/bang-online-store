@@ -42,7 +42,7 @@ export function createClaimRequestService({
       orderItemRepository.findById(orderItemId),
     ]);
 
-    if (!order || order.user_id !== userId || !item || item.order_id !== orderId) {
+    if (!order || order.user_id !== userId || !item || item.order_id !== order.id) {
       return null;
     }
 
@@ -68,7 +68,9 @@ export function createClaimRequestService({
         orderStatus: order.status,
         deliveredAt: order.delivered_at,
         isCancelled: cancellations.length > 0,
-        hasExistingClaim: claims.some(claim => claim.status !== 'rejected'),
+        hasExistingClaim: claims.some(
+          claim => claim.status !== 'rejected' && claim.status !== 'cancelled',
+        ),
       }),
     });
   }

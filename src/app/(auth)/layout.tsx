@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import Link from 'next/link';
-import { LogoWithIcon } from '@/components/layout/logo';
+import { LogoWithIcon } from '@/shared/components/layout/logo';
 
 interface LayoutProps {
   children: ReactNode;

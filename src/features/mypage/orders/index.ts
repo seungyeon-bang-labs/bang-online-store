@@ -1,4 +1,4 @@
-export { MypageOrderList } from './list';
-export { MypageOrderDetail } from './detail';
+export { MypageOrderCardList } from './card-list';
+export { MypageOrderPartialCancellationToggle } from './partial-cancellation-toggle';
 export { MypageOrderReceipt } from './receipt';
 export { MypageOrderReceiptDocumentList } from './receipt';

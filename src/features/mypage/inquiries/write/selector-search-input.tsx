@@ -1,7 +1,8 @@
 'use client';
 
 import { Search, X } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { Input } from '@/shared/components/ui/input';
+import { MYPAGE_INPUT_CLASS_NAME } from '@/features/mypage/common/styles';
 
 interface MypageInquirySelectorSearchInputProps {
   value: string;
@@ -25,9 +26,8 @@ export function MypageInquirySelectorSearchInput({
         value={value}
         onChange={event => onValueChange(event.target.value)}
         placeholder={placeholder}
-        className={`h-10 rounded-sm border-zinc-300 bg-white pl-10 text-sm font-medium shadow-none focus-visible:border-black focus-visible:ring-0 ${
-          value ? 'pr-10' : 'pr-3'
-        }`}
+        className={`${MYPAGE_INPUT_CLASS_NAME} pl-10 ${value ? 'pr-10' : 'pr-3'
+          }`}
         autoFocus
       />
       {value ? (
@@ -35,7 +35,7 @@ export function MypageInquirySelectorSearchInput({
           type="button"
           onClick={() => onValueChange('')}
           aria-label="검색어 지우기"
-          className="absolute top-1/2 right-3 flex size-4 -translate-y-1/2 items-center justify-center text-zinc-500 hover:text-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
+          className="absolute top-1/2 right-0 flex size-10 -translate-y-1/2 items-center justify-center text-zinc-500 hover:text-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
         >
           <X className="size-4" strokeWidth={2} />
         </button>

@@ -5,9 +5,9 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { EmailVerification } from '@/features/auth/email-verification';
-import { FormSubmitButton } from '@/components/ui/button';
-import { InputError } from '@/components/ui/input';
-import { findUseridFormSchema } from '@/lib/form-schemas';
+import { FormSubmitButton } from '@/shared/components/ui/button';
+import { InputError } from '@/shared/components/ui/input';
+import { findUseridFormSchema } from '@/shared/lib/form-schemas';
 import { AccountRecoveryLinks } from '@/features/auth/account-recovery-links';
 
 function Page() {

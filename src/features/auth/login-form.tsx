@@ -6,11 +6,12 @@ import { loginAction } from '@/actions/login';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { loginFormSchema } from '@/lib/form-schemas';
-import { InputError } from '@/components/ui/input';
-import { FormSubmitButton } from '@/components/ui/button'
+import { loginFormSchema } from '@/shared/lib/form-schemas';
+import { InputError } from '@/shared/components/ui/input';
+import { FormSubmitButton } from '@/shared/components/ui/button'
 import { useState } from 'react';
-import { IconInput, PasswordInput } from '@/features/auth/icon-input';
+import { IconInput } from '@/shared/components/common/icon-input';
+import { PasswordInput } from '@/shared/components/common/password-input';
 
 export function LoginForm() {
   const [isPending, startTransition] = useTransition();

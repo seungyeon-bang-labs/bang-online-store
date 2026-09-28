@@ -8,12 +8,18 @@ import type { OrderClaimListQuery } from './domain';
 import { toOrderClaimViewModel } from './mapper';
 import type { OrderItemRelationsService } from '../order-item-relations.service';
 import type { OrderRepository } from '../repository';
-import type { OrderClaimRepository } from './repository';
+import type {
+  OrderClaimHistoryRepository,
+  OrderClaimRepository,
+  OrderClaimSettlementRepository,
+} from './repository';
 import type { OrderClaimPageViewModel } from './view-model';
 
 interface ClaimListServiceDependencies {
   orderRepository: OrderRepository;
   orderClaimRepository: OrderClaimRepository;
+  orderClaimHistoryRepository: OrderClaimHistoryRepository;
+  orderClaimSettlementRepository: OrderClaimSettlementRepository;
   orderItemRelationsService: OrderItemRelationsService;
 }
 
@@ -27,6 +33,8 @@ export interface ClaimListService {
 export function createClaimListService({
   orderRepository,
   orderClaimRepository,
+  orderClaimHistoryRepository,
+  orderClaimSettlementRepository,
   orderItemRelationsService,
 }: ClaimListServiceDependencies): ClaimListService {
   async function getOrderClaimListViewModel(
@@ -37,11 +45,29 @@ export function createClaimListService({
       orderClaimRepository.findByUserId(userId),
       orderRepository.findByUserId(userId),
     ]);
-    const relations = await orderItemRelationsService.getOrderItemRelations(
-      orders.map(order => order.id),
-    );
     const orderById = new Map(orders.map(order => [order.id, order]));
     const filteredClaims = filterOrderClaims(claims, query);
+    const [relations, histories, settlements] = await Promise.all([
+      orderItemRelationsService.getOrderItemRelations(
+        orders.map(order => order.id),
+      ),
+      orderClaimHistoryRepository.findByClaimIds(
+        filteredClaims.map(claim => claim.id),
+      ),
+      orderClaimSettlementRepository.findByClaimIds(
+        filteredClaims.map(claim => claim.id),
+      ),
+    ]);
+    const settlementByClaimId = new Map(
+      settlements.map(settlement => [settlement.claim_id, settlement]),
+    );
+    const historiesByClaimId = new Map<string, typeof histories>();
+
+    histories.forEach(history => {
+      const claimHistories = historiesByClaimId.get(history.claim_id) ?? [];
+      claimHistories.push(history);
+      historiesByClaimId.set(history.claim_id, claimHistories);
+    });
 
     const items = filteredClaims.map(claim => {
       const order = requireRelation(
@@ -71,6 +97,8 @@ export function createClaimListService({
           'order_items.product_id -> products.id',
           item.id,
         ),
+        settlementByClaimId.get(claim.id) ?? null,
+        historiesByClaimId.get(claim.id) ?? [],
       );
     });
 

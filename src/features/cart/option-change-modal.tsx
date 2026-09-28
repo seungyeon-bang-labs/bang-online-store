@@ -2,14 +2,14 @@
 
 import * as React from 'react';
 import { useMediaQuery } from '@/shared/hooks/use-media-query';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/shared/components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from '@/shared/components/ui/dialog';
 import {
   Drawer,
   DrawerClose,
@@ -18,18 +18,18 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
-} from '@/components/ui/drawer';
-import { colorMap, products } from '@/lib/products-data';
-import { ColorChip } from '@/components/ui/color-chip';
+} from '@/shared/components/ui/drawer';
+import { colorMap, products } from '@/domains/product';
+import { ColorChip } from '@/shared/components/ui/color-chip';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@/shared/components/ui/select';
 import { cn } from '@/shared/lib/utils';
-import { useCartStore } from '@/lib/store/cart';
+import { useCartStore } from '@/domains/cart';
 
 interface OptionChangeModalProps {
   groupId: number;
@@ -225,7 +225,7 @@ export function OptionChangeModal({
           <Button
             variant="outline"
             size="xs"
-            className="font-bold cursor-pointer rounded-sm tracking-widest"
+            className="font-bold rounded-sm tracking-widest"
           >
             옵션 변경
           </Button>
@@ -242,14 +242,14 @@ export function OptionChangeModal({
               variant="outline"
               size="lg"
               onClick={() => setOpen(false)}
-              className="flex-1 cursor-pointer"
+              className="flex-1"
             >
               취소
             </Button>
             <Button
               onClick={handleApply}
               size="lg"
-              className="flex-1 cursor-pointer"
+              className="flex-1"
             >
               변경 적용
             </Button>
@@ -266,7 +266,7 @@ export function OptionChangeModal({
         <Button
           variant="outline"
           size="xs"
-          className="font-bold cursor-pointer rounded-sm tracking-widest"
+          className="font-bold rounded-sm tracking-widest"
         >
           옵션 변경
         </Button>

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/lib/utils';
 import { Heart, X } from 'lucide-react';
 import {
@@ -11,12 +11,13 @@ import {
   SelectValue,
   SelectContent,
   SelectItem,
-} from '@/components/ui/select';
-import { type Variant } from '@/lib/products-data';
-import { useCartStore } from '@/lib/store/cart';
+} from '@/shared/components/ui/select';
+import { type Variant } from '@/domains/product';
+import { useCartStore } from '@/domains/cart';
 import { toast } from 'sonner';
 import { QuantitySelector } from '@/features/product/quantity-selector';
-import { ColorChip } from '@/components/ui/color-chip';
+import { ColorChip } from '@/shared/components/ui/color-chip';
+import { getCartHref } from '@/shared/lib/cart-routes';
 
 type ProductFormProps = {
   productId: number;
@@ -42,6 +43,8 @@ export function ProductForm({
   discount,
 }: ProductFormProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
   const [selectedSizeId, setSelectedSizeId] = useState('');
   const { addToCart } = useCartStore();
@@ -117,7 +120,10 @@ export function ProductForm({
       position: 'bottom-center',
       action: {
         label: '보러가기',
-        onClick: () => router.push('/cart'),
+        onClick: () => {
+          const search = searchParams.toString();
+          router.push(getCartHref(search ? `${pathname}?${search}` : pathname));
+        },
       },
       duration: 3000,
     });

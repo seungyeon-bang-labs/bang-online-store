@@ -16,6 +16,7 @@ export function toOrderCancellationPreviewViewModel({
 }): OrderCancellationPreviewViewModel {
   return {
     orderId: order.id,
+    orderItemId: item.id,
     orderNumber: order.order_number,
     orderedAt: formatKoreanDate(order.ordered_at),
     item: {

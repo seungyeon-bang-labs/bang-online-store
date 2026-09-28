@@ -1,3 +1,5 @@
+import { MypagePolicyCard } from '@/features/mypage/common';
+
 const MEMBERSHIP_EVALUATION_GUIDE_ITEMS = [
   '최근 12개월 동안 구매가 완료된 주문을 기준으로 산정합니다.',
   '매월 1일 구매 실적을 기준으로 멤버십 등급이 자동 갱신됩니다.',
@@ -7,15 +9,12 @@ const MEMBERSHIP_EVALUATION_GUIDE_ITEMS = [
 
 export function MypageMembershipEvaluationGuide() {
   return (
-    <section
-      aria-label="등급 산정 기준"
-      className="rounded-md border border-zinc-200 bg-zinc-50 p-5 md:p-6"
-    >
-      <ul className="list-disc space-y-2.5 pl-5 text-sm font-medium leading-relaxed text-zinc-700 marker:text-black">
-        {MEMBERSHIP_EVALUATION_GUIDE_ITEMS.map(item => (
-          <li key={item}>{item}</li>
-        ))}
-      </ul>
-    </section>
+    <MypagePolicyCard
+      ariaLabel="등급 산정 기준"
+      items={MEMBERSHIP_EVALUATION_GUIDE_ITEMS}
+      listClassName="space-y-2 text-xs leading-5 md:space-y-2.5 md:leading-relaxed"
+      mobileLayout="full-bleed"
+      title="등급 산정 기준"
+    />
   );
 }

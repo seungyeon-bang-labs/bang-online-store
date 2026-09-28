@@ -59,6 +59,8 @@ export function createClaimDetailService({
         ? orderClaimSettlementRepository.findByClaimIds([claim.id])
         : [],
     ]);
+    if (!order || order.user_id !== userId) return null;
+
     const item = requireRelation(
       relations.itemById.get(claim.order_item_id),
       'order_claims.order_item_id -> order_items.id',

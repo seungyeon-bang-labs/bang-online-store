@@ -4,6 +4,16 @@ import {
   ORDER_STANDARD_SHIPPING_FEE,
 } from '../domain';
 
+export const ORDER_CANCELLATION_REASON_OPTIONS = [
+  '단순 변심',
+  '중복 주문',
+  '배송 지연',
+  '기타',
+] as const;
+
+export type OrderCancellationReason =
+  (typeof ORDER_CANCELLATION_REASON_OPTIONS)[number];
+
 interface OrderCancellationRefundInput {
   itemId: string;
   itemAmount: number;

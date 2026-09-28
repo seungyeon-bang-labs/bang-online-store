@@ -6,6 +6,7 @@ import {
   type OrderClaimRequestType,
 } from '@/domains/order/claim/domain';
 import type { OrderClaimRequestViewModel } from '@/domains/order/claim/view-model';
+import { MypageDetailInfoList } from '@/features/mypage/common';
 import { formatKoreanMoney } from '@/shared/lib/format';
 
 interface MypageClaimRequestProcessingGuideProps {
@@ -30,29 +31,34 @@ export function MypageClaimRequestProcessingGuide({
       className="mt-7 rounded-sm bg-zinc-50 p-4"
       aria-label={type === 'exchange' ? '교환 처리 안내' : '반품 처리 안내'}
     >
-      <dl className="space-y-2 text-sm">
-        <div className="flex justify-between gap-4">
-          <dt className="font-medium text-zinc-500">회수 주소</dt>
-          <dd className="max-w-[70%] text-right font-bold text-black">
-            {claimRequest.collectionAddressText}
-          </dd>
-        </div>
-        <div className="flex justify-between gap-4">
-          <dt className="font-medium text-zinc-500">회수 일정</dt>
-          <dd className="font-bold text-black">
-            신청 후 1~3영업일 내 방문 예정
-          </dd>
-        </div>
-        {type === 'exchange' && (
-          <div className="flex justify-between gap-4">
-            <dt className="shrink-0 font-medium text-zinc-500">
-              교환 상품 발송
-            </dt>
-            <dd className="max-w-[70%] text-right font-bold text-black">
-              회수 및 검수 완료 후 1~3영업일 내 발송 예정
-            </dd>
-          </div>
-        )}
+      <div className="space-y-2 text-sm">
+        <MypageDetailInfoList
+          className="space-y-2"
+          labelWidth="regular"
+          items={[
+            {
+              id: 'collection-address',
+              label: '회수 주소',
+              value: claimRequest.collectionAddressText,
+              valueLayout: 'block',
+            },
+            {
+              id: 'collection-schedule',
+              label: '회수 일정',
+              value: '신청 후 1~3영업일 내 방문 예정',
+            },
+            ...(type === 'exchange'
+              ? [
+                  {
+                    id: 'exchange-shipping',
+                    label: '교환 상품 발송',
+                    value: '회수 및 검수 완료 후 1~3영업일 내 발송 예정',
+                    valueLayout: 'block' as const,
+                  },
+                ]
+              : []),
+          ]}
+        />
         {type === 'exchange' && (
           <p className="border-t border-zinc-200 pt-3 font-medium text-zinc-600">
             교환은 구매한 옵션과 동일한 가격의 옵션으로만 신청할 수 있습니다.
@@ -60,7 +66,7 @@ export function MypageClaimRequestProcessingGuide({
           </p>
         )}
         {type === 'return' && reason && (
-          <>
+          <dl>
             <div className="flex justify-between gap-4 border-t border-zinc-200 pt-3">
               <dt className="font-medium text-zinc-500">상품 금액</dt>
               <dd className="font-bold text-black">
@@ -85,9 +91,9 @@ export function MypageClaimRequestProcessingGuide({
                   : formatKoreanMoney(expectedRefundAmount)}
               </dd>
             </div>
-          </>
+          </dl>
         )}
-      </dl>
+      </div>
       {type === 'return' && !reason && (
         <p className="mt-4 text-sm font-medium text-zinc-500">
           신청 사유를 선택하면 반품 배송비와 환불 예상 금액을 안내합니다.

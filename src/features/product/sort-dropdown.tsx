@@ -6,7 +6,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@/shared/components/ui/dropdown-menu';
 import { cn } from '@/shared/lib/utils';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -35,7 +35,7 @@ export function SortDropdown({ currentSortValue }: SortDropdownProps) {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="flex items-center gap-1 font-black text-sm outline-none group cursor-pointer">
+      <DropdownMenuTrigger className="group inline-flex min-h-10 items-center gap-1 px-1 text-sm font-black outline-none">
         <span className="tracking-tight">
           {SORT_OPTIONS.find(sort => sort.value === currentSortValue)?.label ||
             '인기순'}

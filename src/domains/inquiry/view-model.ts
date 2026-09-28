@@ -5,6 +5,7 @@ import type { PageSlice } from '@/shared/lib/pagination';
 export type InquiryContextViewModel =
   | {
       kind: 'order';
+      orderId: string;
       product: ProductCardViewModel;
       productCount: number;
       representativeOptionLabel: string | null;

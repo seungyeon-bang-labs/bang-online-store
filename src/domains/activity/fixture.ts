@@ -6,19 +6,19 @@ import type {
 } from './dto';
 
 const RECENT_PRODUCT_VIEW_GROUPS = [
-  { date: '2026-08-04', productIds: [1, 2, 3, 4, 5] },
-  { date: '2026-08-03', productIds: [6, 7, 8, 9] },
-  { date: '2026-08-02', productIds: [10, 11, 12, 13, 14] },
-  { date: '2026-08-01', productIds: [15, 16, 17] },
-  { date: '2026-07-31', productIds: [18, 19, 20, 21, 22] },
-  { date: '2026-07-30', productIds: [23, 24, 25, 26] },
-  { date: '2026-07-29', productIds: [27, 1, 5, 9, 13] },
-  { date: '2026-07-28', productIds: [2, 6, 10] },
-  { date: '2026-07-27', productIds: [14, 18, 22, 26] },
-  { date: '2026-07-26', productIds: [3, 7, 11] },
-  { date: '2026-07-25', productIds: [15, 19, 23, 27] },
-  { date: '2026-07-24', productIds: [4, 8, 12] },
-  { date: '2026-07-23', productIds: [16, 20] },
+  { date: '2026-09-19', productIds: [1, 2, 3, 4, 5] },
+  { date: '2026-09-18', productIds: [6, 7, 8, 9] },
+  { date: '2026-09-17', productIds: [10, 11, 12, 13, 14] },
+  { date: '2026-09-16', productIds: [15, 16, 17] },
+  { date: '2026-09-15', productIds: [18, 19, 20, 21, 22] },
+  { date: '2026-09-14', productIds: [23, 24, 25, 26] },
+  { date: '2026-09-13', productIds: [27, 1, 5, 9, 13] },
+  { date: '2026-09-12', productIds: [2, 6, 10] },
+  { date: '2026-09-11', productIds: [14, 18, 22, 26] },
+  { date: '2026-09-10', productIds: [3, 7, 11] },
+  { date: '2026-09-09', productIds: [15, 19, 23, 27] },
+  { date: '2026-09-08', productIds: [4, 8, 12] },
+  { date: '2026-09-07', productIds: [16, 20] },
 ] as const;
 
 export const RECENT_PRODUCT_VIEWS: readonly RecentProductViewDTO[] =
@@ -58,8 +58,8 @@ export const REVIEWS: readonly ReviewDTO[] = [
     product_id: 4,
     rating: 5,
     content: '핏과 원단이 기대 이상입니다.',
-    created_at: '2026-07-15T14:20:00+09:00',
-    updated_at: '2026-07-15T14:20:00+09:00',
+    created_at: '2026-09-09T14:20:00+09:00',
+    updated_at: '2026-09-09T14:20:00+09:00',
   },
   {
     id: '32000000-0000-4000-8000-000000000002',

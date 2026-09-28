@@ -1,17 +1,17 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Card } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
+import { Card } from '@/shared/components/ui/card';
+import { Checkbox } from '@/shared/components/ui/checkbox';
+import { Label } from '@/shared/components/ui/label';
+import { Separator } from '@/shared/components/ui/separator';
 import Link from 'next/link';
 import {
   Field,
   FieldGroup,
   FieldLegend,
   FieldSet,
-} from '@/components/ui/field';
+} from '@/shared/components/ui/field';
 import { FileCheck } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import {
@@ -23,8 +23,8 @@ import {
   useWatch,
 } from 'react-hook-form';
 import type { z } from 'zod';
-import { signupFormSchema } from '@/lib/form-schemas';
-import { termsAcceptedData, type TermsKey } from '@/lib/terms';
+import { signupFormSchema } from '@/shared/lib/form-schemas';
+import { termsAcceptedData, type TermsKey } from '@/shared/lib/terms';
 
 type SignupFormValues = z.infer<typeof signupFormSchema>;
 type TermsPath = Extract<Path<SignupFormValues>, TermsKey>;

@@ -1,9 +1,9 @@
-import { Button } from '@/components/ui/button';
+import { Button } from '@/shared/components/ui/button';
 import { useMemo, useTransition } from 'react';
 import { CreditCard } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { useCartStore } from '@/lib/store/cart';
+import { useCartStore } from '@/domains/cart';
 import { createDemoOrderFromCart } from '@/app/(main)/cart/actions';
 
 interface SelectedProduct {
@@ -76,7 +76,28 @@ export function CartSummary({ selectedProducts }: CartSummaryProps) {
   };
 
   return (
-    <div className="sticky top-40 transition-all duration-300">
+    <>
+      <div className="fixed inset-x-0 bottom-14 z-30 border-t border-gray-200 bg-white p-3 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] md:hidden">
+        <div className="mx-auto flex max-w-md items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-medium text-gray-500">총 결제 금액</p>
+            <p className="truncate text-base font-black tracking-tight text-black">
+              {orderSummary.total.toLocaleString()}원
+            </p>
+          </div>
+          <Button
+            type="button"
+            size="lg"
+            disabled={isPending || selectedProducts.length === 0}
+            className="min-w-28 font-black"
+            onClick={handleCreateOrder}
+          >
+            {isPending ? '주문 생성 중' : '주문하기'}
+          </Button>
+        </div>
+      </div>
+
+      <div className="sticky top-40 hidden transition-all duration-300 md:block">
       <div className="bg-black text-white p-8 rounded-md">
         <h2 className="text-2xl font-black uppercase tracking-tighter mb-8 border-b border-gray-800 pb-4">
           결제정보
@@ -92,7 +113,7 @@ export function CartSummary({ selectedProducts }: CartSummaryProps) {
             <span>{orderSummary.subtotal.toLocaleString()}원</span>
           </div>
           <div className="flex justify-between items-center font-bold">
-            <span className="text-gray-400">할인 금액</span>
+            <span className="text-gray-400">상품 할인</span>
             {orderSummary.discountAmount > 0 ? (
               <span className="text-red-500">
                 -{orderSummary.discountAmount.toLocaleString()}원
@@ -127,7 +148,7 @@ export function CartSummary({ selectedProducts }: CartSummaryProps) {
             variant="outline"
             size="xl"
             disabled={isPending || selectedProducts.length === 0}
-            className="w-full text-black font-black flex items-center justify-center gap-3 text-lg tracking-widest cursor-pointer"
+            className="w-full text-black font-black flex items-center justify-center gap-3 text-lg tracking-widest"
             onClick={handleCreateOrder}
           >
             <CreditCard className="size-6" />
@@ -135,6 +156,7 @@ export function CartSummary({ selectedProducts }: CartSummaryProps) {
           </Button>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

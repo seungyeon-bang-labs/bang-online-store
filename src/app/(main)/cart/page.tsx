@@ -2,11 +2,11 @@
 
 import { useMemo } from 'react';
 import Image from 'next/image';
-import { PageTitle } from '@/components/common/page-title';
-import { useCartStore, type CartItem } from '@/lib/store/cart';
-import { products, colorMap } from '@/lib/products-data';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
+import { PageTitle } from '@/shared/components/common/page-title';
+import { useCartStore, type CartItem } from '@/domains/cart';
+import { products, colorMap } from '@/domains/product';
+import { Checkbox } from '@/shared/components/ui/checkbox';
+import { Label } from '@/shared/components/ui/label';
 import Link from 'next/link';
 import { QuantitySelector } from '@/features/product/quantity-selector';
 import { ProductPrice } from '@/features/product/product-price';
@@ -14,7 +14,7 @@ import { DeleteConfirmModal } from '@/features/cart/delete-confirm-modal';
 import { OptionChangeModal } from '@/features/cart/option-change-modal';
 import { CartSummary } from '@/features/cart/cart-summary';
 import { EmptyCart } from '@/features/cart/empty-cart';
-import { getProductDiscount } from '@/shared/lib/utils';
+import { getProductDiscount } from '@/domains/discount';
 
 type CartProduct = CartItem & {
   id: string;
@@ -134,8 +134,11 @@ const CartPage = () => {
   };
 
   return (
-    <div className="w-full max-w-6xl p-8 md:py-10">
-      <PageTitle current="장바구니" className="mb-12">
+    <div className="w-full max-w-6xl px-5 py-6 md:p-8 md:py-10">
+      <PageTitle
+        current="장바구니"
+        className="mb-6 hidden border-b-2 pb-4 md:mb-12 md:flex md:border-b-4 md:pb-5"
+      >
         {/* (임시) breadcrumb로 교체 */}
         <div className="hidden md:flex items-center gap-2 text-sm font-black">
           <span className="text-black">01. 장바구니</span>
@@ -146,24 +149,32 @@ const CartPage = () => {
         </div>
       </PageTitle>
 
-      <div className="grid lg:grid-cols-[1fr_400px] gap-12 items-start">
+      <div className="grid items-start gap-6 pb-32 lg:grid-cols-[1fr_400px] lg:gap-12 lg:pb-0">
         <div className="space-y-6">
-          <div className="flex justify-between items-center py-4 border-b border-gray-200 bg-white sticky top-16  sm:top-24 transition-all duration-300 z-10">
-            <div className="flex items-center gap-2 group">
+          <div
+            className={`sticky top-14 z-10 flex items-center justify-between border-b border-gray-200 bg-white py-3 transition-all duration-300 md:top-24 md:py-4 ${
+              cartProducts.length === 0 ? 'hidden md:flex' : ''
+            }`}
+          >
+            <div className="group flex items-center gap-2">
               <Checkbox
                 id="select-all"
                 checked={
-                  allSelected ? true : isIndeterminate ? 'indeterminate' : false
+                  allSelected
+                    ? true
+                    : isIndeterminate
+                      ? 'indeterminate'
+                      : false
                 }
                 onCheckedChange={checked =>
                   handleToggleSelectAll(Boolean(checked))
                 }
-                className="size-4 border border-black data-[state=checked]:bg-black data-[state=checked]:text-white transition-all duration-200"
+                className="size-4 border border-black transition-all duration-200 data-[state=checked]:bg-black data-[state=checked]:text-white"
                 disabled={cartProducts.length === 0}
               />
               <Label
                 htmlFor="select-all"
-                className="text-sm font-black uppercase cursor-pointer group-hover:underline select-none"
+                className="cursor-pointer select-none text-sm font-black uppercase group-hover:underline"
               >
                 전체 선택
               </Label>
@@ -180,7 +191,7 @@ const CartPage = () => {
             // Price already includes size offset; apply discount for display.
             <div
               key={item.id}
-              className="flex gap-2 p-6 border-2 border-gray-100 transition-all relative overflow-hidden rounded-md"
+              className="relative grid grid-cols-[auto_5rem_minmax(0,1fr)] items-start gap-x-3 gap-y-3 overflow-hidden rounded-md border border-gray-200 p-4 transition-all md:flex md:gap-2 md:border-2 md:border-gray-100 md:p-6"
             >
               <Checkbox
                 checked={validSelectedIds.has(item.id)}
@@ -190,7 +201,7 @@ const CartPage = () => {
                 className="size-4 border border-black data-[state=checked]:bg-black data-[state=checked]:text-white transition-all duration-200 self-start"
               />
 
-              <div className="relative w-24 h-24 sm:w-28 sm:h-28 aspect-square bg-zinc-100 rounded-md overflow-hidden shrink-0">
+              <div className="relative aspect-square h-20 w-20 shrink-0 overflow-hidden rounded-md bg-zinc-100 md:h-28 md:w-28">
                 <Image
                   src={`/images/${item.imageUrl}`}
                   alt={item.name}
@@ -201,14 +212,14 @@ const CartPage = () => {
                 />
               </div>
 
-              <div className="flex flex-col w-full justify-between">
+              <div className="contents md:flex md:min-w-0 md:flex-1 md:flex-col md:justify-between">
                 {/* 상품 정보 및 개별 삭제*/}
-                <div className="flex flex-col gap-1">
+                <div className="min-w-0 flex flex-col gap-1">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-black hover:underline">
+                    <h3 className="min-w-0 flex-1 text-sm font-black leading-snug hover:underline md:text-lg">
                       <Link
                         href={`/product/${item.productId}`}
-                        className="block"
+                        className="block line-clamp-2"
                       >
                         {item.name}
                       </Link>
@@ -220,11 +231,11 @@ const CartPage = () => {
                   </div>
 
                   {/* 옵션 정보*/}
-                  <div className="flex flex-wrap items-center gap-4">
-                    <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">
+                  <div className="flex flex-wrap items-center gap-2 md:gap-4">
+                    <p className="text-xs font-bold uppercase tracking-normal text-gray-400 md:text-sm md:tracking-widest">
                       {item.color} / {item.option}
                       {item.priceOffset > 0 && (
-                        <span className="tracking-normal text-sm ml-1">
+                        <span className="ml-1 text-xs tracking-normal md:text-sm">
                           (+
                           {(item.priceOffset * item.quantity).toLocaleString()}
                           원)
@@ -241,20 +252,21 @@ const CartPage = () => {
                 </div>
 
                 {/* 수량 조절 및 가격 */}
-                <div className="flex justify-between items-end">
+                <div className="col-span-full flex items-end justify-between gap-3 border-t border-gray-100 pt-3 md:mt-0 md:border-0 md:pt-0">
                   {/* 수량 조절 */}
                   <QuantitySelector
                     count={item.quantity}
                     stock={item.stock}
                     onIncrease={() => handleUpdateCount(item.id, 1)}
                     onDecrease={() => handleUpdateCount(item.id, -1)}
+                    className="[&_button]:size-8 md:[&_button]:size-6"
                   />
 
                   {/* 가격 섹션 */}
                   <ProductPrice
                     price={item.price}
                     discount={item.discount}
-                    size="md"
+                    size="compact"
                     quantity={item.quantity}
                     priceOffset={item.priceOffset}
                     className="text-right"
@@ -268,7 +280,9 @@ const CartPage = () => {
           <EmptyCart isEmpty={cartProducts.length === 0} />
         </div>
 
-        <CartSummary selectedProducts={selectedProducts} />
+        <div className={cartProducts.length === 0 ? 'hidden md:block' : undefined}>
+          <CartSummary selectedProducts={selectedProducts} />
+        </div>
       </div>
     </div>
   );

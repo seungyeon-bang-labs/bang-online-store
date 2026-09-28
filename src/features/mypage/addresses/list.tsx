@@ -1,3 +1,4 @@
+import { MypageListStack } from '@/features/mypage/common/list-stack';
 import type { UserAddressViewModel } from '@/domains/member';
 import { MypageAddressCard } from './card';
 
@@ -7,10 +8,10 @@ interface MypageAddressListProps {
 
 export function MypageAddressList({ addresses }: MypageAddressListProps) {
   return (
-    <div className="space-y-4">
+    <MypageListStack density="compact">
       {addresses.map(address => (
         <MypageAddressCard key={address.id} address={address} />
       ))}
-    </div>
+    </MypageListStack>
   );
 }

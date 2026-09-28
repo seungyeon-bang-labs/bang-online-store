@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { loginFormSchema } from '@/lib/form-schemas';
+import { loginFormSchema } from '@/shared/lib/form-schemas';
 
 export type LoginActionState =
   | { ok: true; errorMessage?: never }

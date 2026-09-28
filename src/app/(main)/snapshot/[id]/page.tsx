@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
-import { Container } from '@/components/layout/container';
-import { PageTitle } from '@/components/common/page-title';
+import { Container } from '@/shared/components/layout/container';
+import { PageTitle } from '@/shared/components/common/page-title';
 import { snapshotRepository } from '@/domains/snapshot';
 
 async function SnapshotDetailPage({
@@ -16,7 +16,7 @@ async function SnapshotDetailPage({
 
   return (
     <Container>
-      <PageTitle current="SNAPSHOT" />
+      <PageTitle current="SNAPSHOT" className="hidden md:flex" />
 
       <article className="grid gap-8 md:grid-cols-[minmax(0,1fr)_360px]">
         <div className="relative aspect-3/4 overflow-hidden rounded-md bg-zinc-100">

@@ -11,7 +11,7 @@ export function RecentSearchList({
   titleClassName,
 }: RecentSearchListProps) {
   return (
-    <div className="mt-4 flex flex-1 flex-col rounded-md border border-zinc-300 bg-white p-4 transition-shadow hover:ring-2 hover:ring-black/70">
+    <div className="mt-4 flex flex-1 flex-col rounded-md border border-zinc-200 bg-white p-4">
       <div>
         <p className={titleClassName}>최근 검색어</p>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -30,7 +30,7 @@ export function RecentSearchList({
 
       <button
         type="button"
-        className="ml-auto mt-auto pt-4 text-right text-xs font-semibold text-zinc-500 transition-colors hover:text-black focus-visible:text-black"
+        className="ml-auto mt-2 flex min-h-9 items-center justify-end text-right text-xs font-semibold text-zinc-500 transition-colors hover:text-black focus-visible:text-black"
       >
         전체 삭제
       </button>

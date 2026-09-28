@@ -6,7 +6,8 @@ export type OrderClaimStatus =
   | 'requested'
   | 'processing'
   | 'completed'
-  | 'rejected';
+  | 'rejected'
+  | 'cancelled';
 
 export type OrderClaimProgressStage =
   | 'collection_scheduled'
@@ -20,7 +21,8 @@ export type OrderClaimHistoryEvent =
   | 'requested'
   | OrderClaimProgressStage
   | 'completed'
-  | 'rejected';
+  | 'rejected'
+  | 'cancelled';
 
 export type OrderClaimSettlementType =
   | 'additional_payment'
@@ -47,6 +49,7 @@ export interface OrderClaimDTO {
   exchange_variant_id: string | null;
   requested_at: string;
   completed_at: string | null;
+  cancelled_at: string | null;
 }
 
 export interface OrderClaimHistoryDTO {

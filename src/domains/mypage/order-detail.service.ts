@@ -5,9 +5,10 @@ import { toMypageOrderDetailViewModel } from './order-detail.mapper';
 import type { MypageOrderDetailViewModel } from './order-detail.view-model';
 
 export async function getMypageOrderDetailViewModel(
+  userId: string,
   orderId: string,
 ): Promise<MypageOrderDetailViewModel | null> {
-  const order = await getOrderDetailViewModel(orderId);
+  const order = await getOrderDetailViewModel(userId, orderId);
 
   if (!order) return null;
 

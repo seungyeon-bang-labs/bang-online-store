@@ -1,86 +1,91 @@
-import { Button } from '@/components/ui/button';
+import { Button } from '@/shared/components/ui/button';
+import { ChevronRight } from 'lucide-react';
 import type { MemberProfileViewModel } from '@/domains/member';
-
-const fieldLabelClassName = 'text-sm font-black text-black';
-const fieldRowClassName = 'grid gap-3 md:grid-cols-[120px_1fr] md:items-center';
+import { MypageFormCard, MypageFormField } from '@/features/mypage/common/form';
+import { MypageCard } from '@/features/mypage/common/card';
 
 interface AccountInformationProps {
   profile: MemberProfileViewModel;
 }
 
+const fieldLabelClassName =
+  'text-xs leading-4 font-medium text-zinc-600 md:text-sm md:leading-5 md:font-bold md:text-black';
+
 export function AccountInformation({ profile }: AccountInformationProps) {
   return (
-    <section className="overflow-hidden rounded-md border border-zinc-300 bg-white">
-      <header className="px-5 py-4 md:px-6">
-        <h2 className="text-base font-black text-black">계정 정보</h2>
-      </header>
-      <div className="divide-y divide-zinc-200 border-t border-zinc-300 px-5 md:px-6">
-        <div className={`${fieldRowClassName} py-4`}>
-          <span className={fieldLabelClassName}>아이디</span>
-          <p className="text-sm font-medium text-zinc-700">
-            {profile.loginId}
-          </p>
-        </div>
-        <div className={`${fieldRowClassName} py-4`}>
-          <div className="flex items-center justify-between gap-3">
-            <span className={fieldLabelClassName}>이메일</span>
-            <Button
-              type="button"
-              variant="outline"
-              size="xs"
-              className="h-7 border-zinc-300 px-2.5 text-sm font-bold shadow-none hover:border-black hover:bg-black hover:text-white md:hidden"
-            >
-              변경
-            </Button>
+    <MypageFormCard
+      title="계정 정보"
+      as="section"
+      titleSize="card"
+      mobileLayout="full-bleed"
+    >
+      <MypageCard.Body padding="flush-y" className="divide-y divide-zinc-200">
+        <MypageFormField
+          layout="horizontal"
+          className="grid-cols-[4rem_minmax(0,1fr)] items-start gap-3 py-2.5 md:grid-cols-[120px_minmax(0,1fr)] md:items-center md:py-3"
+        >
+          <span className={`${fieldLabelClassName} pt-0.5 md:self-center md:pt-0`}>아이디</span>
+          <div className="min-w-0">
+            <div className="flex min-w-0 items-center gap-3 md:min-h-8">
+              <p className="min-w-0 truncate text-sm font-medium text-zinc-700">
+                {profile.loginId}
+              </p>
+              <p className="ml-auto hidden shrink-0 text-xs font-medium text-zinc-500 md:block">
+                아이디는 변경할 수 없습니다.
+              </p>
+            </div>
+            <p className="mt-0.5 text-xs leading-4 font-medium text-zinc-500 md:hidden">
+              아이디는 변경할 수 없습니다.
+            </p>
           </div>
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <p className="text-sm font-medium text-zinc-700">
+        </MypageFormField>
+        <MypageFormField
+          layout="horizontal"
+          className="grid-cols-[4rem_minmax(0,1fr)] items-center gap-3 py-2.5 md:grid-cols-[120px_minmax(0,1fr)] md:py-3"
+        >
+          <span className={`${fieldLabelClassName} md:self-center`}>이메일</span>
+          <div className="flex min-w-0 items-center gap-2 md:min-h-8">
+            <div className="flex min-w-0 flex-1 items-center gap-1.5">
+              <p className="min-w-0 truncate text-sm font-medium text-zinc-700">
                 {profile.email}
               </p>
-              {profile.isEmailVerified && (
-                <span className="rounded-sm bg-zinc-100 px-2 py-1 text-xs font-bold text-zinc-600">
-                  인증 완료
-                </span>
-              )}
             </div>
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               size="sm"
-              className="hidden shrink-0 border-zinc-300 font-bold shadow-none hover:border-black hover:bg-black hover:text-white md:inline-flex"
+              aria-label="이메일 변경으로 이동"
+              title="이메일 변경"
+              className="ml-auto shrink-0 px-1.5 text-zinc-600 hover:bg-zinc-100 hover:text-black md:border md:border-zinc-300 md:px-3"
             >
-              변경
+              <span className="hidden md:inline">이메일 변경</span>
+              <ChevronRight className="size-5 md:hidden" strokeWidth={2} aria-hidden="true" />
             </Button>
           </div>
-        </div>
-        <div className={`${fieldRowClassName} py-4`}>
-          <div className="flex items-center justify-between gap-3">
-            <span className={fieldLabelClassName}>비밀번호</span>
-            <Button
-              type="button"
-              variant="outline"
-              size="xs"
-              className="h-7 border-zinc-300 px-2.5 text-sm font-bold shadow-none hover:border-black hover:bg-black hover:text-white md:hidden"
-            >
-              변경
-            </Button>
-          </div>
-          <div className="flex items-center justify-between gap-3">
+        </MypageFormField>
+        <MypageFormField
+          layout="horizontal"
+          className="grid-cols-[4rem_minmax(0,1fr)] items-center gap-3 py-2.5 md:grid-cols-[120px_minmax(0,1fr)] md:py-3"
+        >
+          <span className={`${fieldLabelClassName} md:self-center`}>비밀번호</span>
+          <div className="flex min-w-0 items-center gap-2 md:min-h-8">
             <p className="text-sm font-medium tracking-[0.2em] text-zinc-500">
               ••••••••
             </p>
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               size="sm"
-              className="hidden shrink-0 border-zinc-300 font-bold shadow-none hover:border-black hover:bg-black hover:text-white md:inline-flex"
+              aria-label="비밀번호 변경으로 이동"
+              title="비밀번호 변경"
+              className="ml-auto shrink-0 px-1.5 text-zinc-600 hover:bg-zinc-100 hover:text-black md:border md:border-zinc-300 md:px-3"
             >
-              변경
+              <span className="hidden md:inline">비밀번호 변경</span>
+              <ChevronRight className="size-5 md:hidden" strokeWidth={2} aria-hidden="true" />
             </Button>
           </div>
-        </div>
-      </div>
-    </section>
+        </MypageFormField>
+      </MypageCard.Body>
+    </MypageFormCard>
   );
 }

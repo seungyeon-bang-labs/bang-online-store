@@ -1,3 +1,6 @@
+import { MypageCard, type MypageCardMobileLayout } from './card';
+import { MYPAGE_TYPOGRAPHY } from './styles';
+
 export interface MypageProcessingHistoryItem {
   id: string;
   label: string;
@@ -6,21 +9,39 @@ export interface MypageProcessingHistoryItem {
 }
 
 interface MypageProcessingHistoryProps {
+  collapsible?: boolean;
+  mobileLayout?: MypageCardMobileLayout;
   title: string;
   histories: readonly MypageProcessingHistoryItem[];
 }
 
 export function MypageProcessingHistory({
+  collapsible = false,
+  mobileLayout,
   title,
   histories,
 }: MypageProcessingHistoryProps) {
-  return (
-    <section className="overflow-hidden rounded-md border border-zinc-300 bg-white">
-      <header className="border-b border-zinc-200 p-4 md:p-5">
-        <h3 className="font-black text-black">{title}</h3>
-      </header>
+  const content = (
+    <MypageCard.Body>
       <MypageProcessingHistoryList histories={histories} />
-    </section>
+    </MypageCard.Body>
+  );
+
+  if (collapsible) {
+    return (
+      <MypageCard.Collapsible title={title} mobileLayout={mobileLayout}>
+        {content}
+      </MypageCard.Collapsible>
+    );
+  }
+
+  return (
+    <MypageCard mobileLayout={mobileLayout}>
+      <MypageCard.Header>
+        <MypageCard.Title>{title}</MypageCard.Title>
+      </MypageCard.Header>
+      {content}
+    </MypageCard>
   );
 }
 
@@ -32,7 +53,7 @@ export function MypageProcessingHistoryList({
   histories,
 }: MypageProcessingHistoryListProps) {
   return (
-    <ol className="p-4 md:p-5">
+    <ol>
       {histories.map((history, index) => (
         <li
           key={history.id}
@@ -53,21 +74,22 @@ export function MypageProcessingHistoryList({
             aria-hidden="true"
           />
           <div
-            className={`grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_max-content] items-center gap-4 ${
+            className={`grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 gap-y-0.5 sm:flex sm:flex-wrap sm:gap-x-1.5 ${
               index < histories.length - 1 ? 'pb-5' : ''
             }`}
           >
             <p
               className={
                 history.isCurrent
-                  ? 'font-black text-black'
-                  : 'font-bold text-zinc-500'
+                  ? 'min-w-0 truncate font-black text-black'
+                  : 'min-w-0 truncate font-bold text-zinc-500'
               }
             >
               {history.label}
             </p>
-            <time className="whitespace-nowrap text-left text-xs font-medium text-zinc-400 sm:text-sm">
-              {history.occurredAt}
+            <time className={`whitespace-nowrap ${MYPAGE_TYPOGRAPHY.meta}`}>
+              <span className="sm:hidden">{history.occurredAt}</span>
+              <span className="hidden sm:inline">· {history.occurredAt}</span>
             </time>
           </div>
         </li>

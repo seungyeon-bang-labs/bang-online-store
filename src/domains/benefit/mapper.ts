@@ -97,19 +97,27 @@ function formatMembershipPeriod(startedAt: string, expiresAt: string) {
 
 export function toPointTransactionViewModel(
   row: PointTransactionDTO,
-  description = row.description,
+  displayInfo: {
+    description?: string;
+    orderId?: string | null;
+  } = {},
 ): PointTransactionViewModel {
   const absoluteText = Math.abs(row.amount).toLocaleString('ko-KR') + ' P';
+  const {
+    description = row.description,
+    orderId = row.order_id,
+  } = displayInfo;
 
   return {
     id: row.id,
     type: getPointTransactionStatus(row),
     description,
-    showProductDetailIndicator:
-      row.order_id !== null || row.review_id !== null,
+    orderId,
     amountText: row.amount > 0 ? '+' + absoluteText : '-' + absoluteText,
+    isDeduction: row.amount < 0,
     occurredDate: formatKoreanDate(row.occurred_at),
     occurredTime: formatKoreanTime(row.occurred_at),
+    expirationText: row.expires_at ? formatKoreanDate(row.expires_at) : '-',
   };
 }
 
@@ -117,7 +125,10 @@ export function toPointPageViewModel(
   rows: readonly PointTransactionDTO[],
   query: PointListQuery,
   now = new Date(),
-  descriptionsByTransactionId: ReadonlyMap<string, string> = new Map(),
+  displayInfoByTransactionId: ReadonlyMap<
+    string,
+    { description?: string; orderId?: string | null }
+  > = new Map(),
 ): PointPageViewModel {
   const nextPointExpiration = getNextPointExpiration(rows, now);
   const filtered = rows.filter(
@@ -127,7 +138,7 @@ export function toPointPageViewModel(
     filtered.map(row =>
       toPointTransactionViewModel(
         row,
-        descriptionsByTransactionId.get(row.id),
+        displayInfoByTransactionId.get(row.id),
       ),
     ),
     query.page,

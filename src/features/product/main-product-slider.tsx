@@ -1,14 +1,12 @@
-import { Slider } from '@/components/common/slider';
 import { toProductCardViewModel } from '@/domains/product';
-import { ProductItem } from '@/features/product/product-item';
-import { products } from '@/lib/products-data';
-import { mainSliderGroupData } from '@/lib/main-slider-group-data';
+import { products, mainSliderGroupData } from '@/domains/product';
+import { HomeProductSlider } from './home-product-slider';
 
 export function MainProductSlider() {
   const productsById = new Map(products.map(product => [product.id, product]));
 
   return (
-    <div className="flex flex-col gap-20">
+    <div className="flex flex-col gap-12 md:gap-20">
       {mainSliderGroupData.map(group => {
         const groupProducts = group.productIds
           .map(productId => productsById.get(productId))
@@ -19,18 +17,12 @@ export function MainProductSlider() {
         }
 
         return (
-          <Slider
+          <HomeProductSlider
             key={group.id}
             title={group.title}
-            rows={group.sliderOptions?.rows ?? 2}
-          >
-            {groupProducts.map(product => (
-              <ProductItem
-                key={product.id}
-                product={toProductCardViewModel(product)}
-              />
-            ))}
-          </Slider>
+            desktopRows={group.sliderOptions?.rows ?? 2}
+            products={groupProducts.map(toProductCardViewModel)}
+          />
         );
       })}
     </div>

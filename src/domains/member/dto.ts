@@ -1,3 +1,5 @@
+export type UserGender = 'male' | 'female' | 'unspecified';
+
 export interface UserDTO {
   id: string;
   login_id: string;
@@ -5,6 +7,7 @@ export interface UserDTO {
   email: string;
   phone_number: string;
   birth_date: string | null;
+  gender: UserGender;
   email_verified_at: string | null;
   created_at: string;
   updated_at: string;

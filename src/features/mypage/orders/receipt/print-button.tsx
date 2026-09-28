@@ -1,7 +1,9 @@
 'use client';
 
+import { MYPAGE_ACTION_CLASS_NAME } from '@/features/mypage/common/styles';
+
 import { Printer } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/shared/components/ui/button';
 
 export function MypageOrderReceiptPrintButton() {
   return (
@@ -9,7 +11,7 @@ export function MypageOrderReceiptPrintButton() {
       type="button"
       variant="outline"
       size="sm"
-      className="print-receipt-action rounded-sm border-zinc-300 font-bold shadow-none"
+      className={`print-receipt-action ${MYPAGE_ACTION_CLASS_NAME.outline}`}
       onClick={() => window.print()}
     >
       <Printer className="size-4" aria-hidden="true" />

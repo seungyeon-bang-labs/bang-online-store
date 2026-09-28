@@ -1,9 +1,9 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { InterceptedRouteOverlay } from '@/components/layout/intercepted-route-overlay';
+import { InterceptedRouteOverlay } from '@/shared/components/layout/intercepted-route-overlay';
 import { SearchPanel } from '@/features/search/search-panel';
-import { useRegisterOverlayRoute } from '@/components/layout/overlay-route-context';
+import { useRegisterOverlayRoute } from '@/shared/components/layout/overlay-route-context';
 
 function SearchPage() {
   const pathname = usePathname();

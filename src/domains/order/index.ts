@@ -3,6 +3,7 @@ import {
   fixtureOrderItemCancellationRepository,
   fixtureOrderItemRepository,
   fixtureOrderMutationRepository,
+  fixtureOrderPaymentReceiptDetailsRepository,
   fixtureOrderPaymentTransactionRepository,
   fixtureOrderRepository,
   fixtureOrderStatusHistoryRepository,
@@ -14,9 +15,11 @@ import {
 } from './claim/fixture-repository';
 import { createOrderCommandService } from './order-command.service';
 import { createOrderCancellationPreviewService } from './cancellation/preview.service';
+import { createOrderCancellationSubmitService } from './cancellation/submit.service';
 import { createClaimListService } from './claim/list.service';
 import { createClaimDetailService } from './claim/detail.service';
 import { createClaimRequestService } from './claim/request.service';
+import { createClaimCancelService } from './claim/cancel.service';
 import { createOrderDetailService } from './order-detail.service';
 import { createOrderItemRelationsService } from './order-item-relations.service';
 import { createOrderListService } from './order-list.service';
@@ -39,6 +42,8 @@ export const orderItemCancellationRepository =
 export const orderItemRepository = fixtureOrderItemRepository;
 export const orderRepository = fixtureOrderRepository;
 export const orderMutationRepository = fixtureOrderMutationRepository;
+export const orderPaymentReceiptDetailsRepository =
+  fixtureOrderPaymentReceiptDetailsRepository;
 export const orderPaymentTransactionRepository =
   fixtureOrderPaymentTransactionRepository;
 export const orderStatusHistoryRepository =
@@ -73,10 +78,18 @@ const orderCancellationPreviewService = createOrderCancellationPreviewService({
   orderItemCancellationRepository,
   productRepository,
 });
+const orderCancellationSubmitService = createOrderCancellationSubmitService({
+  orderRepository,
+  orderItemRepository,
+  orderItemCancellationRepository,
+  orderMutationRepository,
+});
 
 const claimListService = createClaimListService({
   orderRepository,
   orderClaimRepository,
+  orderClaimHistoryRepository,
+  orderClaimSettlementRepository,
   orderItemRelationsService,
 });
 
@@ -97,16 +110,25 @@ const claimRequestService = createClaimRequestService({
   productRepository,
 });
 
+const claimCancelService = createClaimCancelService({
+  orderClaimRepository,
+});
+
 export const getOrderListViewModel =
   orderListService.getOrderListViewModel;
 export const getOrderDetailViewModel =
   orderDetailService.getOrderDetailViewModel;
 export const getOrderCancellationPreviewViewModel =
   orderCancellationPreviewService.getOrderCancellationPreviewViewModel;
+export const getOrderCancellationRequestViewModel =
+  orderCancellationPreviewService.getOrderCancellationRequestViewModel;
+export const submitOrderCancellation =
+  orderCancellationSubmitService.submitOrderCancellation;
 export const getOrderClaimListViewModel =
   claimListService.getOrderClaimListViewModel;
 export const getOrderClaimDetailViewModel =
   claimDetailService.getOrderClaimDetailViewModel;
 export const getOrderClaimRequestViewModel =
   claimRequestService.getOrderClaimRequestViewModel;
+export const cancelOrderClaim = claimCancelService.cancelOrderClaim;
 export const createDemoOrder = orderCommandService.createDemoOrder;

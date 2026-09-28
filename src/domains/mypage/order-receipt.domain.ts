@@ -11,6 +11,7 @@ export type MypageOrderReceiptDocumentType =
   (typeof MYPAGE_ORDER_RECEIPT_DOCUMENT_TYPES)[number];
 
 interface ReceiptDocumentAvailabilityInput {
+  hasCompletedPayment: boolean;
   paymentMethod: OrderPaymentMethod;
   hasRefund: boolean;
 }
@@ -24,9 +25,12 @@ export function isMypageOrderReceiptDocumentType(
 }
 
 export function getAvailableMypageOrderReceiptDocumentTypes({
+  hasCompletedPayment,
   paymentMethod,
   hasRefund,
 }: ReceiptDocumentAvailabilityInput): MypageOrderReceiptDocumentType[] {
+  if (!hasCompletedPayment) return [];
+
   const types: MypageOrderReceiptDocumentType[] = ['purchase'];
 
   switch (paymentMethod) {

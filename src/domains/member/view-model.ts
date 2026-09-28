@@ -1,3 +1,5 @@
+import type { UserGender } from './dto';
+
 export interface MemberProfileViewModel {
   loginId: string;
   name: string;
@@ -5,6 +7,7 @@ export interface MemberProfileViewModel {
   isEmailVerified: boolean;
   phoneNumber: string;
   birthDate: string;
+  gender: UserGender;
 }
 
 export interface UserAddressViewModel {
