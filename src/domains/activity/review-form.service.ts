@@ -4,10 +4,18 @@ import type {
   OrderRepository,
 } from '@/domains/order/repository';
 import type { OrderClaimRepository } from '@/domains/order/claim/repository';
-import { isReviewWritable } from './domain';
+import {
+  getReviewWriteUnavailableReason,
+  validateReviewForm,
+} from './domain';
+import type { ReviewDTO } from './dto';
 import { toReviewFormPageViewModel } from './mapper';
 import type { ActivityProductRepository, ReviewRepository } from './repository';
-import type { ReviewFormPageViewModel } from './view-model';
+import type {
+  ReviewCreateResult,
+  ReviewFormPageViewModel,
+  ReviewWritePageViewModel,
+} from './view-model';
 
 interface ReviewFormServiceDependencies {
   reviewRepository: ReviewRepository;
@@ -19,6 +27,10 @@ interface ReviewFormServiceDependencies {
 }
 
 export interface ReviewFormService {
+  getReviewWritePageViewModel(
+    userId: string,
+    orderItemId: string,
+  ): Promise<ReviewWritePageViewModel | null>;
   getReviewWriteFormViewModel(
     userId: string,
     orderItemId: string,
@@ -27,6 +39,11 @@ export interface ReviewFormService {
     userId: string,
     reviewId: string,
   ): Promise<ReviewFormPageViewModel | null>;
+  createReview(
+    userId: string,
+    orderItemId: string,
+    input: { rating: number; content: string },
+  ): Promise<ReviewCreateResult>;
 }
 
 export function createReviewFormService({
@@ -37,10 +54,10 @@ export function createReviewFormService({
   orderClaimRepository,
   orderItemCancellationRepository,
 }: ReviewFormServiceDependencies): ReviewFormService {
-  async function getReviewWriteFormViewModel(
+  async function getReviewWritePageViewModel(
     userId: string,
     orderItemId: string,
-  ): Promise<ReviewFormPageViewModel | null> {
+  ): Promise<ReviewWritePageViewModel | null> {
     const item = await orderItemRepository.findById(orderItemId);
 
     if (!item) return null;
@@ -57,26 +74,37 @@ export function createReviewFormService({
 
     if (!order || order.user_id !== userId || !product) return null;
     const hasCompletedClaim = claims.some(
-      claim =>
-        claim.order_item_id === item.id && claim.status === 'completed',
+      claim => claim.order_item_id === item.id && claim.status === 'completed',
     );
     const isCancelled = itemCancellations.some(
       cancellation => cancellation.order_item_id === item.id,
     );
+    const reason = getReviewWriteUnavailableReason({
+      orderStatus: order.status,
+      deliveredAt: order.delivered_at,
+      hasReview: reviews.length > 0,
+      isCancelled,
+      hasCompletedClaim,
+    });
 
-    if (
-      !isReviewWritable({
-        orderStatus: order.status,
-        deliveredAt: order.delivered_at,
-        hasReview: reviews.length > 0,
-        isCancelled,
-        hasCompletedClaim,
-      })
-    ) {
-      return null;
-    }
+    if (reason) return { kind: 'unavailable', reason };
 
-    return toReviewFormPageViewModel('create', item, product);
+    return {
+      kind: 'writable',
+      form: toReviewFormPageViewModel('create', item, product),
+    };
+  }
+
+  async function getReviewWriteFormViewModel(
+    userId: string,
+    orderItemId: string,
+  ): Promise<ReviewFormPageViewModel | null> {
+    const pageViewModel = await getReviewWritePageViewModel(
+      userId,
+      orderItemId,
+    );
+
+    return pageViewModel?.kind === 'writable' ? pageViewModel.form : null;
   }
 
   async function getReviewEditFormViewModel(
@@ -102,5 +130,42 @@ export function createReviewFormService({
     return toReviewFormPageViewModel('edit', item, product, review);
   }
 
-  return { getReviewWriteFormViewModel, getReviewEditFormViewModel };
+  async function createReview(
+    userId: string,
+    orderItemId: string,
+    input: { rating: number; content: string },
+  ): Promise<ReviewCreateResult> {
+    const validation = validateReviewForm(input);
+    if (!validation.isRatingValid || !validation.isContentValid) {
+      return 'invalid';
+    }
+
+    const [pageViewModel, item] = await Promise.all([
+      getReviewWritePageViewModel(userId, orderItemId),
+      orderItemRepository.findById(orderItemId),
+    ]);
+    if (!pageViewModel || !item) return 'invalid';
+    if (pageViewModel.kind === 'unavailable') return 'unavailable';
+
+    const createdAt = new Date().toISOString();
+    const review: ReviewDTO = {
+      id: crypto.randomUUID(),
+      user_id: userId,
+      order_item_id: item.id,
+      product_id: item.product_id,
+      rating: input.rating,
+      content: input.content.trim(),
+      created_at: createdAt,
+      updated_at: createdAt,
+    };
+    await reviewRepository.create(review);
+    return 'created';
+  }
+
+  return {
+    getReviewWritePageViewModel,
+    getReviewWriteFormViewModel,
+    getReviewEditFormViewModel,
+    createReview,
+  };
 }

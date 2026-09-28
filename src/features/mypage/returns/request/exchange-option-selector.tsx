@@ -1,14 +1,17 @@
 'use client';
-import { ColorChip } from '@/components/ui/color-chip';
-import { InputError } from '@/components/ui/input';
+
+import { ColorChip } from '@/shared/components/ui/color-chip';
+import { InputError } from '@/shared/components/ui/input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@/shared/components/ui/select';
 import type { OrderClaimRequestColorOptionViewModel } from '@/domains/order/claim/view-model';
+import { MypageFormLabel } from '@/features/mypage/common/form';
+import { MYPAGE_INPUT_CLASS_NAME } from '@/features/mypage/common/styles';
 
 interface MypageClaimExchangeOptionSelectorProps {
   colorOptions: readonly OrderClaimRequestColorOptionViewModel[];
@@ -18,6 +21,7 @@ interface MypageClaimExchangeOptionSelectorProps {
   selectedProductId: number;
   selectedVariantId: string;
   errorMessage?: string;
+  errorMessageId?: string;
   onSelectionChange: (productId: number, variantId: string) => void;
 }
 
@@ -40,6 +44,7 @@ export function MypageClaimExchangeOptionSelector({
   selectedProductId,
   selectedVariantId,
   errorMessage,
+  errorMessageId,
   onSelectionChange,
 }: MypageClaimExchangeOptionSelectorProps) {
   const selectedColorOption =
@@ -67,10 +72,9 @@ export function MypageClaimExchangeOptionSelector({
 
   return (
     <div className="mt-6">
-      <p className="font-bold text-black">
-        교환할 옵션{' '}
-        <span className="ml-1 text-sm font-medium text-zinc-500">(필수)</span>
-      </p>
+      <MypageFormLabel as="p" requirement="required">
+        교환할 옵션
+      </MypageFormLabel>
       <div className="pl-3">
         {colorOptions.length > 1 && (
           <section className="mt-4" aria-labelledby="exchange-color-title">
@@ -103,7 +107,8 @@ export function MypageClaimExchangeOptionSelector({
             <SelectTrigger
               id="exchange-option"
               aria-invalid={Boolean(errorMessage)}
-              className="mt-2 h-10 w-full rounded-sm border-zinc-300 bg-white font-medium shadow-none focus-visible:border-black focus-visible:ring-0"
+              aria-describedby={errorMessage ? errorMessageId : undefined}
+              className={`mt-2 w-full ${MYPAGE_INPUT_CLASS_NAME}`}
             >
               <SelectValue placeholder="사이즈를 선택해 주세요" />
             </SelectTrigger>
@@ -156,7 +161,7 @@ export function MypageClaimExchangeOptionSelector({
           </p>
         </section>
       </div>
-      <InputError message={errorMessage} />
+      <InputError id={errorMessageId} message={errorMessage} />
     </div>
   );
 }

@@ -8,5 +8,12 @@ interface MypageOrderDetailStatusHistoryProps {
 export function MypageOrderDetailStatusHistory({
   histories,
 }: MypageOrderDetailStatusHistoryProps) {
-  return <MypageProcessingHistory title="주문 처리 내역" histories={histories} />;
+  return (
+    <MypageProcessingHistory
+      title="주문 처리 내역"
+      histories={histories}
+      collapsible
+      mobileLayout="full-bleed"
+    />
+  );
 }

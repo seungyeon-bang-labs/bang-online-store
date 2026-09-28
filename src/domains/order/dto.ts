@@ -1,12 +1,11 @@
 export type OrderStatus =
   | 'pending_payment'
   | 'payment_completed'
-  | 'preparing_shipment'
   | 'shipping'
   | 'delivered'
   | 'cancelled';
 
-export type OrderStatusHistoryStatus = OrderStatus | 'order_received';
+export type OrderStatusHistoryStatus = OrderStatus;
 
 export type OrderRefundStatus = 'pending' | 'completed';
 
@@ -64,6 +63,8 @@ export interface OrderItemCancellationDTO {
   order_id: string;
   order_item_id: string;
   cancelled_at: string;
+  reason: OrderCancellationReason;
+  reason_detail: string | null;
   refund_amount: number;
   refund_status: OrderRefundStatus;
   refund_expected_at: string | null;
@@ -81,9 +82,29 @@ export interface OrderPaymentTransactionDTO {
   order_item_cancellation_id: string | null;
 }
 
+export type OrderPaymentReceiptDetailsDTO =
+  | OrderCardPaymentReceiptDetailsDTO
+  | OrderCashPaymentReceiptDetailsDTO;
+
+export interface OrderCardPaymentReceiptDetailsDTO {
+  type: 'card';
+  card_issuer: string;
+  masked_card_number: string;
+  masked_approval_number: string;
+  installment_label: string;
+}
+
+export interface OrderCashPaymentReceiptDetailsDTO {
+  type: 'cash';
+  receipt_purpose: string;
+  masked_issuance_identifier: string;
+  issued_at: string;
+}
+
 export interface OrderStatusHistoryDTO {
   id: string;
   order_id: string;
   status: OrderStatusHistoryStatus;
   occurred_at: string;
 }
+import type { OrderCancellationReason } from './cancellation/domain';

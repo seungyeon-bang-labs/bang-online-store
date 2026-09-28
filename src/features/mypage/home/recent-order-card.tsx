@@ -1,65 +1,122 @@
-import Image from 'next/image';
 import Link from 'next/link';
+import { cn } from '@/shared/lib/utils';
 import type { MypageHomeRecentOrderViewModel } from '@/domains/mypage';
-import { MypageStatusBadge } from '../common/status-badge';
+import { MypageBadge } from '../common/badge';
+import { MypageProductThumbnailLink } from '../common/product-summary';
 import { MypageHomeOrderActions } from './order-actions';
 
 interface MypageHomeRecentOrderCardProps {
   order: MypageHomeRecentOrderViewModel;
+  className?: string;
 }
 
 export function MypageHomeRecentOrderCard({
   order,
+  className,
 }: MypageHomeRecentOrderCardProps) {
   const firstItem = order.items[0];
+  const extraItemCount = Math.max(order.items.length - 1, 0);
+  const displayProductName = firstItem?.productName ?? order.productSummary;
 
   return (
-    <article className="grid gap-3 p-3 transition-colors hover:bg-zinc-50 lg:grid-cols-[5.5rem_minmax(0,1fr)_13rem] lg:items-center lg:gap-5">
-      <div className="flex items-center lg:justify-center">
-        <MypageStatusBadge {...order.status} />
-      </div>
-
-      <div className="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-4 gap-y-1 lg:grid-cols-[4.5rem_minmax(0,1fr)_auto] lg:items-center lg:gap-x-4">
+    <article className={cn('p-4 md:p-5', className)}>
+      <div className="grid grid-cols-[72px_minmax(0,1fr)] gap-x-4 gap-y-1 sm:grid-cols-[88px_minmax(0,1fr)] lg:hidden">
         {firstItem ? (
-          <Link
+          <MypageProductThumbnailLink
             href={order.orderHref}
-            className="relative row-span-3 aspect-square overflow-hidden rounded-sm bg-zinc-100 outline-none ring-black focus-visible:ring-2 lg:row-span-2"
-            aria-label={`${order.productSummary} 주문 조회`}
-          >
-            <Image
-              loading="eager"
-              src={firstItem.product.thumbnailUrl}
-              alt={firstItem.productName}
-              fill
-              sizes="(max-width: 1023px) 80px, 72px"
-              className="object-cover"
-            />
-          </Link>
+            src={firstItem.product.thumbnailUrl}
+            alt={firstItem.productName}
+            size="default"
+            loading="eager"
+            className="row-span-4 self-center"
+            ariaLabel={`${order.productSummary} 주문 조회`}
+          />
         ) : (
-          <div className="row-span-3 aspect-square rounded-sm bg-zinc-100 lg:row-span-2" />
+          <div className="row-span-4 aspect-square self-center rounded-sm bg-zinc-100" />
         )}
+
+        <div className="col-start-2 row-start-1 w-fit">
+          <MypageBadge {...order.status} />
+        </div>
 
         <Link
           href={order.orderHref}
-          className="col-start-2 row-start-1 min-w-0 text-sm font-black text-black outline-none hover:underline focus-visible:underline"
+          aria-label={order.productSummary}
+          title={order.productSummary}
+          className="col-start-2 row-start-2 flex min-w-0 items-center gap-0.5 text-sm font-bold text-black outline-none hover:underline focus-visible:underline md:font-black"
         >
-          {order.productSummary}
+          <span className="min-w-0 truncate">{displayProductName}</span>
+          {extraItemCount > 0 ? (
+            <span className="shrink-0 whitespace-nowrap">
+              외 {extraItemCount}건
+            </span>
+          ) : null}
         </Link>
 
-        <p className="col-start-2 row-start-2 text-xs font-bold text-zinc-500">
+        <p className="col-start-2 row-start-3 text-xs font-medium md:font-bold text-zinc-500">
           {order.statusDescription}
         </p>
 
-        <p className="col-start-2 row-start-3 justify-self-start whitespace-nowrap text-sm font-black tabular-nums text-black lg:col-start-3 lg:row-span-2 lg:row-start-1 lg:justify-self-end lg:self-center">
-          {order.totalAmountText}
+        <p className="col-start-2 row-start-4 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm tabular-nums">
+          <span className="text-xs font-medium text-zinc-500">
+            {order.orderAmount.label}
+          </span>
+          <span className="font-black text-black">{order.orderAmount.amountText}</span>
         </p>
       </div>
 
-      <div className="flex justify-end lg:w-52">
+      <div className="mt-4 flex lg:hidden">
         <MypageHomeOrderActions
           actions={order.actions}
           orderTitle={order.productSummary}
         />
+      </div>
+
+      <div className="hidden lg:grid lg:grid-cols-[72px_minmax(0,1fr)_auto_auto] lg:items-start lg:gap-x-4">
+        {firstItem ? (
+          <MypageProductThumbnailLink
+            href={order.orderHref}
+            src={firstItem.product.thumbnailUrl}
+            alt={firstItem.productName}
+            size="home"
+            loading="eager"
+            className="self-start"
+            ariaLabel={`${order.productSummary} 주문 조회`}
+          />
+        ) : (
+          <div className="aspect-square rounded-sm bg-zinc-100" />
+        )}
+
+        <div className="min-w-0 self-start">
+          <div className="w-fit">
+            <MypageBadge {...order.status} />
+          </div>
+          <Link
+            href={order.orderHref}
+            className="mt-1 block min-w-0 text-sm font-black text-black outline-none hover:underline focus-visible:underline"
+          >
+            {order.productSummary}
+          </Link>
+          <p className="mt-0.5 text-xs font-bold text-zinc-500">
+            {order.statusDescription}
+          </p>
+        </div>
+
+        <p className="self-center justify-self-end whitespace-nowrap text-right tabular-nums">
+          <span className="block text-xs font-medium text-zinc-500">
+            {order.orderAmount.label}
+          </span>
+          <span className="mt-0.5 block text-sm font-black text-black">
+            {order.orderAmount.amountText}
+          </span>
+        </p>
+
+        <div className="self-center justify-self-end">
+          <MypageHomeOrderActions
+            actions={order.actions}
+            orderTitle={order.productSummary}
+          />
+        </div>
       </div>
     </article>
   );

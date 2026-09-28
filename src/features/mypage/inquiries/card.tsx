@@ -1,7 +1,9 @@
-import { ButtonLink } from '@/components/ui/button';
+import { MYPAGE_ACTION_CLASS_NAME } from '@/features/mypage/common/styles';
+import { ButtonLink } from '@/shared/components/ui/button';
 import type { InquiryViewModel } from '@/domains/inquiry';
+import { MypageCard, MypageCardContentBlock } from '@/features/mypage/common';
 import { getMypageInquiryEditHref } from '@/shared/lib/mypage-routes';
-import { MypageStatusBadge } from '../common/status-badge';
+import { MypageBadge } from '../common/badge';
 import { MypageInquiryContext } from './context';
 import { MypageInquiryCancelButton } from './cancel-button';
 
@@ -16,27 +18,36 @@ export function MypageInquiryCard({
   returnHref,
   cancelInquiryAction,
 }: MypageInquiryCardProps) {
+  const hasActions = inquiry.actions.canCancel || inquiry.actions.canEdit;
+
   return (
-    <article className="overflow-hidden rounded-md border border-zinc-300 bg-white">
-      <header className="flex items-center justify-between gap-3 border-b border-zinc-200 p-4 md:p-5">
+    <MypageCard as="article">
+      <MypageCard.Header
+        className="gap-3"
+        right={
+          <p className="shrink-0 whitespace-nowrap text-right text-xs font-medium text-zinc-400 sm:text-sm">
+            {inquiry.createdAt}
+          </p>
+        }
+      >
         <div className="flex min-w-0 items-center gap-2">
-          <MypageStatusBadge
+          <MypageBadge
             label={inquiry.typeLabel}
             tone="neutral"
             size="responsive"
           />
-          <MypageStatusBadge {...inquiry.status} size="responsive" />
+          <MypageBadge {...inquiry.status} size="responsive" />
         </div>
-        <p className="shrink-0 whitespace-nowrap text-right text-xs font-medium text-zinc-400 sm:text-sm">
-          {inquiry.createdAt}
-        </p>
-      </header>
+      </MypageCard.Header>
 
-      <div className="p-4 md:p-5">
+      <MypageCard.Body className={hasActions ? 'pb-0 md:pb-0' : undefined}>
         {inquiry.context ? (
           <MypageInquiryContext context={inquiry.context} />
         ) : null}
-        <div className={inquiry.context ? 'mt-4 px-4' : 'px-4'}>
+        {inquiry.context ? (
+          <div className="my-4 -mx-4 border-t border-zinc-200 md:-mx-5" />
+        ) : null}
+        <div className="px-4">
           <h3 className="font-black text-black">{inquiry.title}</h3>
           <p className="mt-2 whitespace-pre-wrap text-sm font-medium leading-relaxed text-zinc-700">
             {inquiry.content}
@@ -44,21 +55,19 @@ export function MypageInquiryCard({
         </div>
 
         {inquiry.answerContent && inquiry.answeredAt ? (
-          <section className="mt-4 rounded-sm bg-zinc-100 px-4 py-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h4 className="text-sm font-black text-black">답변</h4>
-              <p className="text-xs font-medium text-zinc-400">
-                {inquiry.answeredAt}
-              </p>
-            </div>
-            <p className="mt-2 whitespace-pre-wrap text-sm font-medium leading-relaxed text-zinc-700">
-              {inquiry.answerContent}
-            </p>
-          </section>
+          <MypageCardContentBlock
+            title="답변"
+            meta={inquiry.answeredAt}
+            className="mt-4"
+          >
+            {inquiry.answerContent}
+          </MypageCardContentBlock>
         ) : null}
-        {inquiry.actions.canCancel || inquiry.actions.canEdit ? (
+      </MypageCard.Body>
+      {hasActions ? (
+        <MypageCard.Footer>
           <div
-            className={`mt-3 grid gap-2 ${
+            className={`grid gap-2 ${
               inquiry.actions.canCancel && inquiry.actions.canEdit
                 ? 'grid-cols-2'
                 : 'grid-cols-1'
@@ -75,14 +84,14 @@ export function MypageInquiryCard({
                 href={getMypageInquiryEditHref(inquiry.id, returnHref)}
                 variant="outline"
                 size="sm"
-                className="w-full rounded-sm border-zinc-300 font-bold shadow-none hover:border-black hover:bg-black hover:text-white"
+                className={`w-full ${MYPAGE_ACTION_CLASS_NAME.outline}`}
               >
                 수정
               </ButtonLink>
             ) : null}
           </div>
-        ) : null}
-      </div>
-    </article>
+        </MypageCard.Footer>
+      ) : null}
+    </MypageCard>
   );
 }

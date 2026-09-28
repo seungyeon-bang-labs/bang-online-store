@@ -8,10 +8,12 @@ import { MypageClaimRequestSubmissionResult } from './submission-result';
 
 interface MypageClaimRequestFlowProps {
   claimRequest: OrderClaimRequestViewModel;
+  returnHref: string;
 }
 
 export function MypageClaimRequestFlow({
   claimRequest,
+  returnHref,
 }: MypageClaimRequestFlowProps) {
   const [submittedType, setSubmittedType] =
     useState<OrderClaimRequestType | null>(null);
@@ -23,6 +25,7 @@ export function MypageClaimRequestFlow({
   return (
     <MypageClaimRequestForm
       claimRequest={claimRequest}
+      returnHref={returnHref}
       onSubmitted={setSubmittedType}
     />
   );

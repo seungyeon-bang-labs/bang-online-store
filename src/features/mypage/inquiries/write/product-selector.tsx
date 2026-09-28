@@ -3,22 +3,26 @@
 import Image from 'next/image';
 import { ChevronRight } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { InputError } from '@/components/ui/input';
-import { Dialog, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { InputError } from '@/shared/components/ui/input';
+import { Dialog, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
 import {
   INQUIRY_PRODUCT_CATEGORY_FILTER_LABELS,
   INQUIRY_PRODUCT_CATEGORY_FILTERS,
   type InquiryProductCategoryFilter,
   type InquiryWriteProductOptionViewModel,
 } from '@/domains/inquiry';
+import { MypageFormLabel } from '@/features/mypage/common/form';
+import { MYPAGE_SELECTOR_TRIGGER_CLASS_NAME } from '@/features/mypage/common/styles';
 import { formatKoreanMoney } from '@/shared/lib/format';
 import { MypageInquirySelectorDialogContent } from './selector-dialog-content';
 import { MypageInquirySelectorSearchInput } from './selector-search-input';
+import { MypageInquirySelectionOption } from './selection-option';
 
 interface MypageInquiryWriteProductSelectorProps {
   products: readonly InquiryWriteProductOptionViewModel[];
   selectedProductId: string;
   error?: string;
+  errorId?: string;
   isReadOnly?: boolean;
   onProductChange: (productId: string) => void;
 }
@@ -27,6 +31,7 @@ export function MypageInquiryWriteProductSelector({
   products,
   selectedProductId,
   error,
+  errorId,
   isReadOnly = false,
   onProductChange,
 }: MypageInquiryWriteProductSelectorProps) {
@@ -61,17 +66,18 @@ export function MypageInquiryWriteProductSelector({
 
   return (
     <div>
-      <label htmlFor="inquiry-product-selector" className="font-bold text-black">
-        상품 선택 <span className="ml-1 text-sm font-medium text-zinc-500">(필수)</span>
-      </label>
+      <MypageFormLabel htmlFor="inquiry-product-selector" requirement="required">
+        상품 선택
+      </MypageFormLabel>
 
       {selectedProduct ? (
         <button
           id="inquiry-product-selector"
           type="button"
           disabled={isReadOnly}
+          aria-describedby={error ? errorId : undefined}
           onClick={() => setIsOpen(true)}
-          className="mt-2 flex w-full items-center gap-3 rounded-sm border border-zinc-300 bg-white p-3 text-left transition-colors hover:bg-zinc-50 focus-visible:border-black focus-visible:outline-none disabled:cursor-default disabled:hover:bg-white"
+          className={`mt-2 flex w-full items-center gap-3 rounded-sm border border-zinc-300 bg-white p-3 text-left transition-colors hover:bg-zinc-50 disabled:cursor-default disabled:hover:bg-white ${MYPAGE_SELECTOR_TRIGGER_CLASS_NAME}`}
         >
           <div className="relative size-14 shrink-0 overflow-hidden rounded-sm bg-zinc-100">
             <Image
@@ -101,27 +107,28 @@ export function MypageInquiryWriteProductSelector({
           id="inquiry-product-selector"
           type="button"
           data-invalid={Boolean(error)}
+          aria-describedby={error ? errorId : undefined}
           onClick={() => setIsOpen(true)}
-          className="mt-2 flex h-10 w-full items-center justify-between rounded-sm border border-zinc-300 bg-white px-3 text-left text-sm font-medium text-zinc-500 hover:border-black focus-visible:border-black focus-visible:outline-none data-[invalid=true]:border-red-500"
+          className={`mt-2 flex h-10 w-full items-center justify-between rounded-sm border border-zinc-300 bg-white px-3 text-left text-sm font-medium text-zinc-500 hover:border-black data-[invalid=true]:border-red-500 ${MYPAGE_SELECTOR_TRIGGER_CLASS_NAME}`}
         >
           상품을 선택해 주세요
           <ChevronRight className="size-4 text-zinc-500" strokeWidth={2} />
         </button>
       )}
-      <InputError message={error} />
+      <InputError id={errorId} message={error} />
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <MypageInquirySelectorDialogContent>
-          <DialogHeader className="shrink-0 border-b border-zinc-300 px-5 py-5 text-center sm:text-center">
+          <DialogHeader className="shrink-0 border-b border-zinc-300 px-4 py-4 text-center md:px-5 md:py-5 sm:text-center">
             <DialogTitle className="font-black text-black">상품 선택</DialogTitle>
           </DialogHeader>
-          <div className="shrink-0 p-5 pb-0">
+          <div className="shrink-0 p-4 pb-0 md:p-5 md:pb-0">
             <MypageInquirySelectorSearchInput
               value={searchTerm}
               onValueChange={setSearchTerm}
               placeholder="상품명을 입력해 주세요"
             />
-            <div className="-mx-5 mt-3 overflow-x-auto px-5 pb-1">
+            <div className="-mx-4 mt-3 overflow-x-auto px-4 pb-1 md:-mx-5 md:px-5">
               <div className="flex w-max gap-2">
                 {INQUIRY_PRODUCT_CATEGORY_FILTERS.map(category => {
                   const isSelected = category === categoryFilter;
@@ -145,37 +152,25 @@ export function MypageInquiryWriteProductSelector({
               </div>
             </div>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto p-5">
+          <div className="min-h-0 flex-1 overflow-y-auto p-4 md:p-5">
             {filteredProducts.length > 0 ? (
               <ul className="divide-y divide-zinc-200 border-y border-zinc-200">
                 {filteredProducts.map(product => (
                   <li key={product.id}>
-                    <button
-                      type="button"
-                      onClick={() => selectProduct(String(product.id))}
-                      className="flex w-full items-center gap-3 py-3 text-left hover:bg-zinc-50 focus-visible:bg-zinc-50 focus-visible:outline-none"
+                    <MypageInquirySelectionOption
+                      thumbnailUrl={product.thumbnailUrl}
+                      title={product.name}
+                      onSelect={() => selectProduct(String(product.id))}
+                      trailing={
+                        product.isSoldOut ? (
+                          <span className="shrink-0 text-xs font-bold text-zinc-500">
+                            일시 품절
+                          </span>
+                        ) : null
+                      }
                     >
-                      <div className="relative size-14 shrink-0 overflow-hidden rounded-sm bg-zinc-100">
-                        <Image
-                          src={product.thumbnailUrl}
-                          alt=""
-                          fill
-                          sizes="56px"
-                          className="object-cover"
-                        />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-bold text-black">
-                          {product.name}
-                        </p>
-                        <ProductPrice product={product} />
-                      </div>
-                      {product.isSoldOut ? (
-                        <span className="shrink-0 text-xs font-bold text-zinc-500">
-                          일시 품절
-                        </span>
-                      ) : null}
-                    </button>
+                      <ProductPrice product={product} />
+                    </MypageInquirySelectionOption>
                   </li>
                 ))}
               </ul>

@@ -1,5 +1,9 @@
 import type { MypageOrderPaymentReceiptViewModel } from '@/domains/mypage';
-import { ReceiptOrderInformation, ReceiptSection } from './receipt-shared';
+import {
+  ReceiptInformationRow,
+  ReceiptOrderInformation,
+  ReceiptSection,
+} from './receipt-shared';
 
 interface MypageOrderReceiptPaymentBodyProps {
   receipt: MypageOrderPaymentReceiptViewModel;
@@ -11,6 +15,20 @@ export function MypageOrderReceiptPaymentBody({
   return (
     <div>
       <ReceiptOrderInformation orderInformation={receipt.orderInformation} />
+      <ReceiptSection>
+        <div>
+          <h3 className="font-black text-black">{receipt.paymentDetail.title}</h3>
+          <dl className="mx-2 mt-3 space-y-2 text-sm">
+            {receipt.paymentDetail.rows.map(row => (
+              <ReceiptInformationRow
+                key={row.label}
+                label={row.label}
+                value={row.value}
+              />
+            ))}
+          </dl>
+        </div>
+      </ReceiptSection>
       <ReceiptSection>
         <div>
           <h3 className="font-black text-black">결제·취소 내역</h3>

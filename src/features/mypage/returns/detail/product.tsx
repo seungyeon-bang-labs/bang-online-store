@@ -1,10 +1,12 @@
-import Image from 'next/image';
-import Link from 'next/link';
 import type {
   OrderClaimDetailReturnProductViewModel,
   OrderClaimProductViewModel,
 } from '@/domains/order/claim/view-model';
-import { MypageClaimDetailCollapsibleCard } from './collapsible-card';
+import { MypageCard } from '@/features/mypage/common';
+import {
+  MypageProductSummary,
+  MypageProductThumbnailLink,
+} from '@/features/mypage/common/product-summary';
 
 interface MypageClaimDetailProductProps {
   product: OrderClaimDetailReturnProductViewModel;
@@ -14,12 +16,11 @@ export function MypageClaimDetailProduct({
   product,
 }: MypageClaimDetailProductProps) {
   return (
-    <MypageClaimDetailCollapsibleCard title={product.title}>
-      <MypageClaimDetailProductContent
-        item={product.item}
-        className="p-4 md:p-5"
-      />
-    </MypageClaimDetailCollapsibleCard>
+    <MypageCard.Collapsible title={product.title}>
+      <MypageCard.Body>
+        <MypageClaimDetailProductContent item={product.item} />
+      </MypageCard.Body>
+    </MypageCard.Collapsible>
   );
 }
 
@@ -34,38 +35,22 @@ export function MypageClaimDetailProductContent({
   className,
   isMuted = false,
 }: MypageClaimDetailProductContentProps) {
-  const textColorClassName = isMuted ? 'text-zinc-500' : 'text-black';
-
   return (
-    <div
-      className={`grid grid-cols-[72px_minmax(0,1fr)] gap-x-4 sm:grid-cols-[88px_minmax(0,1fr)] ${
-        className ?? ''
-      }`}
-    >
-      <Link
-        href={item.product.href}
-        className="relative row-span-3 aspect-square overflow-hidden rounded-sm bg-zinc-100 focus-visible:outline-offset-2 focus-visible:outline-black"
-      >
-        <Image
+    <MypageProductSummary
+      className={className}
+      thumbnail={
+        <MypageProductThumbnailLink
+          href={item.product.href}
           src={item.product.thumbnailUrl}
           alt={item.productName}
-          fill
-          sizes="(max-width: 640px) 72px, 88px"
-          className="object-cover transition-opacity hover:opacity-80"
         />
-      </Link>
-      <Link
-        href={item.product.href}
-        className={`min-w-0 font-black hover:underline focus-visible:outline-offset-2 focus-visible:outline-black ${textColorClassName}`}
-      >
-        {item.productName}
-      </Link>
-      <p className="mt-0.5 text-sm font-medium text-zinc-500">
-        {item.optionLabel} · {item.quantity}개
-      </p>
-      <p className={`mt-1 font-black ${textColorClassName}`}>
-        {item.lineTotalText}
-      </p>
-    </div>
+      }
+      name={item.productName}
+      nameHref={item.product.href}
+      meta={`${item.optionLabel} · ${item.quantity}개`}
+      amount={item.lineTotalText}
+      tone={isMuted ? 'muted' : 'normal'}
+      amountTone={isMuted ? 'muted' : 'normal'}
+    />
   );
 }

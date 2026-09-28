@@ -24,15 +24,19 @@ export type WishlistPageViewModel = PageSlice<ActivityProductViewModel>;
 export interface WrittenReviewViewModel {
   kind: 'written';
   id: string;
+  orderId: string;
   product: ProductCardViewModel;
   optionLabel: string;
   rating: number;
   content: string;
   createdAt: string;
+  canDelete: boolean;
+  deleteAvailableAt: string;
 }
 
 export interface AvailableReviewViewModel {
   kind: 'available';
+  orderId: string;
   orderItemId: string;
   product: ProductCardViewModel;
   productName: string;
@@ -55,9 +59,23 @@ export type ReviewFormMode = 'create' | 'edit';
 
 export interface ReviewFormPageViewModel {
   mode: ReviewFormMode;
+  orderId: string;
+  orderItemId: string;
   product: ProductCardViewModel;
   productName: string;
   optionLabel: string;
   initialRating: number;
   initialContent: string;
 }
+
+export type ReviewWritePageViewModel =
+  | {
+      kind: 'writable';
+      form: ReviewFormPageViewModel;
+    }
+  | {
+      kind: 'unavailable';
+      reason: import('./domain').ReviewWriteUnavailableReason;
+    };
+
+export type ReviewCreateResult = 'created' | 'unavailable' | 'invalid';

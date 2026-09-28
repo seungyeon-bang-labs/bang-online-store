@@ -14,6 +14,7 @@ export interface WishlistItemRepository {
 }
 
 export interface ReviewRepository {
+  create(review: ReviewDTO): Promise<void>;
   findById(reviewId: string): Promise<ReviewDTO | null>;
   findByUserId(userId: string): Promise<ReviewDTO[]>;
   findByOrderItemIds(orderItemIds: string[]): Promise<ReviewDTO[]>;

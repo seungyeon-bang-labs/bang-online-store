@@ -1,5 +1,10 @@
 'use client';
 
+import {
+  MYPAGE_ACTION_CLASS_NAME,
+  MYPAGE_DIALOG_CLASS_NAME,
+} from '@/features/mypage/common/styles';
+
 import { useState } from 'react';
 import { toast } from 'sonner';
 import {
@@ -12,8 +17,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { Button } from '@/components/ui/button';
+} from '@/shared/components/ui/alert-dialog';
+import { Button } from '@/shared/components/ui/button';
 
 interface MypageInquiryCancelButtonProps {
   inquiryId: string;
@@ -56,28 +61,28 @@ export function MypageInquiryCancelButton({
           type="button"
           variant="outline"
           size="sm"
-          className="w-full rounded-sm border-red-200 font-bold text-red-700 shadow-none hover:border-red-600 hover:bg-red-50 hover:text-red-700"
+          className={`w-full ${MYPAGE_ACTION_CLASS_NAME.dangerOutline}`}
         >
           문의 취소
         </Button>
       </AlertDialogTrigger>
-      <AlertDialogContent className="max-w-xs rounded-sm border-zinc-300 bg-white">
+      <AlertDialogContent className={MYPAGE_DIALOG_CLASS_NAME.content}>
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-xl font-black text-black">
-            문의 취소
+          <AlertDialogTitle className={MYPAGE_DIALOG_CLASS_NAME.title}>
+            문의 취소할까요?
           </AlertDialogTitle>
-          <AlertDialogDescription className="text-sm font-medium leading-relaxed text-zinc-500">
+          <AlertDialogDescription className={MYPAGE_DIALOG_CLASS_NAME.description}>
             문의 취소 후에는 수정하거나 답변을 받을 수 없습니다.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter className="mt-4 gap-2">
-          <AlertDialogCancel className="flex-1 rounded-sm border-zinc-300 font-bold">
-            닫기
+        <AlertDialogFooter className={MYPAGE_DIALOG_CLASS_NAME.footer}>
+          <AlertDialogCancel className={MYPAGE_DIALOG_CLASS_NAME.cancel}>
+            취소
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={cancelCurrentInquiry}
             disabled={isCancelling}
-            className="flex-1 rounded-sm border-red-600 bg-red-600 font-bold text-white hover:bg-red-700"
+            className={MYPAGE_DIALOG_CLASS_NAME.confirm}
           >
             {isCancelling ? '취소 처리 중' : '문의 취소'}
           </AlertDialogAction>

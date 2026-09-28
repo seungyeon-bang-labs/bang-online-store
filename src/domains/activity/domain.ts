@@ -13,6 +13,7 @@ export const REVIEW_CONTENT_MIN_LENGTH = 10;
 export const REVIEW_CONTENT_MAX_LENGTH = 500;
 export const RECENT_PRODUCT_MAX_COUNT = 50;
 export const REVIEW_WRITE_DEADLINE_DAYS = 30;
+export const REVIEW_DELETE_AVAILABLE_DAYS = 7;
 export const WISHLIST_PAGE_SIZE = 15;
 export const RECENT_PRODUCT_RETENTION_DAYS = 14;
 
@@ -30,6 +31,13 @@ export interface ReviewWriteEligibilityInput {
   isCancelled: boolean;
   hasCompletedClaim: boolean;
 }
+
+export type ReviewWriteUnavailableReason =
+  | 'not_delivered'
+  | 'expired'
+  | 'already_written'
+  | 'cancelled'
+  | 'completed_claim';
 
 export interface ReviewFormValidationResult {
   isRatingValid: boolean;
@@ -60,7 +68,31 @@ export function isReviewWriteAvailable(
   return getReviewWriteDeadline(deliveredAt) >= now;
 }
 
+export function isReviewDeletable(
+  createdAt: string,
+  now: Date = new Date(),
+): boolean {
+  return getReviewDeleteAvailableAt(createdAt) <= now;
+}
+
+export function getReviewDeleteAvailableAt(createdAt: string): Date {
+  const availableAt = new Date(createdAt);
+
+  availableAt.setDate(
+    availableAt.getDate() + REVIEW_DELETE_AVAILABLE_DAYS,
+  );
+
+  return availableAt;
+}
+
 export function isReviewWritable(
+  input: ReviewWriteEligibilityInput,
+  now: Date = new Date(),
+): boolean {
+  return getReviewWriteUnavailableReason(input, now) === null;
+}
+
+export function getReviewWriteUnavailableReason(
   {
     orderStatus,
     deliveredAt,
@@ -69,15 +101,16 @@ export function isReviewWritable(
     hasCompletedClaim,
   }: ReviewWriteEligibilityInput,
   now: Date = new Date(),
-): boolean {
-  return (
-    orderStatus === 'delivered' &&
-    deliveredAt !== null &&
-    !hasReview &&
-    !isCancelled &&
-    !hasCompletedClaim &&
-    isReviewWriteAvailable(deliveredAt, now)
-  );
+): ReviewWriteUnavailableReason | null {
+  if (orderStatus !== 'delivered' || deliveredAt === null) {
+    return 'not_delivered';
+  }
+  if (hasReview) return 'already_written';
+  if (isCancelled) return 'cancelled';
+  if (hasCompletedClaim) return 'completed_claim';
+  if (!isReviewWriteAvailable(deliveredAt, now)) return 'expired';
+
+  return null;
 }
 
 export function getReviewDeadlineDday(

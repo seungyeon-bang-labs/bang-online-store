@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import type { MemberProfileViewModel } from '@/domains/member';
 import { AccountInformation } from './account-information';
 import { BasicInformation } from './basic-information';
@@ -19,19 +19,37 @@ export function MypageProfileForm({ profile }: MypageProfileFormProps) {
     name: profile.name,
     phoneNumber: profile.phoneNumber,
     birthDate: profile.birthDate,
+    gender: profile.gender,
   };
   const [formValues, setFormValues] = useState(initialFormValues);
+  const [isPhoneNumberVerified, setIsPhoneNumberVerified] = useState(true);
+  const [hasRequestedPhoneVerification, setHasRequestedPhoneVerification] =
+    useState(false);
   const isDirty =
     formValues.name !== initialFormValues.name ||
     formValues.phoneNumber !== initialFormValues.phoneNumber ||
-    formValues.birthDate !== initialFormValues.birthDate;
+    formValues.birthDate !== initialFormValues.birthDate ||
+    formValues.gender !== initialFormValues.gender;
 
   const handleFieldChange = (field: EditableProfileField, value: string) => {
     setFormValues(currentValues => ({ ...currentValues, [field]: value }));
+
+    if (field === 'phoneNumber') {
+      setIsPhoneNumberVerified(value === initialFormValues.phoneNumber);
+      setHasRequestedPhoneVerification(false);
+    }
+  };
+
+  const handlePhoneVerification = () => {
+    setIsPhoneNumberVerified(true);
+    setHasRequestedPhoneVerification(true);
+    toast.success('휴대폰 인증을 완료했습니다.', { position: 'bottom-center' });
   };
 
   const handleCancelChanges = () => {
     setFormValues(initialFormValues);
+    setIsPhoneNumberVerified(true);
+    setHasRequestedPhoneVerification(false);
   };
 
   return (
@@ -39,31 +57,12 @@ export function MypageProfileForm({ profile }: MypageProfileFormProps) {
       <AccountInformation profile={profile} />
       <BasicInformation
         values={formValues}
+        isDirty={isDirty}
+        isPhoneNumberVerified={isPhoneNumberVerified}
+        hasRequestedPhoneVerification={hasRequestedPhoneVerification}
         onFieldChange={handleFieldChange}
-        actions={
-          <div className="flex justify-end px-5 pt-3 pb-5 md:px-6">
-            <div className="flex w-full gap-2 md:w-auto">
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
-                disabled={!isDirty}
-                onClick={handleCancelChanges}
-                className="flex-1 border-zinc-300 bg-white font-bold shadow-none hover:border-black hover:bg-white hover:text-black md:w-30 md:flex-none"
-              >
-                변경 취소
-              </Button>
-              <Button
-                type="submit"
-                size="lg"
-                disabled={!isDirty}
-                className="flex-1 bg-black font-bold text-white hover:bg-zinc-800 md:w-30 md:flex-none"
-              >
-                저장
-              </Button>
-            </div>
-          </div>
-        }
+        onPhoneVerification={handlePhoneVerification}
+        onReset={handleCancelChanges}
       />
     </form>
   );

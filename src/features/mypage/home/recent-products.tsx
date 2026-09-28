@@ -1,8 +1,7 @@
-import { Eye } from 'lucide-react';
 import type { ActivityProductViewModel } from '@/domains/activity';
-import { MypageCompactEmptyState } from '../common/compact-empty-state';
+import { MypageEmptyState } from '../common';
 import { MypageHomeProductPreview } from './product-preview';
-import { MypageHomeSectionHeader } from './section-header';
+import { MypageSectionHeader } from './section-header';
 
 interface MypageHomeRecentProductsProps {
   items: ActivityProductViewModel[];
@@ -11,18 +10,19 @@ interface MypageHomeRecentProductsProps {
 export function MypageHomeRecentProducts({
   items,
 }: MypageHomeRecentProductsProps) {
+  const hasRecentProducts = items.length > 0;
+
   return (
-    <section className="space-y-5">
-      <MypageHomeSectionHeader
+    <section className="space-y-3 md:space-y-5">
+      <MypageSectionHeader
         title="최근 본 상품"
-        icon={<Eye className="size-4" />}
         viewAllHref="/mypage/recent"
       />
 
-      {items.length > 0 ? (
+      {hasRecentProducts ? (
         <MypageHomeProductPreview items={items} ariaLabel="최근 본 상품" />
       ) : (
-        <MypageCompactEmptyState
+        <MypageEmptyState
           title="최근 본 상품이 없습니다."
           description="상품을 둘러보면 이곳에서 다시 확인할 수 있습니다."
           action={{ href: '/new', label: '상품 보러 가기' }}

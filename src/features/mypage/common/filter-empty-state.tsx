@@ -1,5 +1,6 @@
+import { MYPAGE_ACTION_CLASS_NAME } from '@/features/mypage/common/styles';
 import { ListFilter } from 'lucide-react';
-import { ButtonLink } from '@/components/ui/button';
+import { ButtonLink } from '@/shared/components/ui/button';
 import { cn } from '@/shared/lib/utils';
 
 interface MypageFilterEmptyStateProps {
@@ -14,7 +15,7 @@ export function MypageFilterEmptyState({
   return (
     <section
       className={cn(
-        'flex min-h-72 flex-col items-center justify-center rounded-md border border-zinc-200 bg-zinc-50 px-6 py-16 text-center',
+        'flex min-h-72 flex-col items-center justify-center rounded-md border border-zinc-200 bg-white px-6 py-16 text-center md:h-full md:flex-1',
         className,
       )}
     >
@@ -28,7 +29,7 @@ export function MypageFilterEmptyState({
       <ButtonLink
         href={resetHref}
         variant="outline"
-        className="mt-6 rounded-sm border-zinc-300 bg-white font-bold shadow-none hover:border-black hover:bg-black hover:text-white"
+        className={`mt-6 ${MYPAGE_ACTION_CLASS_NAME.outline}`}
       >
         필터 초기화
       </ButtonLink>

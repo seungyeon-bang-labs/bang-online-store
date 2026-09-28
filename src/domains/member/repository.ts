@@ -5,7 +5,12 @@ export interface CurrentUserRepository {
 }
 
 export interface UserAddressRepository {
+  create(address: UserAddressDTO): Promise<void>;
   findByUserId(userId: string): Promise<UserAddressDTO[]>;
   findById(addressId: string): Promise<UserAddressDTO | null>;
+  findByIdAndUserId(
+    addressId: string,
+    userId: string,
+  ): Promise<UserAddressDTO | null>;
   findDefaultByUserId(userId: string): Promise<UserAddressDTO | null>;
 }

@@ -1,7 +1,8 @@
 'use client';
 
 import { useRef } from 'react';
-import { Input, InputError } from '@/components/ui/input';
+import { Input, InputError } from '@/shared/components/ui/input';
+import { MYPAGE_INPUT_CLASS_NAME } from '@/features/mypage/common/styles';
 import { MypageAddressSearchButton } from './address-search-button';
 
 interface MypageAddressSearchFieldProps {
@@ -18,9 +19,10 @@ interface MypageAddressSearchFieldProps {
 }
 
 const selectedAddressClassName =
-  'flex h-9 items-center rounded-md border border-zinc-300 bg-zinc-50 px-3 text-sm font-medium text-zinc-600';
-const inputClassName =
-  'border-zinc-300 bg-white font-medium shadow-none hover:ring-[3px] hover:ring-black/70 focus-visible:border-zinc-300 focus-visible:ring-black/70';
+  'flex min-h-9 items-center rounded-sm border border-zinc-300 bg-zinc-50 px-3 py-2 text-xs font-medium text-zinc-600 md:min-h-10 md:text-sm';
+
+const addressInputClassName =
+  `${MYPAGE_INPUT_CLASS_NAME} h-9 text-xs md:h-10 md:text-sm`;
 
 export function MypageAddressSearchField({
   postalCode,
@@ -34,7 +36,11 @@ export function MypageAddressSearchField({
   const addressLine2Ref = useRef<HTMLInputElement>(null);
 
   return (
-    <div className="space-y-2" aria-labelledby="address-label">
+    <div
+      className="space-y-2"
+      aria-labelledby="address-label"
+      aria-describedby={error ? 'address-error' : undefined}
+    >
       <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
         <div
           className={selectedAddressClassName}
@@ -49,6 +55,7 @@ export function MypageAddressSearchField({
           </span>
         </div>
         <MypageAddressSearchButton
+          errorMessageId={error ? 'address-error' : undefined}
           onSelect={address => {
             onAddressSelect(address);
             window.requestAnimationFrame(() => {
@@ -79,9 +86,10 @@ export function MypageAddressSearchField({
         value={addressLine2}
         onChange={event => onAddressLine2Change(event.target.value)}
         placeholder="동, 호수 등 상세 주소를 입력해 주세요"
-        className={inputClassName}
+        aria-describedby={error ? 'address-error' : undefined}
+        className={addressInputClassName}
       />
-      <InputError message={error} />
+      <InputError id="address-error" message={error} />
     </div>
   );
 }

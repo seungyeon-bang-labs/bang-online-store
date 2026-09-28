@@ -41,7 +41,7 @@ export function ReviewRatingInput({
             aria-pressed={value === rating}
             onMouseEnter={() => setHoveredRating(rating)}
             onClick={() => onChange(rating)}
-            className="inline-flex size-9 items-center justify-center text-zinc-300 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
+            className="inline-flex size-10 items-center justify-center rounded-sm text-zinc-300 transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-black/20"
           >
             <Star
               aria-hidden="true"

@@ -1,26 +1,30 @@
-import { Heart } from 'lucide-react';
 import type { ActivityProductViewModel } from '@/domains/activity';
-import { MypageCompactEmptyState } from '../common/compact-empty-state';
+import { MypageEmptyState } from '../common';
 import { MypageHomeProductPreview } from './product-preview';
-import { MypageHomeSectionHeader } from './section-header';
+import { MypageSectionHeader } from './section-header';
 
 interface MypageHomeWishlistProps {
   items: ActivityProductViewModel[];
 }
 
 export function MypageHomeWishlist({ items }: MypageHomeWishlistProps) {
+  const hasWishlistProducts = items.length > 0;
+
   return (
-    <section className="space-y-5">
-      <MypageHomeSectionHeader
+    <section className="space-y-3 md:space-y-5">
+      <MypageSectionHeader
         title="관심 상품"
-        icon={<Heart className="size-4" />}
         viewAllHref="/mypage/wishlist"
       />
 
-      {items.length > 0 ? (
-        <MypageHomeProductPreview items={items} ariaLabel="관심 상품" />
+      {hasWishlistProducts ? (
+        <MypageHomeProductPreview
+          items={items}
+          ariaLabel="관심 상품"
+          isWishlisted
+        />
       ) : (
-        <MypageCompactEmptyState
+        <MypageEmptyState
           title="관심 상품이 없습니다."
           description="관심 있는 상품을 저장하면 이곳에서 확인할 수 있습니다."
           action={{ href: '/best', label: '상품 보러 가기' }}

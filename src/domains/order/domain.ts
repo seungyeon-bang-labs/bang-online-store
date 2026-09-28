@@ -30,7 +30,6 @@ export const ORDER_STATUS_FILTERS = [
   'all',
   'pending_payment',
   'payment_completed',
-  'preparing_shipment',
   'shipping',
   'delivered',
   'cancelled',
@@ -44,6 +43,7 @@ export const ORDER_STANDARD_SHIPPING_FEE = 3_000;
 export interface OrderListQuery {
   period: OrderPeriod;
   status: OrderStatusFilter;
+  includePartialCancellation: boolean;
   page: number;
 }
 
@@ -58,8 +58,7 @@ export function getOrderActionEligibility(
   return {
     canCancel:
       status === 'pending_payment' ||
-      status === 'payment_completed' ||
-      status === 'preparing_shipment',
+      status === 'payment_completed',
     canClaim: status === 'delivered',
   };
 }
@@ -87,18 +86,40 @@ function getMinimumDate(period: OrderPeriod, now: Date): Date | null {
 
 export function filterOrders(
   orders: readonly OrderDTO[],
-  query: Pick<OrderListQuery, 'period' | 'status'>,
+  query: Pick<OrderListQuery, 'period' | 'status'> &
+    Partial<Pick<OrderListQuery, 'includePartialCancellation'>>,
   now: Date,
 ): OrderDTO[] {
   const minimumDate = getMinimumDate(query.period, now);
 
   return orders
-    .filter(order => query.status === 'all' || order.status === query.status)
+    .filter(
+      order =>
+        query.status === 'all' ||
+        (query.status === 'cancelled' && query.includePartialCancellation) ||
+        order.status === query.status,
+    )
     .filter(
       order =>
         minimumDate === null || new Date(order.ordered_at) >= minimumDate,
     )
     .sort((a, b) => b.ordered_at.localeCompare(a.ordered_at));
+}
+
+export function filterOrdersByCancellation(
+  orders: readonly OrderDTO[],
+  cancellations: readonly OrderItemCancellationDTO[],
+  includePartialCancellation: boolean,
+): OrderDTO[] {
+  if (!includePartialCancellation) return [...orders];
+
+  const cancelledOrderIds = new Set(
+    cancellations.map(cancellation => cancellation.order_id),
+  );
+
+  return orders.filter(
+    order => order.status === 'cancelled' || cancelledOrderIds.has(order.id),
+  );
 }
 
 export function joinOrderItems(

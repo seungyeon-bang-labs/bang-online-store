@@ -12,9 +12,9 @@ export function MypageClaimDetailRejectionNotice({
       <h3 className="font-black text-red-700">
         교환·반품 신청이 반려되었습니다.
       </h3>
-      <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-sm">
-        <p className="shrink-0 font-bold text-red-700">반려 사유</p>
-        <p className="ml-auto w-fit max-w-full shrink-0 wrap-break-word text-right font-bold leading-relaxed text-red-700">
+      <div className="mt-2 text-sm">
+        <p className="font-bold text-red-700">반려 사유</p>
+        <p className="mt-1.5 whitespace-pre-wrap wrap-break-word font-bold leading-relaxed text-red-700">
           {notice.reason}
         </p>
       </div>

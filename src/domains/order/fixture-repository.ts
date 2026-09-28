@@ -8,6 +8,7 @@ import type {
   OrderDTO,
   OrderItemCancellationDTO,
   OrderItemDTO,
+  OrderPaymentReceiptDetailsDTO,
   OrderPaymentTransactionDTO,
   OrderStatusHistoryDTO,
 } from './dto';
@@ -16,13 +17,14 @@ import type {
   OrderPaymentTransactionRepository,
   OrderItemCancellationRepository,
   OrderItemRepository,
+  OrderPaymentReceiptDetailsRepository,
   OrderRepository,
   OrderStatusHistoryRepository,
 } from './repository';
 
 let demoOrders = ORDERS.map(order => ({ ...order }));
 let demoOrderItems = ORDER_ITEMS.map(item => ({ ...item }));
-const demoOrderItemCancellations = ORDER_ITEM_CANCELLATIONS.map(cancellation => ({
+let demoOrderItemCancellations = ORDER_ITEM_CANCELLATIONS.map(cancellation => ({
   ...cancellation,
 }));
 let demoOrderStatusHistories = ORDER_STATUS_HISTORIES.map(history => ({
@@ -73,9 +75,40 @@ const cloneTransaction = (
   transaction: OrderPaymentTransactionDTO,
 ): OrderPaymentTransactionDTO => ({ ...transaction });
 
+function getDemoPaymentReceiptDetails(
+  order: OrderDTO,
+): OrderPaymentReceiptDetailsDTO | null {
+  if (!order.paid_at) return null;
+
+  const referenceSuffix = order.order_number.slice(-4);
+
+  if (order.payment_method === '신용카드') {
+    return {
+      type: 'card',
+      card_issuer: '신한카드',
+      masked_card_number: `**** **** **** ${referenceSuffix}`,
+      masked_approval_number: `12****${referenceSuffix.slice(-2)}`,
+      installment_label: '일시불',
+    };
+  }
+
+  return {
+    type: 'cash',
+    receipt_purpose: '개인 소득공제용',
+    masked_issuance_identifier: `010-****-${referenceSuffix}`,
+    issued_at: order.paid_at,
+  };
+}
+
 export const fixtureOrderRepository: OrderRepository = {
   async findById(orderId) {
     const order = demoOrders.find(item => item.id === orderId);
+    return order ? cloneOrder(order) : null;
+  },
+  async findByIdAndUserId(orderId, userId) {
+    const order = demoOrders.find(
+      item => item.id === orderId && item.user_id === userId,
+    );
     return order ? cloneOrder(order) : null;
   },
   async findByUserId(userId) {
@@ -99,6 +132,13 @@ export const fixtureOrderItemRepository: OrderItemRepository = {
     const item = demoOrderItems.find(current => current.id === orderItemId);
 
     return item ? cloneOrderItem(item) : null;
+  },
+  async findByIds(orderItemIds) {
+    const orderItemIdSet = new Set(orderItemIds);
+
+    return demoOrderItems
+      .filter(item => orderItemIdSet.has(item.id))
+      .map(cloneOrderItem);
   },
   async findByOrderIds(orderIds) {
     return demoOrderItems
@@ -132,7 +172,21 @@ export const fixtureOrderPaymentTransactionRepository: OrderPaymentTransactionRe
     },
   };
 
+export const fixtureOrderPaymentReceiptDetailsRepository: OrderPaymentReceiptDetailsRepository =
+  {
+    async findByOrderId(orderId) {
+      const order = demoOrders.find(item => item.id === orderId);
+      return order ? getDemoPaymentReceiptDetails(order) : null;
+    },
+  };
+
 export const fixtureOrderMutationRepository: OrderMutationRepository = {
+  async createOrderItemCancellations(cancellations) {
+    demoOrderItemCancellations = [
+      ...demoOrderItemCancellations,
+      ...cancellations.map(cloneCancellation),
+    ];
+  },
   async createOrder(order) {
     demoOrders = [...demoOrders, cloneOrder(order)];
   },
@@ -150,5 +204,10 @@ export const fixtureOrderMutationRepository: OrderMutationRepository = {
       ...demoPaymentTransactions,
       ...transactions.map(cloneTransaction),
     ];
+  },
+  async updateOrder(order) {
+    demoOrders = demoOrders.map(current =>
+      current.id === order.id ? cloneOrder(order) : current,
+    );
   },
 };

@@ -1,5 +1,6 @@
 import type {
   OrderDetailViewModel,
+  OrderPaymentReceiptDetailsDTO,
   OrderPaymentTransactionDTO,
 } from '@/domains/order';
 import {
@@ -34,7 +35,7 @@ const RECEIPT_DOCUMENT_COPY: Record<
   },
   cash: {
     title: '현금영수증',
-    description: '현금성 결제에 대한 발급 내역을 확인할 수 있습니다.',
+    description: '무통장 입금 결제에 대한 발급 내역을 확인할 수 있습니다.',
   },
   refund: {
     title: '취소·환불 확인서',
@@ -46,6 +47,7 @@ function getAvailableDocumentTypes(
   order: OrderDetailViewModel,
 ): MypageOrderReceiptDocumentType[] {
   return getAvailableMypageOrderReceiptDocumentTypes({
+    hasCompletedPayment: Boolean(order.paidAt),
     paymentMethod: order.payment.paymentMethod,
     hasRefund: order.refund.items.length > 0,
   });
@@ -129,6 +131,31 @@ function toReceiptPaymentTransactions(
     }));
 }
 
+function toReceiptPaymentDetail(
+  detail: OrderPaymentReceiptDetailsDTO,
+) {
+  if (detail.type === 'card') {
+    return {
+      title: '카드 결제 정보',
+      rows: [
+        { label: '카드사', value: detail.card_issuer },
+        { label: '카드 번호', value: detail.masked_card_number },
+        { label: '승인 번호', value: detail.masked_approval_number },
+        { label: '할부 기간', value: detail.installment_label },
+      ],
+    };
+  }
+
+  return {
+    title: '현금영수증 발급 정보',
+    rows: [
+      { label: '발급 용도', value: detail.receipt_purpose },
+      { label: '발급 수단', value: detail.masked_issuance_identifier },
+      { label: '발급 일시', value: formatKoreanDateTime(detail.issued_at) },
+    ],
+  };
+}
+
 export function toMypageOrderReceiptDocumentListViewModel(
   order: OrderDetailViewModel,
 ): MypageOrderReceiptDocumentListViewModel | null {
@@ -148,6 +175,7 @@ export function toMypageOrderReceiptViewModel(
   order: OrderDetailViewModel,
   transactions: readonly OrderPaymentTransactionDTO[],
   pointUsageAmount: number,
+  paymentReceiptDetails: OrderPaymentReceiptDetailsDTO | null,
   type: MypageOrderReceiptDocumentType,
 ): MypageOrderReceiptViewModel | null {
   if (!order.paidAt || !getAvailableDocumentTypes(order).includes(type)) {
@@ -187,12 +215,18 @@ export function toMypageOrderReceiptViewModel(
       };
     }
     case 'card':
-    case 'cash':
+    case 'cash': {
+      if (!paymentReceiptDetails || paymentReceiptDetails.type !== type) {
+        return null;
+      }
+
       return {
         ...base,
         type,
+        paymentDetail: toReceiptPaymentDetail(paymentReceiptDetails),
         paymentTransactions: toReceiptPaymentTransactions(transactions),
       };
+    }
     case 'refund': {
       const refundPaymentAmounts = toReceiptPaymentAmounts(transactions);
 
@@ -201,7 +235,8 @@ export function toMypageOrderReceiptViewModel(
         type,
         refunds: order.refund.items.map(refund => ({
           id: refund.id,
-          label: '환불 금액',
+          label:
+            refund.status === 'pending' ? '환불 예정 금액' : '환불 완료 금액',
           amountText: refund.amountText,
           occurredAt: refund.description,
           status: refund.status,

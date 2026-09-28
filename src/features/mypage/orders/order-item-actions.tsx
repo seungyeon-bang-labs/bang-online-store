@@ -1,10 +1,16 @@
 'use client';
 
+import {
+  MYPAGE_ACTION_CLASS_NAME,
+  MYPAGE_ACTION_MENU_CLASS_NAME,
+} from '../common/styles';
+
 import Link from 'next/link';
+import { Fragment } from 'react';
 import { MoreHorizontal } from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/shared/components/ui/button';
 import { useCartStore } from '@/domains/cart';
 import type {
   OrderItemActionViewModel,
@@ -15,13 +21,15 @@ import {
   getMypageOrderClaimRequestHref,
   getMypageInquiryWriteHref,
   getMypageOrderReceiptHref,
+  getMypageReviewWriteHref,
 } from '@/shared/lib/mypage-routes';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@/shared/components/ui/dropdown-menu';
 
 interface MypageOrderItemActionsProps {
   actions: OrderItemActionsViewModel;
@@ -94,24 +102,31 @@ export function MypageOrderItemActions({
               type="button"
               variant="outline"
               size="icon-sm"
-              className="rounded-sm border-zinc-300 shadow-none"
-              aria-label={`${productName} 추가 액션: ${actions.more
-                .map(action => action.label)
-                .join(', ')}`}
+              className={`rounded-sm ${MYPAGE_ACTION_CLASS_NAME.outline} ${MYPAGE_ACTION_MENU_CLASS_NAME.outlineTrigger}`}
+              aria-label={`${productName} 추가 메뉴`}
             >
               <MoreHorizontal className="size-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-32">
-            {actions.more.map(action => (
-              <OrderItemMenuAction
-                key={action.type}
-                action={action}
-                orderId={orderId}
-                orderItemId={orderItemId}
-                returnTo={returnTo}
-                onAction={runAction}
-              />
+          <DropdownMenuContent
+            align="end"
+            className={MYPAGE_ACTION_MENU_CLASS_NAME.content}
+          >
+            {actions.more.map((action, index) => (
+              <Fragment key={action.type}>
+                <OrderItemMenuAction
+                  action={action}
+                  orderId={orderId}
+                  orderItemId={orderItemId}
+                  returnTo={returnTo}
+                  onAction={runAction}
+                />
+                {index < actions.more.length - 1 && (
+                  <DropdownMenuSeparator
+                    className={MYPAGE_ACTION_MENU_CLASS_NAME.separator}
+                  />
+                )}
+              </Fragment>
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
@@ -142,9 +157,11 @@ function getOrderItemActionHref(
   if (action.type === 'cancel') {
     return getMypageOrderCancellationHref(orderId, orderItemId, returnTo);
   }
-  if (action.type === 'review') return '/mypage/reviews?tab=available&page=1';
+  if (action.type === 'review') {
+    return getMypageReviewWriteHref(orderItemId, returnTo);
+  }
   if (action.type === 'claim') {
-    return getMypageOrderClaimRequestHref(orderId, orderItemId);
+    return getMypageOrderClaimRequestHref(orderId, orderItemId, returnTo);
   }
   if (action.type === 'inquiry') {
     return getMypageInquiryWriteHref({ orderId, orderItemId, returnTo });
@@ -161,7 +178,7 @@ function OrderItemActionButton({
 }: OrderItemActionProps) {
   const href = getOrderItemActionHref(orderId, orderItemId, returnTo, action);
   const className =
-    'w-full rounded-sm border-zinc-300 font-bold shadow-none hover:border-black hover:bg-black hover:text-white';
+    `w-full ${MYPAGE_ACTION_CLASS_NAME.outline}`;
 
   if (href) {
     return (
@@ -192,7 +209,7 @@ function OrderItemMenuAction({
   onAction,
 }: OrderItemActionProps) {
   const href = getOrderItemActionHref(orderId, orderItemId, returnTo, action);
-  const className = 'cursor-pointer font-bold focus:bg-black focus:text-white';
+  const className = MYPAGE_ACTION_MENU_CLASS_NAME.item;
 
   if (href) {
     return (

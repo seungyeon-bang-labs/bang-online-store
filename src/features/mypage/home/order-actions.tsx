@@ -1,14 +1,20 @@
 'use client';
 
 import Link from 'next/link';
+import { Fragment } from 'react';
 import { MoreHorizontal } from 'lucide-react';
-import { Button, ButtonLink } from '@/components/ui/button';
+import { Button, ButtonLink } from '@/shared/components/ui/button';
+import {
+  MYPAGE_ACTION_CLASS_NAME,
+  MYPAGE_ACTION_MENU_CLASS_NAME,
+} from '../common/styles';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@/shared/components/ui/dropdown-menu';
 import type {
   MypageHomeOrderAction,
   MypageHomeOrderActions,
@@ -22,9 +28,9 @@ interface MypageHomeOrderActionsProps {
 }
 
 const ORDER_ACTION_BUTTON_CLASS_NAME =
-  'h-9 rounded-sm px-3 text-xs font-black shadow-none';
+  'h-8 min-w-0 flex-1 lg:flex-none';
 const ORDER_ACTION_OUTLINE_CLASS_NAME =
-  'border-zinc-300 bg-white text-black hover:border-black hover:bg-black hover:text-white';
+  MYPAGE_ACTION_CLASS_NAME.outline;
 
 export function MypageHomeOrderActions({
   actions,
@@ -33,7 +39,7 @@ export function MypageHomeOrderActions({
   const runCommand = useOrderActionCommand();
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex w-full items-center gap-2 lg:w-auto">
       <MypageHomeOrderActionButton
         action={actions.primary}
         onCommand={runCommand}
@@ -62,14 +68,14 @@ function MypageHomeOrderActionButton({
 }: MypageHomeOrderActionButtonProps) {
   if (!action) return null;
 
-  const className = `${ORDER_ACTION_BUTTON_CLASS_NAME} ${ORDER_ACTION_OUTLINE_CLASS_NAME}`;
+  const className = `${ORDER_ACTION_BUTTON_CLASS_NAME} ${ORDER_ACTION_OUTLINE_CLASS_NAME} font-medium md:font-bold`;
 
   if (action.behavior === 'link') {
     return (
       <ButtonLink
         href={action.href}
         variant="outline"
-        size="default"
+        size="sm"
         className={className}
       >
         {action.label}
@@ -82,7 +88,7 @@ function MypageHomeOrderActionButton({
       <Button
         type="button"
         variant="outline"
-        size="default"
+        size="sm"
         className={className}
       >
         {action.label}
@@ -94,7 +100,7 @@ function MypageHomeOrderActionButton({
     <Button
       type="button"
       variant="outline"
-      size="default"
+      size="sm"
       className={className}
       onClick={() => onCommand(action)}
     >
@@ -122,20 +128,29 @@ function MypageHomeOrderActionMenu({
         <Button
           type="button"
           variant="outline"
-          size="icon"
-          className={`size-9 rounded-sm ${ORDER_ACTION_OUTLINE_CLASS_NAME}`}
-          aria-label={`${orderTitle} 추가 행동`}
+          size="icon-sm"
+          className={`size-8 rounded-sm ${MYPAGE_ACTION_CLASS_NAME.outline} ${MYPAGE_ACTION_MENU_CLASS_NAME.outlineTrigger}`}
+          aria-label={`${orderTitle} 추가 메뉴`}
         >
           <MoreHorizontal className="size-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-40">
-        {actions.map(action => (
-          <MypageHomeOrderActionMenuItem
-            key={action.type}
-            action={action}
-            onCommand={onCommand}
-          />
+      <DropdownMenuContent
+        align="end"
+        className={MYPAGE_ACTION_MENU_CLASS_NAME.content}
+      >
+        {actions.map((action, index) => (
+          <Fragment key={action.type}>
+            <MypageHomeOrderActionMenuItem
+              action={action}
+              onCommand={onCommand}
+            />
+            {index < actions.length - 1 && (
+              <DropdownMenuSeparator
+                className={MYPAGE_ACTION_MENU_CLASS_NAME.separator}
+              />
+            )}
+          </Fragment>
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
@@ -151,7 +166,7 @@ function MypageHomeOrderActionMenuItem({
   action,
   onCommand,
 }: MypageHomeOrderActionMenuItemProps) {
-  const className = 'cursor-pointer focus:bg-black focus:text-white';
+  const className = `${MYPAGE_ACTION_MENU_CLASS_NAME.item} h-11 font-medium md:h-10 md:font-bold`;
 
   if (action.behavior === 'link') {
     return (

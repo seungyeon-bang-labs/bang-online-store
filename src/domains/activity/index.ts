@@ -12,6 +12,7 @@ import {
 } from './fixture-repository';
 import { createReviewListService } from './review-list.service';
 import { createReviewFormService } from './review-form.service';
+import { createReviewDeletionService } from './review-deletion.service';
 import { createActivityService } from './service';
 
 export * from './domain';
@@ -20,6 +21,7 @@ export * from './mapper';
 export * from './repository';
 export * from './review-list.service';
 export * from './review-form.service';
+export * from './review-deletion.service';
 export * from './service';
 export * from './view-model';
 
@@ -45,6 +47,7 @@ const reviewServiceDependencies = {
 
 const reviewListService = createReviewListService(reviewServiceDependencies);
 const reviewFormService = createReviewFormService(reviewServiceDependencies);
+const reviewDeletionService = createReviewDeletionService({ reviewRepository });
 
 export const getRecentProductItems =
   activityService.getRecentProductItems;
@@ -58,5 +61,9 @@ export const getReviewPageViewModel =
   reviewListService.getReviewPageViewModel;
 export const getReviewWriteFormViewModel =
   reviewFormService.getReviewWriteFormViewModel;
+export const getReviewWritePageViewModel =
+  reviewFormService.getReviewWritePageViewModel;
 export const getReviewEditFormViewModel =
   reviewFormService.getReviewEditFormViewModel;
+export const createReview = reviewFormService.createReview;
+export const canDeleteReview = reviewDeletionService.canDeleteReview;

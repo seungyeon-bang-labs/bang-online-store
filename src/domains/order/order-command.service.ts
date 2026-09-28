@@ -153,12 +153,6 @@ export function createOrderCommandService({
       {
         id: createId('order-history', occurredAt, 0),
         order_id: orderId,
-        status: 'order_received',
-        occurred_at: occurredAt,
-      },
-      {
-        id: createId('order-history', occurredAt, 1),
-        order_id: orderId,
         status: 'payment_completed',
         occurred_at: occurredAt,
       },

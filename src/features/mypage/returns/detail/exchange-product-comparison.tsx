@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowRight } from 'lucide-react';
 import type { OrderClaimDetailExchangeProductViewModel } from '@/domains/order/claim/view-model';
-import { MypageClaimDetailCollapsibleCard } from './collapsible-card';
+import { MypageCard } from '@/features/mypage/common';
 import { MypageClaimDetailProductContent } from './product';
 
 interface MypageClaimDetailExchangeProductComparisonProps {
@@ -11,7 +11,7 @@ export function MypageClaimDetailExchangeProductComparison({
   product,
 }: MypageClaimDetailExchangeProductComparisonProps) {
   return (
-    <MypageClaimDetailCollapsibleCard title="교환 전·후 상품">
+    <MypageCard.Collapsible title="교환 전·후 상품">
       <div className="md:hidden">
         <ProductPanel item={product.orderedItem} isMuted />
         <div className="flex items-center justify-center gap-2 border-y border-zinc-200 py-3 text-sm font-bold text-black">
@@ -28,7 +28,7 @@ export function MypageClaimDetailExchangeProductComparison({
         </div>
         <ProductPanel item={product.exchangeItem} />
       </div>
-    </MypageClaimDetailCollapsibleCard>
+    </MypageCard.Collapsible>
   );
 }
 

@@ -1,52 +1,74 @@
+import { MYPAGE_ACTION_CLASS_NAME } from '@/features/mypage/common/styles';
+import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/shared/components/ui/button';
 import type { AvailableReviewViewModel } from '@/domains/activity/view-model';
-import { ReviewProductThumbnail } from './product-thumbnail';
+import { MypageBadge, MypageCard } from '@/features/mypage/common';
+import {
+  MypageProductSummary,
+  MypageProductThumbnailLink,
+} from '@/features/mypage/common/product-summary';
+import {
+  getMypageOrderDetailHref,
+  getMypageReviewWriteHref,
+} from '@/shared/lib/mypage-routes';
 
 interface AvailableReviewCardProps {
   review: AvailableReviewViewModel;
+  returnHref: string;
 }
 
-export function AvailableReviewCard({ review }: AvailableReviewCardProps) {
+export function AvailableReviewCard({
+  review,
+  returnHref,
+}: AvailableReviewCardProps) {
   return (
-    <article className="overflow-hidden rounded-md border border-zinc-300 bg-white">
-      <div className="grid grid-cols-[80px_minmax(0,1fr)] grid-rows-[auto_auto_auto_auto_auto] gap-x-4 p-4 sm:grid-cols-[96px_minmax(0,1fr)] md:p-5">
-        <ReviewProductThumbnail
-          product={review.product}
-          alt={review.productName}
-        />
-        <Link
-          href={review.product.href}
-          className="truncate font-black text-black hover:underline"
-        >
-          {review.productName}
-        </Link>
-        <p className="mt-0.5 text-sm font-medium text-zinc-500">
-          {review.optionLabel}
-        </p>
-        <p className="mt-2 text-sm font-medium text-zinc-400">
-          주문일 {review.orderedAt}
-        </p>
-        <p className="mt-0.5 text-sm font-bold text-zinc-700">
-          작성기한 {review.reviewDeadlineAt}{' '}
-          <span className="font-black text-black">
-            ({review.reviewDeadlineDday})
-          </span>
-        </p>
-        <div className="col-span-2 mt-3">
-          <Button
-            asChild
-            type="button"
-            variant="outline"
-            size="sm"
-            className="w-full rounded-sm border-zinc-300 font-bold shadow-none hover:border-black hover:bg-black hover:text-white"
-          >
-            <Link href={`/mypage/reviews/write/${review.orderItemId}`}>
-              리뷰 작성
-            </Link>
-          </Button>
+    <MypageCard as="article">
+      <MypageCard.Header>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <MypageBadge label={review.reviewDeadlineDday} tone="danger" />
+          <p className="text-sm font-bold text-zinc-700">
+            {review.reviewDeadlineAt}까지 리뷰 작성 가능
+          </p>
         </div>
-      </div>
-    </article>
+      </MypageCard.Header>
+      <MypageCard.Body className="pb-0 md:pb-0">
+        <MypageProductSummary
+          thumbnail={
+            <MypageProductThumbnailLink
+              href={review.product.href}
+              src={review.product.thumbnailUrl}
+              alt={review.productName}
+            />
+          }
+          name={review.productName}
+          nameHref={review.product.href}
+          meta={review.optionLabel}
+          truncateName
+          action={
+            <Link
+              href={getMypageOrderDetailHref(review.orderId)}
+              className="mt-1 inline-flex w-fit items-center gap-0.5 text-xs font-bold text-black hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
+            >
+              주문 상세 보기
+              <ChevronRight className="size-4" aria-hidden="true" />
+            </Link>
+          }
+        />
+      </MypageCard.Body>
+      <MypageCard.Footer>
+        <Button
+          asChild
+          type="button"
+          variant="outline"
+          size="sm"
+          className={`w-full ${MYPAGE_ACTION_CLASS_NAME.outline}`}
+        >
+          <Link href={getMypageReviewWriteHref(review.orderItemId, returnHref)}>
+            리뷰 작성
+          </Link>
+        </Button>
+      </MypageCard.Footer>
+    </MypageCard>
   );
 }

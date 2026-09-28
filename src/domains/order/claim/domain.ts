@@ -1,5 +1,9 @@
 import type { OrderStatus } from '../dto';
-import type { OrderClaimDTO, OrderClaimProgressStage, OrderClaimType } from './dto';
+import type {
+  OrderClaimDTO,
+  OrderClaimProgressStage,
+  OrderClaimType,
+} from './dto';
 
 export const ORDER_CLAIM_TYPE_FILTERS = [
   'all',
@@ -16,6 +20,7 @@ export const ORDER_CLAIM_STATUS_FILTERS = [
   'processing',
   'completed',
   'rejected',
+  'cancelled',
 ] as const;
 
 export type OrderClaimStatusFilter =
@@ -59,6 +64,12 @@ export interface OrderClaimListQuery {
   type: OrderClaimTypeFilter;
   status: OrderClaimStatusFilter;
   page: number;
+}
+
+export function canCancelOrderClaim(
+  claim: Pick<OrderClaimDTO, 'status' | 'progress_stage'>,
+): boolean {
+  return claim.status === 'requested' && claim.progress_stage === null;
 }
 
 export type OrderClaimRequestUnavailableReason =

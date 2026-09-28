@@ -1,5 +1,5 @@
 import type { OrderClaimSettlementViewModel } from '@/domains/order/claim/view-model';
-import { MypageClaimDetailCollapsibleCard } from './collapsible-card';
+import { MypageAmountRow, MypageCard } from '@/features/mypage/common';
 
 interface MypageClaimDetailRefundInformationProps {
   refund: OrderClaimSettlementViewModel;
@@ -9,22 +9,23 @@ export function MypageClaimDetailRefundInformation({
   refund,
 }: MypageClaimDetailRefundInformationProps) {
   return (
-    <MypageClaimDetailCollapsibleCard title="환불 정보">
-      <div className="p-4 md:p-5">
+    <MypageCard.Collapsible title="환불 정보">
+      <MypageCard.Body>
         {refund.amountText ? (
-          <div className="flex items-center justify-between gap-4 text-sm">
-            <p className="font-bold text-zinc-500">{refund.label}</p>
-            <p className="font-black text-red-600">{refund.amountText}</p>
-          </div>
+          <MypageAmountRow
+            label={refund.label}
+            value={refund.amountText}
+            tone={refund.tone}
+          />
         ) : null}
         <p
-          className={`text-sm leading-relaxed text-zinc-600 ${
+          className={`text-sm leading-5 font-medium text-zinc-500 ${
             refund.amountText ? 'mt-2' : ''
           }`}
         >
           {refund.description}
         </p>
-      </div>
-    </MypageClaimDetailCollapsibleCard>
+      </MypageCard.Body>
+    </MypageCard.Collapsible>
   );
 }

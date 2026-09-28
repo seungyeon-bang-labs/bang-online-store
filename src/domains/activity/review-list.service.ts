@@ -136,6 +136,7 @@ export function createReviewListService({
                 'reviews.product_id -> products.id',
                 review.id,
               ),
+              now,
             );
           })
         : availableItems.map(item =>

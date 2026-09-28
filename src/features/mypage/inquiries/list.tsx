@@ -1,3 +1,4 @@
+import { MypageListStack } from '@/features/mypage/common/list-stack';
 import type { InquiryViewModel } from '@/domains/inquiry';
 import { MypageInquiryCard } from './card';
 
@@ -13,7 +14,7 @@ export function MypageInquiryList({
   cancelInquiryAction,
 }: MypageInquiryListProps) {
   return (
-    <div className="space-y-4">
+    <MypageListStack density="compact">
       {inquiries.map(inquiry => (
         <MypageInquiryCard
           key={inquiry.id}
@@ -22,6 +23,6 @@ export function MypageInquiryList({
           cancelInquiryAction={cancelInquiryAction}
         />
       ))}
-    </div>
+    </MypageListStack>
   );
 }

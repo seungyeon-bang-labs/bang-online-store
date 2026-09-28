@@ -24,17 +24,17 @@ export function MypagePointSummary({ summary }: MypagePointSummaryProps) {
   ] as const;
 
   return (
-    <section className="overflow-hidden rounded-md border border-zinc-200 bg-zinc-200">
+    <section className="-mx-4 overflow-hidden border-y border-zinc-200 bg-zinc-200 md:mx-0 md:rounded-md md:border">
       <div className="grid grid-cols-1 gap-px md:grid-cols-3">
         {summaryItems.map(item => (
           <div
             key={item.label}
             className="flex items-center justify-between bg-white px-4 py-3 md:block md:p-5"
           >
-            <p className="text-sm font-bold text-zinc-500">
+            <p className="text-sm font-semibold text-zinc-500">
               {item.emphasizedLabel ? (
                 <>
-                  <span className="font-black text-black">
+                  <span className="font-semibold text-zinc-700">
                     {item.emphasizedLabel}
                   </span>{' '}
                   {item.label}
@@ -43,7 +43,7 @@ export function MypagePointSummary({ summary }: MypagePointSummaryProps) {
                 item.label
               )}
             </p>
-            <p className="text-lg font-bold text-black tabular-nums md:mt-3">
+            <p className="text-base font-bold text-black tabular-nums md:mt-3 md:text-lg">
               {item.value}
             </p>
           </div>

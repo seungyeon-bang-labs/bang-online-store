@@ -5,11 +5,12 @@ import {
 } from '@/domains/product';
 import {
   formatKoreanDate,
-  formatKoreanDateTime,
   formatKoreanMoney,
+  formatKoreanShortDateTime,
 } from '@/shared/lib/format';
 import type { StatusViewModel } from '@/shared/types/status';
 import {
+  canCancelOrderClaim,
   hasSameOrderClaimExchangeOptionPrice,
   isOrderClaimProgressStageForType,
   type OrderClaimRequestUnavailableReason,
@@ -18,7 +19,6 @@ import type {
   OrderClaimDTO,
   OrderClaimHistoryDTO,
   OrderClaimHistoryEvent,
-  OrderClaimProgressStage,
   OrderClaimSettlementDTO,
   OrderClaimStatus,
   OrderClaimType,
@@ -28,6 +28,7 @@ import type {
   OrderClaimDetailAddressViewModel,
   OrderClaimDetailExchangeProductViewModel,
   OrderClaimRequestViewModel,
+  OrderClaimRefundAmountViewModel,
   OrderClaimDetailViewModel,
   OrderClaimHistoryViewModel,
   OrderClaimProductViewModel,
@@ -37,8 +38,8 @@ import type {
 } from './view-model';
 
 const ORDER_CLAIM_TYPE_VIEW: Record<OrderClaimType, StatusViewModel> = {
-  exchange: { label: '교환', tone: 'info' },
-  return: { label: '반품', tone: 'warning' },
+  exchange: { label: '교환', tone: 'neutral' },
+  return: { label: '반품', tone: 'neutral' },
 };
 
 const ORDER_CLAIM_STATUS_VIEW: Record<OrderClaimStatus, StatusViewModel> = {
@@ -46,18 +47,7 @@ const ORDER_CLAIM_STATUS_VIEW: Record<OrderClaimStatus, StatusViewModel> = {
   processing: { label: '처리중', tone: 'info' },
   completed: { label: '처리완료', tone: 'success' },
   rejected: { label: '반려', tone: 'danger' },
-};
-
-const ORDER_CLAIM_PROGRESS_STAGE_VIEW: Record<
-  OrderClaimProgressStage,
-  StatusViewModel
-> = {
-  collection_scheduled: { label: '회수 예정', tone: 'warning' },
-  collection_completed: { label: '회수 완료', tone: 'info' },
-  inspecting: { label: '검수 중', tone: 'info' },
-  exchange_preparing_shipment: { label: '교환 상품 배송 준비', tone: 'info' },
-  exchange_shipping: { label: '교환 상품 배송 중', tone: 'info' },
-  refund_processing: { label: '환불 처리 중', tone: 'info' },
+  cancelled: { label: '신청 취소', tone: 'danger' },
 };
 
 const ORDER_CLAIM_HISTORY_EVENT_LABEL: Record<
@@ -73,6 +63,7 @@ const ORDER_CLAIM_HISTORY_EVENT_LABEL: Record<
   refund_processing: '환불 처리 중',
   completed: '처리 완료',
   rejected: '신청 반려',
+  cancelled: '신청 취소',
 };
 
 export const toOrderClaimTypeViewModel = (
@@ -83,47 +74,14 @@ export const toOrderClaimStatusViewModel = (
   status: OrderClaimStatus,
 ): StatusViewModel => ORDER_CLAIM_STATUS_VIEW[status];
 
-function toOrderClaimDisplayStatusViewModel(
-  claim: OrderClaimDTO,
-): StatusViewModel {
-  if (
-    claim.progress_stage &&
-    isOrderClaimProgressStageForType(claim.claim_type, claim.progress_stage)
-  ) {
-    const progressStage = ORDER_CLAIM_PROGRESS_STAGE_VIEW[claim.progress_stage];
-    const shouldPrefixType =
-      claim.progress_stage === 'collection_scheduled' ||
-      claim.progress_stage === 'collection_completed' ||
-      claim.progress_stage === 'inspecting';
-
-    return {
-      ...progressStage,
-      label: shouldPrefixType
-        ? `${toOrderClaimTypeViewModel(claim.claim_type).label} ${progressStage.label}`
-        : progressStage.label,
-    };
-  }
-
-  const type = toOrderClaimTypeViewModel(claim.claim_type);
-  const status = toOrderClaimStatusViewModel(claim.status);
-
-  return {
-    ...status,
-    label:
-      claim.status === 'completed'
-        ? `${type.label} 완료`
-        : `${type.label} ${status.label}`,
-  };
-}
-
 export function toOrderClaimViewModel(
   claim: OrderClaimDTO,
   order: OrderDTO,
   item: OrderItemDTO,
   product: Product,
+  settlement: OrderClaimSettlementDTO | null,
+  histories: readonly OrderClaimHistoryDTO[],
 ): OrderClaimViewModel {
-  const status = toOrderClaimDisplayStatusViewModel(claim);
-
   return {
     id: claim.id,
     orderNumber: order.order_number,
@@ -131,12 +89,60 @@ export function toOrderClaimViewModel(
     productName: item.product_name,
     optionLabel: item.option_label,
     lineTotalText: formatKoreanMoney(item.line_total_amount),
-    status,
+    type: toOrderClaimTypeViewModel(claim.claim_type),
+    status: toOrderClaimStatusViewModel(claim.status),
+    statusDescription: toOrderClaimStatusDescription(claim, histories),
     reason: claim.reason,
-    requestedAt: formatKoreanDate(claim.requested_at),
-    completedAt: claim.completed_at
-      ? formatKoreanDate(claim.completed_at)
-      : null,
+    refundAmount: toOrderClaimRefundAmountViewModel(claim, settlement),
+    actions: { canCancel: canCancelOrderClaim(claim) },
+  };
+}
+
+function toOrderClaimStatusDescription(
+  claim: OrderClaimDTO,
+  histories: readonly OrderClaimHistoryDTO[],
+): string {
+  const currentEvent = getOrderClaimCurrentHistoryEvent(claim);
+  const currentHistory = histories
+    .filter(history => history.event === currentEvent)
+    .sort((left, right) => right.occurred_at.localeCompare(left.occurred_at))[0];
+
+  if (!currentHistory && claim.status === 'processing') {
+    return `${formatKoreanDate(claim.requested_at)} 신청`;
+  }
+
+  const occurredAt =
+    currentHistory?.occurred_at ??
+    (currentEvent === 'completed' || currentEvent === 'rejected'
+      ? claim.completed_at
+      : currentEvent === 'cancelled'
+        ? claim.cancelled_at
+        : claim.requested_at);
+
+  return `${formatKoreanDate(occurredAt ?? claim.requested_at)} ${
+    currentEvent === 'requested'
+      ? '신청'
+      : ORDER_CLAIM_HISTORY_EVENT_LABEL[currentEvent]
+  }`;
+}
+
+function toOrderClaimRefundAmountViewModel(
+  claim: OrderClaimDTO,
+  settlement: OrderClaimSettlementDTO | null,
+): OrderClaimRefundAmountViewModel | null {
+  if (
+    claim.claim_type !== 'return' ||
+    (claim.status !== 'processing' && claim.status !== 'completed') ||
+    settlement?.type !== 'refund' ||
+    settlement.status === 'unavailable'
+  ) {
+    return null;
+  }
+
+  return {
+    label:
+      settlement.status === 'pending' ? '환불 예정 금액' : '환불 완료 금액',
+    amountText: formatKoreanMoney(settlement.amount),
   };
 }
 
@@ -190,6 +196,9 @@ export function toOrderClaimDetailViewModel(
       requestedAt: formatKoreanDate(claim.requested_at),
       completedAt: claim.completed_at
         ? formatKoreanDate(claim.completed_at)
+        : null,
+      cancelledAt: claim.cancelled_at
+        ? formatKoreanDate(claim.cancelled_at)
         : null,
     },
     request: {
@@ -265,7 +274,11 @@ function toOrderClaimSettlementViewModel(
   const date = isPending ? settlement.expected_at : settlement.completed_at;
 
   return {
-    label: `${actionLabel}${isPending && !isAdditionalPayment ? ' 예정' : ''} 금액`,
+    label: isAdditionalPayment
+      ? '추가 결제 금액'
+      : isPending
+        ? '환불 예정 금액'
+        : '환불 완료 금액',
     amountText: formatKoreanMoney(settlement.amount),
     description: date
       ? `${formatKoreanDate(date)}${isPending ? ' 이내' : ''} ${paymentMethod} ${actionLabel} ${statusLabel}`
@@ -323,7 +336,11 @@ function getOrderClaimCurrentHistoryEvent(
     return claim.progress_stage;
   }
 
-  if (claim.status === 'completed' || claim.status === 'rejected') {
+  if (
+    claim.status === 'completed' ||
+    claim.status === 'rejected' ||
+    claim.status === 'cancelled'
+  ) {
     return claim.status;
   }
 
@@ -337,7 +354,7 @@ function toOrderClaimHistoryViewModel(
   return {
     id: history.id,
     label: ORDER_CLAIM_HISTORY_EVENT_LABEL[history.event],
-    occurredAt: formatKoreanDateTime(history.occurred_at),
+    occurredAt: formatKoreanShortDateTime(history.occurred_at),
     isCurrent: history.event === currentEvent,
   };
 }

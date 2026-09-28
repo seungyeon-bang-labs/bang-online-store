@@ -13,6 +13,7 @@ interface MypageInquiryWriteContextSelectorProps {
   selectionOptions: InquiryWriteSelectionOptionsViewModel;
   resolvedContext: ResolvedInquiryWriteContext;
   error?: string;
+  errorId?: string;
   isReadOnly?: boolean;
   onOrderChange: (orderId: string) => void;
   onOrderItemContextChange: (context: {
@@ -27,6 +28,7 @@ export function MypageInquiryWriteContextSelector({
   selectionOptions,
   resolvedContext,
   error,
+  errorId,
   isReadOnly = false,
   onOrderChange,
   onOrderItemContextChange,
@@ -46,6 +48,7 @@ export function MypageInquiryWriteContextSelector({
           products={selectionOptions.products}
           selectedProductId={resolvedContext.productId}
           error={error}
+          errorId={errorId}
           isReadOnly={isReadOnly}
           onProductChange={onProductChange}
         />
@@ -58,6 +61,7 @@ export function MypageInquiryWriteContextSelector({
             selectedOrderItemId={resolvedContext.orderItemId}
             initialOrderIdForItemSelection={resolvedContext.orderIdForItemSelection}
             error={error}
+            errorId={errorId}
             isReadOnly={isReadOnly}
             onOrderChange={onOrderChange}
             onOrderItemContextChange={onOrderItemContextChange}

@@ -1,6 +1,7 @@
 import { paginate } from '@/shared/lib/pagination';
 import {
   filterOrders,
+  filterOrdersByCancellation,
   indexOrderItemCancellations,
   joinOrderItems,
 } from './domain';
@@ -38,12 +39,20 @@ export function createOrderListService({
     now = new Date(),
   ): Promise<OrderListPageViewModel> {
     const sourceOrders = await orderRepository.findByUserId(userId);
-    const orders = filterOrders(sourceOrders, query, now);
-    const orderIds = orders.map(order => order.id);
-    const [relations, cancellations] = await Promise.all([
-      orderItemRelationsService.getOrderItemRelations(orderIds),
-      orderItemCancellationRepository.findByOrderIds(orderIds),
-    ]);
+    const periodAndStatusFilteredOrders = filterOrders(sourceOrders, query, now);
+    const candidateOrderIds = periodAndStatusFilteredOrders.map(
+      order => order.id,
+    );
+    const cancellations =
+      await orderItemCancellationRepository.findByOrderIds(candidateOrderIds);
+    const orders = filterOrdersByCancellation(
+      periodAndStatusFilteredOrders,
+      cancellations,
+      query.includePartialCancellation,
+    );
+    const relations = await orderItemRelationsService.getOrderItemRelations(
+      orders.map(order => order.id),
+    );
     const cancellationByOrderItemId = indexOrderItemCancellations(cancellations);
     const items = orders.map(order =>
       toOrderListItemViewModel(

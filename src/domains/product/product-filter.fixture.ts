@@ -1,4 +1,4 @@
-import { colorMap } from "@/lib/products-data";
+import { colorMap } from './product.fixture';
 import type { ProductFilterSectionDTO } from './product-filter.dto';
 
 export const FILTER_CONFIG: ProductFilterSectionDTO[] = [

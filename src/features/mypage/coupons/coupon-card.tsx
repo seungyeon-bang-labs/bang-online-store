@@ -1,6 +1,7 @@
 import type { UserCouponViewModel } from '@/domains/benefit';
 import { cn } from '@/shared/lib/utils';
-import { MypageStatusBadge } from '../common/status-badge';
+import { MypageBadge } from '../common/badge';
+import { MypageCard } from '../common/card';
 
 const STATUS_ACCENT_CLASS = {
   available: 'border-l-emerald-500',
@@ -18,7 +19,7 @@ export function MypageCouponCard({ coupon }: MypageCouponCardProps) {
   return (
     <article
       className={cn(
-        'w-full max-w-104 rounded-md border border-zinc-300 border-l-4 bg-white p-5 md:p-6 lg:max-w-none',
+        'w-full max-w-104 rounded-md border border-zinc-300 border-l-4 bg-white p-4 md:p-6 lg:max-w-none',
         STATUS_ACCENT_CLASS[coupon.statusCode],
       )}
     >
@@ -31,15 +32,15 @@ export function MypageCouponCard({ coupon }: MypageCouponCardProps) {
         >
           {coupon.discountText}
         </p>
-        <MypageStatusBadge {...coupon.status} size="large" />
-        <h3
+        <MypageBadge {...coupon.status} size="large" />
+        <MypageCard.Title
           className={cn(
-            'col-span-2 truncate font-black',
+            'col-span-2 truncate',
             isAvailable ? 'text-black' : 'text-zinc-600',
           )}
         >
           {coupon.name}
-        </h3>
+        </MypageCard.Title>
       </div>
       <dl className="mt-6 space-y-3 border-t border-zinc-100 pt-4 text-sm">
         <div className="flex items-center justify-between gap-4">

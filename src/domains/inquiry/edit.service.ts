@@ -7,7 +7,11 @@ import {
   toInquiryEditEntryContext,
   toInquiryEditViewModel,
 } from './edit.mapper';
-import type { InquiryEditViewModel } from './edit.view-model';
+import type {
+  InquiryEditPageViewModel,
+  InquiryEditViewModel,
+  InquiryUpdateResult,
+} from './edit.view-model';
 import type { InquiryRepository } from './repository';
 import type { InquiryWriteService } from './write.service';
 
@@ -17,6 +21,10 @@ export interface InquiryEditServiceDependencies {
 }
 
 export interface InquiryEditService {
+  getInquiryEditPageViewModel(
+    userId: string,
+    inquiryId: string,
+  ): Promise<InquiryEditPageViewModel | null>;
   getInquiryEditViewModel(
     userId: string,
     inquiryId: string,
@@ -25,20 +33,22 @@ export interface InquiryEditService {
     userId: string,
     inquiryId: string,
     input: InquiryTextInput,
-  ): Promise<boolean>;
+  ): Promise<InquiryUpdateResult>;
 }
 
 export function createInquiryEditService({
   inquiryRepository,
   inquiryWriteService,
 }: InquiryEditServiceDependencies): InquiryEditService {
-  async function getInquiryEditViewModel(
+  async function getInquiryEditPageViewModel(
     userId: string,
     inquiryId: string,
-  ): Promise<InquiryEditViewModel | null> {
+  ): Promise<InquiryEditPageViewModel | null> {
     const inquiry = await inquiryRepository.findByIdAndUserId(inquiryId, userId);
-    if (!inquiry || !getInquiryActionEligibility(inquiry.status).canEdit) {
-      return null;
+    if (!inquiry || inquiry.status === 'cancelled') return null;
+
+    if (!getInquiryActionEligibility(inquiry.status).canEdit) {
+      return { kind: 'answered' };
     }
 
     const writeViewModel = await inquiryWriteService.getInquiryWriteViewModel(
@@ -47,24 +57,42 @@ export function createInquiryEditService({
     );
     if (!writeViewModel) return null;
 
-    return toInquiryEditViewModel(inquiry, writeViewModel);
+    return {
+      kind: 'editable',
+      form: toInquiryEditViewModel(inquiry, writeViewModel),
+    };
+  }
+
+  async function getInquiryEditViewModel(
+    userId: string,
+    inquiryId: string,
+  ): Promise<InquiryEditViewModel | null> {
+    const pageViewModel = await getInquiryEditPageViewModel(
+      userId,
+      inquiryId,
+    );
+
+    return pageViewModel?.kind === 'editable' ? pageViewModel.form : null;
   }
 
   async function updateInquiry(
     userId: string,
     inquiryId: string,
     input: InquiryTextInput,
-  ): Promise<boolean> {
+  ): Promise<InquiryUpdateResult> {
     const inquiry = await inquiryRepository.findByIdAndUserId(inquiryId, userId);
-    if (!inquiry || !getInquiryActionEligibility(inquiry.status).canEdit) {
-      return false;
-    }
+    if (!inquiry || inquiry.status === 'cancelled') return 'invalid';
+    if (!getInquiryActionEligibility(inquiry.status).canEdit) return 'answered';
 
     const { isTitleValid, isContentValid } = validateInquiryTextInput(input);
-    if (!isTitleValid || !isContentValid) return false;
+    if (!isTitleValid || !isContentValid) return 'invalid';
 
-    return true;
+    return 'updated';
   }
 
-  return { getInquiryEditViewModel, updateInquiry };
+  return {
+    getInquiryEditPageViewModel,
+    getInquiryEditViewModel,
+    updateInquiry,
+  };
 }

@@ -3,9 +3,11 @@ import type { OrderDTO } from '@/domains/order/dto';
 import type { OrderListItemViewModel } from '@/domains/order/view-model';
 import {
   getMypageOrderCancellationHref,
+  getMypageOrderClaimRequestHref,
   getMypageOrderDetailHref,
   getMypageInquiryWriteHref,
   getMypageOrderReceiptHref,
+  getMypageReviewWriteHref,
 } from '@/shared/lib/mypage-routes';
 import { getMypageHomeReviewState } from './home.domain';
 import { buildMypageHomeOrderActions } from './home.order-policy';
@@ -42,6 +44,12 @@ export function toMypageHomeRecentOrderViewModel({
         returnTo: '/mypage',
       })
     : null;
+  const reviewWriteHref = singleItem
+    ? getMypageReviewWriteHref(singleItem.id, '/mypage')
+    : '/mypage/reviews?tab=available&page=1';
+  const claimHref = singleItem
+    ? getMypageOrderClaimRequestHref(order.id, singleItem.id, '/mypage')
+    : orderHref;
   const reviewState = getMypageHomeReviewState(
     orderViewModel,
     writableReviewOrderItemIds,
@@ -65,9 +73,9 @@ export function toMypageHomeRecentOrderViewModel({
         cancel: cancellationHref,
         order: orderHref,
         tracking: 'placeholder',
-        reviewWrite: '/mypage/reviews?tab=available&page=1',
+        reviewWrite: reviewWriteHref,
         reviewEdit: '/mypage/reviews?tab=completed&page=1',
-        claim: orderHref,
+        claim: claimHref,
         receipt: getMypageOrderReceiptHref(order.id),
         refund: getMypageOrderReceiptHref(order.id),
         inquiry: inquiryHref,

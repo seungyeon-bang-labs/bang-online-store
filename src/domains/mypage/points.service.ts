@@ -26,19 +26,26 @@ export async function getMypagePointPageViewModel(
       ),
     ),
   );
-  const [orderItems, products] = await Promise.all([
+  const reviewOrderItemIds = Array.from(
+    new Set(reviews.map(review => review.order_item_id)),
+  );
+  const [orderItems, reviewOrderItems, products] = await Promise.all([
     orderItemRepository.findByOrderIds(orderIds),
+    orderItemRepository.findByIds(reviewOrderItemIds),
     productRepository.findByIds(
       Array.from(new Set(reviews.map(review => review.product_id))),
     ),
   ]);
   const itemsByOrderId = groupOrderItemsByOrderId(orderItems);
   const reviewById = new Map(reviews.map(review => [review.id, review]));
+  const reviewOrderItemById = new Map(
+    reviewOrderItems.map(item => [item.id, item]),
+  );
   const productNameById = new Map(
     products.map(product => [product.id, product.name]),
   );
-  const descriptionsByTransactionId = new Map(
-    transactions.flatMap(transaction => {
+  const displayInfoByTransactionId = new Map(
+    transactions.map(transaction => {
       const description = getPointTransactionDescription(
         transaction.order_id,
         transaction.review_id,
@@ -46,8 +53,17 @@ export async function getMypagePointPageViewModel(
         reviewById,
         productNameById,
       );
+      const orderId = transaction.order_id ??
+        (transaction.review_id
+          ? reviewOrderItemById.get(
+              reviewById.get(transaction.review_id)?.order_item_id ?? '',
+            )?.order_id ?? null
+          : null);
 
-      return description ? [[transaction.id, description] as const] : [];
+      return [
+        transaction.id,
+        { description: description ?? transaction.description, orderId },
+      ] as const;
     }),
   );
 
@@ -55,7 +71,7 @@ export async function getMypagePointPageViewModel(
     transactions,
     query,
     new Date(),
-    descriptionsByTransactionId,
+    displayInfoByTransactionId,
   );
 }
 

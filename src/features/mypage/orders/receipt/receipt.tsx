@@ -1,4 +1,5 @@
 import type { MypageOrderReceiptViewModel } from '@/domains/mypage';
+import { MypageCard } from '@/features/mypage/common';
 import { MypageOrderReceiptPaymentBody } from './receipt-payment-body';
 import { MypageOrderReceiptPurchaseBody } from './receipt-purchase-body';
 import { MypageOrderReceiptRefundBody } from './receipt-refund-body';
@@ -27,8 +28,11 @@ export function MypageOrderReceipt({ receipt }: MypageOrderReceiptProps) {
   })();
 
   return (
-    <section className="print-receipt-page overflow-hidden rounded-md border border-zinc-300 bg-white">
-      <header className="flex items-center justify-between gap-4 border-b border-zinc-200 p-4 md:p-5">
+    <MypageCard
+      mobileLayout="full-bleed"
+      className="print-receipt-page -mt-5 -mb-5 md:my-0"
+    >
+      <header className="hidden items-center justify-between gap-4 border-b border-zinc-200 p-4 md:flex md:p-5">
         <h2 className="text-xl font-black tracking-tight text-black">
           {receipt.title}
         </h2>
@@ -39,6 +43,6 @@ export function MypageOrderReceipt({ receipt }: MypageOrderReceiptProps) {
         <ReceiptSellerInformation />
       </ReceiptSection>
       <ReceiptDemoNotice />
-    </section>
+    </MypageCard>
   );
 }

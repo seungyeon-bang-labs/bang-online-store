@@ -1,7 +1,4 @@
-import type {
-  StatusTone,
-  StatusViewModel,
-} from '@/shared/types/status';
+import type { StatusTone } from '@/shared/types/status';
 import { cn } from '@/shared/lib/utils';
 
 const TONE_CLASS: Record<StatusTone, string> = {
@@ -18,15 +15,17 @@ const SIZE_CLASS = {
   responsive: 'px-2 py-1 text-xs sm:px-2.5 sm:text-sm',
 };
 
-interface MypageStatusBadgeProps extends StatusViewModel {
+interface MypageBadgeProps {
+  label: string;
+  tone: StatusTone;
   size?: keyof typeof SIZE_CLASS;
 }
 
-export function MypageStatusBadge({
+export function MypageBadge({
   label,
   tone,
   size = 'default',
-}: MypageStatusBadgeProps) {
+}: MypageBadgeProps) {
   return (
     <span
       className={cn(

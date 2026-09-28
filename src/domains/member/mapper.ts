@@ -18,6 +18,7 @@ export const toMemberProfileViewModel = (
   isEmailVerified: user.email_verified_at !== null,
   phoneNumber: user.phone_number,
   birthDate: user.birth_date ?? '',
+  gender: user.gender,
 });
 
 export const toUserAddressViewModel = (

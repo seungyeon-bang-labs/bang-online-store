@@ -1,53 +1,53 @@
-import { Button } from '@/components/ui/button';
-import { InputError } from '@/components/ui/input';
+import { Button } from '@/shared/components/ui/button';
+import { InputError } from '@/shared/components/ui/input';
 import type { OrderClaimRequestType } from '@/domains/order/claim/domain';
+import { MYPAGE_ACTION_CLASS_NAME } from '@/features/mypage/common/styles';
+import { MypageFormLabel } from '@/features/mypage/common/form';
 
 interface MypageClaimRequestTypeSelectorProps {
   errorMessage?: string;
+  errorMessageId?: string;
   onSelect: (type: OrderClaimRequestType) => void;
   selectedType: OrderClaimRequestType | null;
 }
 
 export function MypageClaimRequestTypeSelector({
   errorMessage,
+  errorMessageId,
   onSelect,
   selectedType,
 }: MypageClaimRequestTypeSelectorProps) {
   return (
-    <fieldset>
-      <legend className="font-bold text-black">
-        유형{' '}
-        <span className="ml-1 text-sm font-medium text-zinc-500">
-          (필수)
-        </span>
-      </legend>
+    <fieldset aria-describedby={errorMessage ? errorMessageId : undefined}>
+      <MypageFormLabel as="legend" requirement="required">
+        유형
+      </MypageFormLabel>
       <div className="mt-3 grid grid-cols-2 gap-2">
         {(['exchange', 'return'] as const).map(type => (
           <Button
             key={type}
             type="button"
             variant="outline"
-            className={`h-18 flex-col gap-0.5 rounded-sm shadow-none ${
-              selectedType === type
-                ? 'border-black bg-black text-white hover:bg-zinc-800 hover:text-white'
-                : 'border-zinc-300 hover:border-black hover:bg-white hover:text-black'
-            }`}
+            aria-pressed={selectedType === type}
+            className={`h-18 flex-col gap-0.5 ${selectedType === type
+              ? `${MYPAGE_ACTION_CLASS_NAME.primary} border-black hover:text-white`
+              : MYPAGE_ACTION_CLASS_NAME.outline
+              }`}
             onClick={() => onSelect(type)}
           >
             <span className="text-base font-bold md:text-lg">
               {type === 'exchange' ? '교환' : '반품'}
             </span>
             <span
-              className={`text-xs font-medium ${
-                selectedType === type ? 'text-zinc-300' : 'text-zinc-500'
-              }`}
+              className={`text-xs font-medium ${selectedType === type ? 'text-zinc-300' : 'text-zinc-500'
+                }`}
             >
               {type === 'exchange' ? '다른 옵션으로 교환' : '상품 반송 후 환불'}
             </span>
           </Button>
         ))}
       </div>
-      <InputError message={errorMessage} />
+      <InputError id={errorMessageId} message={errorMessage} />
     </fieldset>
   );
 }

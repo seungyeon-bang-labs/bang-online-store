@@ -44,6 +44,9 @@ export interface OrderItemBaseViewModel {
   quantity: number;
   lineTotalText: string;
   cancellation: {
+    reason: string;
+    reasonDetail: string | null;
+    refundAmountLabel: '환불 예정 금액' | '환불 완료 금액';
     refundAmountText: string;
   } | null;
   actions: OrderItemActionsViewModel | null;
@@ -58,6 +61,11 @@ export type OrderItemViewModel = OrderItemBaseViewModel;
 
 export type OrderDetailItemViewModel = OrderItemBaseViewModel;
 
+export interface OrderAmountViewModel {
+  label: '결제 예정 금액' | '결제 금액' | '최초 결제 금액';
+  amountText: string;
+}
+
 export interface OrderListItemViewModel {
   id: string;
   orderNumber: string;
@@ -65,8 +73,7 @@ export interface OrderListItemViewModel {
   statusCode: OrderStatus;
   status: StatusViewModel;
   statusDescription: string;
-  totalAmountText: string;
-  finalAmountText: string;
+  orderAmount: OrderAmountViewModel;
   cancelledItemCount: number;
   refunds: OrderRefundViewModel[];
   items: OrderItemViewModel[];
@@ -83,6 +90,7 @@ export interface OrderDetailPaymentViewModel {
   hasDiscount: boolean;
   shippingFeeText: string;
   isFreeShipping: boolean;
+  totalAmountLabel: '총 결제 금액' | '최초 결제 금액';
   totalAmountText: string;
   paymentMethod: OrderPaymentMethod;
 }

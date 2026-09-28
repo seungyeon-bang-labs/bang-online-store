@@ -1,5 +1,6 @@
+import { MYPAGE_ACTION_CLASS_NAME } from '@/features/mypage/common/styles';
 import { AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/shared/components/ui/button';
 
 interface MypageErrorStateProps {
   onRetry: () => void;
@@ -22,7 +23,7 @@ export function MypageErrorState({ onRetry }: MypageErrorStateProps) {
         type="button"
         variant="outline"
         onClick={onRetry}
-        className="mt-6 rounded-sm border-zinc-300 font-bold shadow-none hover:border-black hover:bg-black hover:text-white"
+        className={`mt-6 ${MYPAGE_ACTION_CLASS_NAME.outline}`}
       >
         다시 시도
       </Button>
