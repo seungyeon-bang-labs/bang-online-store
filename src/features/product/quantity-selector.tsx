@@ -1,7 +1,7 @@
 'use client';
 
 import { Minus, Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/lib/utils';
 
 interface QuantitySelectorProps {
@@ -33,7 +33,7 @@ export function QuantitySelector({
         onClick={onDecrease}
         size="icon-xs"
         variant="ghost"
-        className="p-1.5 hover:bg-gray-50 text-gray-500 disabled:opacity-30 rounded-none cursor-pointer"
+        className="p-1.5 hover:bg-gray-50 text-gray-500 disabled:opacity-30 rounded-none"
         disabled={isMin}
       >
         <Minus strokeWidth={3} />
@@ -43,7 +43,7 @@ export function QuantitySelector({
         onClick={onIncrease}
         size="icon-xs"
         variant="ghost"
-        className="p-1.5 hover:bg-gray-50 text-gray-500 disabled:opacity-30 rounded-none cursor-pointer"
+        className="p-1.5 hover:bg-gray-50 text-gray-500 disabled:opacity-30 rounded-none"
         disabled={isMax}
       >
         <Plus strokeWidth={3}/>

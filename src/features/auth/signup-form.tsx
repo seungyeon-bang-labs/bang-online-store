@@ -1,17 +1,18 @@
 'use client';
 
 import { User } from 'lucide-react';
-import { FormSubmitButton } from '@/components/ui/button';
+import { FormSubmitButton } from '@/shared/components/ui/button';
 import { EmailVerification } from '@/features/auth/email-verification';
-import { IconInput, PasswordInput } from '@/features/auth/icon-input';
+import { IconInput } from '@/shared/components/common/icon-input';
+import { PasswordInput } from '@/shared/components/common/password-input';
 import { useTransition, useState, useEffect } from 'react';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { signupFormSchema } from '@/lib/form-schemas';
-import { InputError } from '@/components/ui/input';
+import { signupFormSchema } from '@/shared/lib/form-schemas';
+import { InputError } from '@/shared/components/ui/input';
 import { TermsAgreement } from '@/features/auth/terms-agreement';
-import { type TermsKey } from '@/lib/terms';
+import { type TermsKey } from '@/shared/lib/terms';
 import type { Tables } from '@/shared/types/supabase';
 
 export function SignupForm() {

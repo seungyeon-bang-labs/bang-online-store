@@ -1,12 +1,12 @@
 import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { Suspense } from 'react';
-import { PageTitle } from '@/components/common/page-title';
-import { Tabs } from '@/components/common/tabs';
-import { SearchInput } from '@/components/common/search-input';
-import { NOTICE_TABS } from '@/lib/navigation';
-import { NOTICES } from '@/lib/notices-data';
-import { DynamicPagination } from '@/components/common/dynamic-pagination';
+import { PageTitle } from '@/shared/components/common/page-title';
+import { Tabs } from '@/shared/components/common/tabs';
+import { SearchInput } from '@/shared/components/common/search-input';
+import { NOTICE_TABS } from '@/shared/lib/navigation';
+import { NOTICES } from '@/domains/customer-service';
+import { DynamicPagination } from '@/shared/components/common/dynamic-pagination';
 
 interface NoticePageProps {
   searchParams: Promise<{
@@ -75,7 +75,7 @@ async function NoticePage({ searchParams }: NoticePageProps) {
       <PageTitle
         parent={{ label: '고객센터', href: '/cs' }}
         current="공지사항"
-        className="mb-5"
+        className="mb-5 hidden md:flex"
       />
 
       {/* 상단 컨트롤 영역 */}

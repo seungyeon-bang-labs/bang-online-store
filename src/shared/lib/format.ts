@@ -13,6 +13,14 @@ const KOREAN_DATE_TIME_FORMATTER = new Intl.DateTimeFormat('ko-KR', {
   hour12: false,
 });
 
+const KOREAN_SHORT_DATE_TIME_FORMATTER = new Intl.DateTimeFormat('ko-KR', {
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+});
+
 const KOREAN_TIME_FORMATTER = new Intl.DateTimeFormat('ko-KR', {
   hour: '2-digit',
   minute: '2-digit',
@@ -41,6 +49,9 @@ export const formatKoreanDateKey = (value: string) => {
 
 export const formatKoreanDateTime = (value: string) =>
   KOREAN_DATE_TIME_FORMATTER.format(new Date(value));
+
+export const formatKoreanShortDateTime = (value: string) =>
+  KOREAN_SHORT_DATE_TIME_FORMATTER.format(new Date(value));
 
 export const formatKoreanTime = (value: string) =>
   KOREAN_TIME_FORMATTER.format(new Date(value));

@@ -1,7 +1,6 @@
 import { toProductCardViewModel } from '@/domains/product';
-import { ProductItem } from '@/features/product/product-item';
-import { Slider } from '@/components/common/slider';
-import { products } from '@/lib/products-data';
+import { products } from '@/domains/product';
+import { HomeProductSlider } from './home-product-slider';
 
 export function NewProductsSlider() {
   const newProducts = products
@@ -17,13 +16,11 @@ export function NewProductsSlider() {
     );
 
   return (
-    <Slider rows={1} title="신규 상품" href="/new">
-      {newProducts.map(product => (
-        <ProductItem
-          key={product.id}
-          product={toProductCardViewModel(product)}
-        />
-      ))}
-    </Slider>
+    <HomeProductSlider
+      title="신규 상품"
+      href="/new"
+      desktopRows={1}
+      products={newProducts.map(toProductCardViewModel)}
+    />
   );
 }

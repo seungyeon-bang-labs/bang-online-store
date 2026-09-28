@@ -13,7 +13,7 @@ export function PopularSearchList({
   titleClassName,
 }: PopularSearchListProps) {
   return (
-    <section className="h-full rounded-md border border-zinc-300 bg-white p-4 transition-shadow hover:ring-2 hover:ring-black/70">
+    <section className="h-full rounded-md border border-zinc-200 bg-white p-4">
       <p className={titleClassName}>인기 검색어</p>
       <div className="mt-3 grid grid-cols-1 gap-1 md:grid-cols-2 md:gap-x-3">
         {keywords.map(({ keyword, rankChange }, index) => {

@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { FilterSheet } from '@/features/product/filter-sheet';
 import { SortDropdown } from '@/features/product/sort-dropdown';
 import { FilterBadgeGroup } from '@/features/product/filter-badge-group';
-import { FILTER_CONFIG } from '@/lib/filter-data';
+import { FILTER_CONFIG } from '@/domains/product/product-filter.fixture';
 
 type ProductFilterBarProps = {
   activeFilterValues: string[];
@@ -50,7 +50,7 @@ export function ProductFilterBar({
   };
   
   return (
-    <div className="flex flex-col gap-4 mt-8 mb-4">
+    <div className="mt-6 mb-4 flex flex-col gap-4 md:mt-8">
       <div className="flex items-center justify-between">
         <FilterSheet />
         <SortDropdown currentSortValue={currentSortValue} />

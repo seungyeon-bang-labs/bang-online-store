@@ -1,4 +1,4 @@
-import { PageTitle } from '@/components/common/page-title';
+import { PageTitle } from '@/shared/components/common/page-title';
 import { CustomerServiceExchangeReturnGuide } from '@/features/customer-service/exchange-return-guide';
 
 function ReturnRequestPage() {
@@ -7,6 +7,7 @@ function ReturnRequestPage() {
       <PageTitle
         parent={{ label: '고객센터', href: '/cs' }}
         current="교환·반품 안내"
+        className="hidden md:flex"
       />
 
       <CustomerServiceExchangeReturnGuide />

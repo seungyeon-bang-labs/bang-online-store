@@ -1,8 +1,8 @@
 'use client';
 
 import { RotateCcw, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/shared/components/ui/button';
+import { Badge } from '@/shared/components/ui/badge';
 import { cn } from '@/shared/lib/utils';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
@@ -63,7 +63,7 @@ export function FilterBadgeGroup({
           <Button
             variant="outline"
             size="icon-sm"
-            className="rounded-full bg-secondary shadow-sm shrink-0 min-w-28px h-28px w-28px cursor-pointer"
+            className="rounded-full bg-secondary shadow-sm shrink-0 min-w-28px h-28px w-28px"
             onClick={handleReset}
           >
             <RotateCcw strokeWidth={3} />
@@ -79,7 +79,7 @@ export function FilterBadgeGroup({
             <Button
               variant="ghost"
               size="icon-sm"
-              className="flex items-center justify-center size-4 cursor-pointer"
+              className="flex items-center justify-center size-4"
               onClick={() => onRemove?.(activeFilter.id)}
             >
               <X strokeWidth={2} />

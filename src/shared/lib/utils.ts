@@ -1,7 +1,5 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { getProductDiscount } from '@/domains/discount';
-
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -31,5 +29,3 @@ export const getCombinedHref = <
   const queryString = params.toString();
   return queryString ? `?${queryString}` : '';
 };
-
-export { getProductDiscount };

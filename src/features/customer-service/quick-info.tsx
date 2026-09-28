@@ -1,5 +1,5 @@
-import { ButtonLink } from '@/components/ui/button';
-import { CS_MENU } from '@/lib/navigation';
+import { ButtonLink } from '@/shared/components/ui/button';
+import { CS_MENU } from '@/shared/lib/navigation';
 
 export function QuickInfo() {
   return (

@@ -9,13 +9,14 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
+} from '@/shared/components/ui/sheet';
+import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/lib/utils';
-import { Checkbox } from '@/components/ui/checkbox';
-import { FILTER_CONFIG, ColorOption, FilterId } from '@/lib/filter-data';
+import { Checkbox } from '@/shared/components/ui/checkbox';
+import { FILTER_CONFIG } from '@/domains/product/product-filter.fixture';
+import type { ColorOption, FilterId } from '@/domains/product/product-filter.dto';
 import { FilterBadgeGroup } from '@/features/product/filter-badge-group';
-import { ColorChip } from '@/components/ui/color-chip';
+import { ColorChip } from '@/shared/components/ui/color-chip';
 
 type SelectedFilters = Record<FilterId, string[]>;
 type FilterBadgeItem = { id: string; label: string };
@@ -123,10 +124,13 @@ export function FilterSheet() {
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetTrigger asChild>
-        <div className="flex items-center gap-1 font-black text-sm cursor-pointer">
+        <button
+          type="button"
+          className="inline-flex min-h-10 items-center gap-1 px-1 text-sm font-black cursor-pointer"
+        >
           <SlidersHorizontal size={16} strokeWidth={3} />
           <span>필터</span>
-        </div>
+        </button>
       </SheetTrigger>
 
       <SheetContent

@@ -76,7 +76,7 @@ export function EventCouponItem({
           'flex h-full w-24 shrink-0 flex-col items-center justify-center text-white sm:w-28 md:w-32',
           disabled
             ? 'cursor-not-allowed bg-neutral-400'
-            : 'cursor-pointer bg-linear-to-br from-gray-700 to-black from-10% to-40% hover:bg-none hover:bg-gray-200 hover:text-black',
+            : 'bg-linear-to-br from-gray-700 to-black from-10% to-40% hover:bg-none hover:bg-gray-200 hover:text-black',
         )}
       >
         <Download className="mb-2 size-8 stroke-[1.5] md:size-10" />

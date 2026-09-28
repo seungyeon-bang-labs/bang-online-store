@@ -8,7 +8,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+} from '@/shared/components/ui/alert-dialog';
 import { X } from 'lucide-react';
 
 interface DeleteConfirmModalProps {
@@ -26,11 +26,14 @@ export function DeleteConfirmModal({
     <AlertDialog>
       <AlertDialogTrigger asChild>
         {type === 'item' ? (
-          <button className="text-gray-300 hover:text-black transition-colors cursor-pointer">
+          <button
+            aria-label="장바구니 상품 삭제"
+            className="-mr-2 -mt-1 inline-flex size-8 shrink-0 items-center justify-center text-gray-400 transition-colors hover:text-black"
+          >
             <X className="size-5" />
           </button>
         ) : (
-          <button disabled={disableTrigger} className="text-sm font-bold text-gray-400 hover:text-black transition-colors disabled:opacity-40 disabled:hover:text-gray-400 cursor-pointer">
+          <button disabled={disableTrigger} className="text-sm font-bold text-gray-400 hover:text-black transition-colors disabled:opacity-40 disabled:hover:text-gray-400">
             선택 삭제
           </button>
         )}
@@ -51,12 +54,12 @@ export function DeleteConfirmModal({
         </AlertDialogHeader>
 
         <AlertDialogFooter className="gap-2 mt-4">
-          <AlertDialogCancel className="flex-1 rounded-md font-bold border-gray-200 cursor-pointer">
+          <AlertDialogCancel className="flex-1 rounded-md font-bold border-gray-200">
             취소
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
-            className="flex-1 rounded-md font-bold bg-black hover:bg-gray-800 text-white border-none cursor-pointer"
+            className="flex-1 rounded-md font-bold bg-black hover:bg-gray-800 text-white border-none"
           >
             삭제하기
           </AlertDialogAction>

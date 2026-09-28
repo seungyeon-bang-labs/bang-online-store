@@ -11,7 +11,7 @@ import {
   CarouselNext,
   CarouselPrevious,
   type CarouselApi,
-} from '@/components/ui/carousel';
+} from '@/shared/components/ui/carousel';
 import type { EventBannerViewModel } from '@/domains/event';
 import { cn } from '@/shared/lib/utils';
 
@@ -20,7 +20,10 @@ interface EventBannerProps {
   className?: string;
 }
 
-export function EventBanner({ eventBannerViewModels, className }: EventBannerProps) {
+export function EventBanner({
+  eventBannerViewModels,
+  className,
+}: EventBannerProps) {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(eventBannerViewModels.length ? 1 : 0);
   const eventCount = eventBannerViewModels.length;
@@ -57,7 +60,10 @@ export function EventBanner({ eventBannerViewModels, className }: EventBannerPro
 
   return (
     <section
-      className={cn('w-full relative group cursor-pointer', className)}
+      className={cn(
+        '-mx-5 w-[calc(100%+2.5rem)] cursor-pointer group relative md:mx-0 md:w-full',
+        className,
+      )}
       onMouseEnter={() => {
         if (canAutoplay) autoplayPlugin.current.stop();
       }}
@@ -76,7 +82,9 @@ export function EventBanner({ eventBannerViewModels, className }: EventBannerPro
             <CarouselItem key={eventBannerViewModel.id}>
               <Link
                 href={`/event/${eventBannerViewModel.id}`}
-                className="relative block h-55 overflow-hidden rounded-sm sm:h-70 md:aspect-25/9 md:h-auto"
+                className={cn(
+                  'relative block h-60 overflow-hidden sm:h-70 md:aspect-25/9 md:h-auto md:rounded-sm',
+                )}
               >
                 <Image
                   src={eventBannerViewModel.imgUrl}
@@ -111,8 +119,8 @@ export function EventBanner({ eventBannerViewModels, className }: EventBannerPro
               <span className="text-white/50">{eventCount}</span>
             </div>
 
-            <CarouselPrevious className="left-4 hidden cursor-pointer transition-opacity md:flex" />
-            <CarouselNext className="right-4 hidden cursor-pointer transition-opacity md:flex" />
+            <CarouselPrevious className="left-4 hidden transition-opacity md:flex" />
+            <CarouselNext className="right-4 hidden transition-opacity md:flex" />
           </>
         )}
       </Carousel>

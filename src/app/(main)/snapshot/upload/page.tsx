@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/shared/components/ui/button';
+import { Textarea } from '@/shared/components/ui/textarea';
 import { Camera, Plus, X } from 'lucide-react';
-import { PageTitle } from '@/components/common/page-title';
+import { PageTitle } from '@/shared/components/common/page-title';
 
 function SnapshotUploadPage() {
   const [images, setImages] = useState<string[]>([]);
@@ -12,7 +12,7 @@ function SnapshotUploadPage() {
 
   return (
     <div className="w-full max-w-6xl p-8 md:py-10">
-      <PageTitle current="SNAPSHOT UPLOAD" className="mb-12" />
+      <PageTitle current="SNAPSHOT UPLOAD" className="mb-12 hidden md:flex" />
 
       <div className="grid lg:grid-cols-[1fr_600px] gap-12 items-start">
         <div className="aspect-3/4 bg-zinc-100 border-2 border-dashed border-zinc-300 rounded-md flex flex-col items-center justify-center cursor-pointer hover:bg-zinc-200 transition-all">

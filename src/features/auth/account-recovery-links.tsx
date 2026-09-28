@@ -1,4 +1,4 @@
-import { ButtonLink } from '@/components/ui/button';
+import { ButtonLink } from '@/shared/components/ui/button';
 
 type AccountRecoveryLinksProps = {
   variant?: 'login' | 'userid' | 'password';

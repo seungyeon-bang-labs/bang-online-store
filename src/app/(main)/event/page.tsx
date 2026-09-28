@@ -1,11 +1,11 @@
-import { PageTitle } from '@/components/common/page-title';
+import { PageTitle } from '@/shared/components/common/page-title';
 import {
   compareEventCards,
   eventRepository,
   toEventCardViewModels,
 } from '@/domains/event';
 import { EventCard } from '@/features/event/event-card';
-import { Container } from '@/components/layout/container';
+import { Container } from '@/shared/components/layout/container';
 
 export const revalidate = 3600;
 
@@ -16,10 +16,10 @@ async function EventPage() {
   );
 
   return (
-    <Container>
-      <PageTitle current="EVENT" className="items-center" />
+    <Container className="pt-14 md:pt-10">
+      <PageTitle current="EVENT" className="hidden items-center md:flex" />
 
-      <div className="grid grid-cols-1 gap-x-4 gap-y-7 md:grid-cols-2 md:gap-y-8 lg:grid-cols-3">
+      <div className="mt-4 grid grid-cols-1 gap-x-4 gap-y-7 md:mt-0 md:grid-cols-2 md:gap-y-8 lg:grid-cols-3">
         {eventCardViewModels.map(eventCardView => (
           <EventCard
             key={eventCardView.id}

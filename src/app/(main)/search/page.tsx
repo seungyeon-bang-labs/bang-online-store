@@ -1,11 +1,11 @@
 import { SearchPanel } from '@/features/search/search-panel';
-import { Container } from '@/components/layout/container';
-import { PageTitle } from '@/components/common/page-title';
+import { Container } from '@/shared/components/layout/container';
+import { PageTitle } from '@/shared/components/common/page-title';
 
 function SearchPage() {
   return (
-    <Container>
-      <PageTitle current="SEARCH" />
+    <Container className="mb-0 md:mb-20">
+      <PageTitle current="SEARCH" className="hidden md:flex" />
       <SearchPanel />
     </Container>
   );

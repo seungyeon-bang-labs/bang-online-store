@@ -1,5 +1,5 @@
-import { EventProductItem } from '@/features/event/event-product-item';
 import type { EventProductSectionViewModel } from '@/domains/event';
+import { ProductItem } from '@/features/product/product-item';
 
 interface EventProductListProps {
   productSection: EventProductSectionViewModel;
@@ -32,9 +32,9 @@ export function EventProductList({
 
       <div className="mt-3 grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 md:grid-cols-4 md:p-10 lg:grid-cols-5">
         {productSection.products.map(productCardViewModel => (
-          <EventProductItem
+          <ProductItem
             key={productCardViewModel.id}
-            productCardViewModel={productCardViewModel}
+            product={productCardViewModel}
           />
         ))}
       </div>
