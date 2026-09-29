@@ -34,7 +34,7 @@ async function BestPage({ searchParams }: BestPageProps) {
   );
 
   return (
-    <Container className="pt-28 md:pt-10">
+    <Container className="mb-20 py-6 pt-28 md:py-10 md:pt-10">
       <PageTitle current="BEST" className="mb-0 hidden md:flex" />
 
       <Tabs

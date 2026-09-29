@@ -1,3 +1,4 @@
+import { Container } from '@/shared/components/layout/container';
 import { PageTitle } from '@/shared/components/common/page-title';
 import { toProductCardViewModel } from '@/domains/product';
 import { CATEGORIES } from '@/shared/lib/navigation';
@@ -48,7 +49,7 @@ const CategoryProductPage = async ({ params, searchParams }: PageProps) => {
   const emptyNotice = getCategoryEmptyNotice();
 
   return (
-    <div className="w-full max-w-6xl px-4 py-6 md:p-8 md:py-10">
+    <Container className="mb-20 py-6 pt-14 md:py-10 md:pt-10">
       <PageTitle
         current={categoryHeader.current}
         className="mb-2 hidden md:flex"
@@ -111,7 +112,7 @@ const CategoryProductPage = async ({ params, searchParams }: PageProps) => {
           </p>
         </div>
       )}
-    </div>
+    </Container>
   );
 };
 

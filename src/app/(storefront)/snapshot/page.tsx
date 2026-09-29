@@ -32,7 +32,7 @@ const SnapshotPage = async ({ searchParams }: SnapshotPageProps) => {
     : snapshotData;
 
   return (
-    <Container>
+    <Container className="mb-20 py-6 md:py-10">
       <div className="flex items-center gap-2 md:hidden">
         <Suspense fallback={<div className="h-10 min-w-0 flex-1" />}>
           <SearchInput initialValue={query} className="min-w-0 flex-1" />

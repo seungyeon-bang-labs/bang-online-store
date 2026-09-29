@@ -16,7 +16,7 @@ async function EventPage() {
   );
 
   return (
-    <Container className="pt-14 md:pt-10">
+    <Container className="mb-20 py-6 pt-14 md:py-10 md:pt-10">
       <PageTitle current="EVENT" className="hidden items-center md:flex" />
 
       <div className="mt-4 grid grid-cols-1 gap-x-4 gap-y-7 md:mt-0 md:grid-cols-2 md:gap-y-8 lg:grid-cols-3">

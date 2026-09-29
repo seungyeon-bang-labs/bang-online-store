@@ -6,7 +6,7 @@ import { QuickMenu } from '@/features/customer-service/quick-menu';
 
 const CSPage = () => {
   return (
-    <Container>
+    <Container className="mb-20 py-6 md:py-10">
       <PageTitle current="고객센터" className="mb-6 hidden md:flex" />
 
       <QuickMenu />

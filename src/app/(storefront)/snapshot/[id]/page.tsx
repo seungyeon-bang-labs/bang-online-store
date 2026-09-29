@@ -15,7 +15,7 @@ async function SnapshotDetailPage({
   if (!snapshot) notFound();
 
   return (
-    <Container>
+    <Container className="mb-20 py-6 md:py-10">
       <PageTitle current="SNAPSHOT" className="hidden md:flex" />
 
       <article className="grid gap-8 md:grid-cols-[minmax(0,1fr)_360px]">

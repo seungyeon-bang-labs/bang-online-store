@@ -15,6 +15,7 @@ import { OptionChangeModal } from '@/features/cart/option-change-modal';
 import { CartSummary } from '@/features/cart/cart-summary';
 import { EmptyCart } from '@/features/cart/empty-cart';
 import { getProductDiscount } from '@/domains/discount';
+import { Container } from '@/shared/components/layout/container';
 
 type CartProduct = CartItem & {
   id: string;
@@ -134,7 +135,7 @@ const CartPage = () => {
   };
 
   return (
-    <div className="w-full max-w-6xl px-5 py-6 md:p-8 md:py-10">
+    <Container className="mb-20 py-6 pt-14 md:py-10 md:pt-10">
       <PageTitle
         current="장바구니"
         className="mb-6 hidden border-b-2 pb-4 md:mb-12 md:flex md:border-b-4 md:pb-5"
@@ -160,11 +161,7 @@ const CartPage = () => {
               <Checkbox
                 id="select-all"
                 checked={
-                  allSelected
-                    ? true
-                    : isIndeterminate
-                      ? 'indeterminate'
-                      : false
+                  allSelected ? true : isIndeterminate ? 'indeterminate' : false
                 }
                 onCheckedChange={checked =>
                   handleToggleSelectAll(Boolean(checked))
@@ -280,11 +277,13 @@ const CartPage = () => {
           <EmptyCart isEmpty={cartProducts.length === 0} />
         </div>
 
-        <div className={cartProducts.length === 0 ? 'hidden md:block' : undefined}>
+        <div
+          className={cartProducts.length === 0 ? 'hidden md:block' : undefined}
+        >
           <CartSummary selectedProducts={selectedProducts} />
         </div>
       </div>
-    </div>
+    </Container>
   );
 };
 

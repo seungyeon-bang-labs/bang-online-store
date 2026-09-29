@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import {
   getCategoryEmptyNotice,
   getCategoryHeader,
-} from '../src/app/(main)/category/[mainCategorySlug]/[subCategorySlug]/_lib/category-header.ts';
+} from '../src/app/(storefront)/category/[mainCategorySlug]/[subCategorySlug]/_lib/category-header.ts';
 
 const categories = [
   { name: 'OUTER', slug: 'outer' },

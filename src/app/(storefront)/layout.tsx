@@ -1,5 +1,4 @@
 import { ReactNode, Suspense } from 'react';
-import { Metadata } from 'next';
 import { currentUserRepository } from '@/domains/member';
 import {
   CartAwareHeader,
@@ -7,19 +6,15 @@ import {
 } from '@/features/cart/cart-header';
 import { SiteLayout } from '@/shared/components/layout/site-layout';
 
-export const metadata: Metadata = {
-  title: 'Bang Online Store',
-  description: '남성복 전문 온라인 쇼핑몰',
-};
-
-interface LayoutProps {
+interface StorefrontRouteLayoutProps {
   children: ReactNode;
   search: ReactNode;
   category: ReactNode;
 }
 
-async function Layout({ children, search, category }: LayoutProps) {
+async function StorefrontRouteLayout({ children, search, category }: StorefrontRouteLayoutProps) {
   const user = await currentUserRepository.findCurrent();
+
   return (
     <SiteLayout
       search={search}
@@ -37,9 +32,14 @@ async function Layout({ children, search, category }: LayoutProps) {
         />
       }
     >
-      {children}
+      <main
+        id="main-content"
+        className="flex w-full flex-1 flex-col pt-(--site-header-height)"
+      >
+        {children}
+      </main>
     </SiteLayout>
   );
 }
 
-export default Layout;
+export default StorefrontRouteLayout;

@@ -177,7 +177,7 @@ async function NewPage({ searchParams }: NewPageProps) {
 
   return (
     <div className="bg-gray-50 w-full flex justify-center">
-      <Container className="pt-28 md:pt-10">
+      <Container className="mb-20 py-6 pt-28 md:py-10 md:pt-10">
         <PageTitle current="NEW" className="mb-5 hidden md:flex" />
 
         <EventBanner
