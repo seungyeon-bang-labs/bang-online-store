@@ -12,6 +12,7 @@ import {
   MypageFormFooter,
   MypageFormLabel,
   MypageFormUnavailable,
+  MypagePageLayout,
 } from '@/features/mypage/common';
 import {
   MYPAGE_ACTION_CLASS_NAME,
@@ -138,7 +139,7 @@ export function MypageReviewForm({
   }
 
   return (
-    <div className="-mt-5 md:mt-0">
+    <MypagePageLayout mobileSpacing="flush">
       <MypageFormCard
         title={copy.title}
         mobileHeader="hide"
@@ -222,6 +223,6 @@ export function MypageReviewForm({
         </>
       )}
       </MypageFormCard>
-    </div>
+    </MypagePageLayout>
   );
 }

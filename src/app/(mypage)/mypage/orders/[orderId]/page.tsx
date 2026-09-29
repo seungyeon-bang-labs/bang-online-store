@@ -32,7 +32,7 @@ async function OrderDetailPage({ params }: OrderDetailPageProps) {
   const { order, payment, pointBenefits } = orderDetailViewModel;
 
   return (
-    <MypagePageLayout className="-mt-5 md:mt-0">
+    <MypagePageLayout mobileSpacing="flush">
       <MypagePageHeader title="주문 상세" />
       <div className="space-y-4">
         <MypageOrderDetailHeader order={order} />

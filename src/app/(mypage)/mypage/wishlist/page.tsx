@@ -30,7 +30,7 @@ async function WishlistPage({ searchParams }: WishlistPageProps) {
   const hasWishlistProducts = wishlistProducts.length > 0;
 
   return (
-    <MypagePageLayout className="-mt-5 md:mt-0" fill={!hasWishlistProducts}>
+    <MypagePageLayout mobileSpacing="flush" fill={!hasWishlistProducts}>
       <MypagePageHeader title="관심 상품" />
       {hasWishlistProducts ? (
         <WishlistProductGrid items={wishlistProducts} />

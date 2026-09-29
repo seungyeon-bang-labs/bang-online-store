@@ -15,7 +15,7 @@ function Layout({ children }: LayoutProps) {
             <LogoWithIcon />
           </Link>
         </header>
-        {children}
+        <main>{children}</main>
       </div>
     </div>
   );

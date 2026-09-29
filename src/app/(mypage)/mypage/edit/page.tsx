@@ -14,7 +14,7 @@ async function EditProfilePage() {
   const user = await currentUserRepository.findCurrent();
 
   return (
-    <MypagePageLayout className="-mt-5 md:mt-0">
+    <MypagePageLayout mobileSpacing="flush">
       <MypagePageHeader title="회원 정보 수정" />
       {user ? (
         <MypageProfileForm profile={toMemberProfileViewModel(user)} />

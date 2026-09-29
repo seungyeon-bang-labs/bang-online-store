@@ -23,7 +23,7 @@ async function OrderReceiptPage({ params }: OrderReceiptPageProps) {
   if (!receiptDocumentList) notFound();
 
   return (
-    <MypagePageLayout className="-mt-5 md:mt-0">
+    <MypagePageLayout mobileSpacing="flush">
       <MypagePageHeader title="영수증 조회" />
       <MypageOrderReceiptDocumentList receiptDocumentList={receiptDocumentList} />
     </MypagePageLayout>

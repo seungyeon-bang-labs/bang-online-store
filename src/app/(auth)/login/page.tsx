@@ -5,7 +5,7 @@ import { AccountRecoveryLinks } from '@/features/auth/account-recovery-links';
 
 function Page() {
   return (
-    <main className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-3">
         <LoginForm />
         <AccountRecoveryLinks />
@@ -17,7 +17,7 @@ function Page() {
           회원가입
         </ButtonLink>
       </div>
-    </main>
+    </div>
   );
 }
 

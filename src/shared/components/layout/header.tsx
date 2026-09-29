@@ -12,10 +12,7 @@ import {
 } from '@/shared/lib/navigation';
 import { useCloseOverlayRoute } from '@/shared/hooks/use-close-overlay-route';
 import { useOverlayRoute } from '@/shared/components/layout/overlay-route-context';
-import {
-  CartItemCountBadge,
-  getCartAriaLabel,
-} from './cart-item-count-badge';
+import { CartItemCountBadge, getCartAriaLabel } from './cart-item-count-badge';
 
 interface HeaderProps {
   mobileContent?: ReactNode;
@@ -41,14 +38,21 @@ export function Header({ mobileContent, cartItemCount = 0 }: HeaderProps) {
                 <ButtonLink
                   key={item.href}
                   href={item.href}
-                  aria-label={item.href === '/cart' ? getCartAriaLabel(cartItemCount) : undefined}
+                  aria-label={
+                    item.href === '/cart'
+                      ? getCartAriaLabel(cartItemCount)
+                      : undefined
+                  }
                   variant="ghost"
                   size="sm"
                   className="px-2 text-sm text-gray-500 hover:text-black"
                 >
                   {item.name}
                   {item.href === '/cart' ? (
-                    <CartItemCountBadge count={cartItemCount} className="ml-0.5" />
+                    <CartItemCountBadge
+                      count={cartItemCount}
+                      className="ml-0.5"
+                    />
                   ) : null}
                 </ButtonLink>
               ))}
@@ -116,8 +120,8 @@ export function Header({ mobileContent, cartItemCount = 0 }: HeaderProps) {
             size="icon-md"
             className="mr-2"
           >
-            <span className="relative inline-flex size-[22px]" aria-hidden="true">
-              <ShoppingCart className="size-[22px]" />
+            <span className="relative inline-flex size-5.5" aria-hidden="true">
+              <ShoppingCart className="size-5.5" />
               <CartItemCountBadge
                 count={cartItemCount}
                 className="pointer-events-none absolute -right-2 -top-2"
