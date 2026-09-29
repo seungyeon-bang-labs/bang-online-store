@@ -1,6 +1,6 @@
 import { EventBanner } from '@/features/event/event-banner';
 import { eventRepository, toEventBannerViewModels } from '@/domains/event';
-import { CategoriesSlider } from '@/features/product/categories-slider';
+import { CategoriesGrid } from '@/features/product/categories-grid';
 import { NewProductsSlider } from '@/features/product/new-products-slider';
 import { Container } from '@/shared/components/layout/container';
 import { SaleProductsSlider } from '@/features/product/sale-products-slider';
@@ -11,14 +11,14 @@ async function Home() {
   const eventBannerViewModels = toEventBannerViewModels(events);
 
   return (
-    <Container className="pt-14 md:pt-10">
+    <Container className="mb-20 py-6 pt-14 md:py-10 md:pt-10">
       <EventBanner
         eventBannerViewModels={eventBannerViewModels}
         className="mb-10 md:mb-16"
       />
 
       <section className="flex flex-col gap-12 md:gap-20">
-        <CategoriesSlider />
+        <CategoriesGrid />
         <NewProductsSlider />
         <SaleProductsSlider />
         <MainProductSlider />
