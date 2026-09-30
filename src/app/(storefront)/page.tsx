@@ -1,13 +1,24 @@
 import { EventBanner } from '@/features/event/event-banner';
 import { eventRepository, toEventBannerViewModels } from '@/domains/event';
-import { CategoriesGrid } from '@/features/product/categories-grid';
+import {
+  categoryRepository,
+  createCategoryGroups,
+  toCategoryGroupViewModels,
+} from '@/domains/category';
+import { CategoryShortcutGrid } from '@/features/category/category-shortcut-grid';
 import { NewProductsSlider } from '@/features/product/new-products-slider';
 import { Container } from '@/shared/components/layout/container';
 import { SaleProductsSlider } from '@/features/product/sale-products-slider';
 import { MainProductSlider } from '@/features/product/main-product-slider';
 
-async function Home() {
-  const events = await eventRepository.findMany();
+async function HomePage() {
+  const [events, categories] = await Promise.all([
+    eventRepository.findMany(),
+    categoryRepository.findMany(),
+  ]);
+  const categoryGroupViewModels = toCategoryGroupViewModels(
+    createCategoryGroups(categories),
+  );
   const eventBannerViewModels = toEventBannerViewModels(events);
 
   return (
@@ -18,7 +29,7 @@ async function Home() {
       />
 
       <section className="flex flex-col gap-12 md:gap-20">
-        <CategoriesGrid />
+        <CategoryShortcutGrid categoryGroupViewModels={categoryGroupViewModels} />
         <NewProductsSlider />
         <SaleProductsSlider />
         <MainProductSlider />
@@ -27,4 +38,4 @@ async function Home() {
   );
 }
 
-export default Home;
+export default HomePage;

@@ -1,7 +1,14 @@
 import { Container } from '@/shared/components/layout/container';
 import { PageTitle } from '@/shared/components/common/page-title';
+import {
+  categoryRepository,
+  createCategoryGroups,
+  findCategoryGroupBySlug,
+  hasSubCategorySlug,
+  toCategoryGroupViewModel,
+  toCategoryGroupViewModels,
+} from '@/domains/category';
 import { toProductCardViewModel } from '@/domains/product';
-import { CATEGORIES } from '@/shared/lib/navigation';
 import { notFound } from 'next/navigation';
 import { ProductItem } from '@/features/product/product-item';
 import { ButtonLink } from '@/shared/components/ui/button';
@@ -31,12 +38,19 @@ const CategoryProductPage = async ({ params, searchParams }: PageProps) => {
 
   const activeSortValue = search.sort || 'popular';
 
-  // 1. 데이터 매칭 (CATEGORIES에서 현재 카테고리 정보 찾기)
-  const currentCategory = CATEGORIES.find(
-    category => category.slug === mainCategorySlug,
+  const categories = await categoryRepository.findMany();
+  const categoryGroups = createCategoryGroups(categories);
+  const currentCategory = findCategoryGroupBySlug(
+    categoryGroups,
+    mainCategorySlug,
   );
 
-  if (!currentCategory) notFound();
+  if (!currentCategory || !hasSubCategorySlug(currentCategory, subCategorySlug)) {
+    notFound();
+  }
+
+  const categoryGroupViewModels = toCategoryGroupViewModels(categoryGroups);
+  const currentCategoryViewModel = toCategoryGroupViewModel(currentCategory);
 
   const filteredProducts = await getCategoryProducts(
     activeSortValue,
@@ -45,7 +59,10 @@ const CategoryProductPage = async ({ params, searchParams }: PageProps) => {
     subCategorySlug ?? 'all',
   );
 
-  const categoryHeader = getCategoryHeader(CATEGORIES, currentCategory);
+  const categoryHeader = getCategoryHeader(
+    categoryGroupViewModels,
+    currentCategoryViewModel,
+  );
   const emptyNotice = getCategoryEmptyNotice();
 
   return (
@@ -69,7 +86,7 @@ const CategoryProductPage = async ({ params, searchParams }: PageProps) => {
         >
           ALL
         </ButtonLink>
-        {currentCategory.children.map(sub => (
+        {currentCategoryViewModel.subCategories.map(sub => (
           <ButtonLink
             key={sub.slug}
             href={`/category/${mainCategorySlug}/${sub.slug}`}

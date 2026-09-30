@@ -1,27 +1,6 @@
-export interface MainMobileHeaderCategory {
-  name: string;
-  slug: string;
-}
-
-export interface MainMobileHeaderSibling {
-  label: string;
-  href: string;
-}
-
-export type MainMobileHeaderConfig =
-  | { kind: 'brand' }
-  | {
-      kind: 'title';
-      title: string;
-      backHref?: string;
-      action?: 'cart';
-    }
-  | {
-      kind: 'category';
-      title: string;
-      siblings: MainMobileHeaderSibling[];
-      action: 'cart';
-    };
+import type { CategoryGroupViewModel } from '@/domains/category';
+import type { MainMobileHeaderConfig } from '@/shared/components/layout/main-mobile-header.types';
+import { resolveCartReturnHref } from '@/shared/lib/cart-routes';
 
 const TITLE_ROUTES: Record<string, string> = {
   '/new': 'NEW',
@@ -34,25 +13,22 @@ const TITLE_ROUTES: Record<string, string> = {
   '/cs': '고객센터',
 };
 
-const CART_TITLE_ROUTES = new Set([
-  '/new',
-  '/best',
-  '/sale',
-  '/search',
-]);
-
+const CART_TITLE_ROUTES = new Set(['/new', '/best', '/sale', '/search']);
 const BRAND_HEADER_ROUTES = new Set(['/new', '/best', '/sale', '/event']);
 
 function getTitleConfig(
   title: string,
-  options?: Pick<Extract<MainMobileHeaderConfig, { kind: 'title' }>, 'backHref' | 'action'>,
+  options?: Pick<
+    Extract<MainMobileHeaderConfig, { kind: 'title' }>,
+    'backHref' | 'action'
+  >,
 ): MainMobileHeaderConfig {
   return { kind: 'title', title, ...options };
 }
 
-export function getMainMobileHeaderConfig(
+export function getStorefrontMobileHeaderConfig(
   pathname: string,
-  categories: readonly MainMobileHeaderCategory[],
+  categoryGroupViewModels: readonly CategoryGroupViewModel[],
   cartReturnTo?: string | null,
 ): MainMobileHeaderConfig {
   if (pathname === '/' || BRAND_HEADER_ROUTES.has(pathname)) {
@@ -75,7 +51,7 @@ export function getMainMobileHeaderConfig(
 
   const categoryMatch = pathname.match(/^\/category\/([^/]+)\/[^/]+$/);
   if (categoryMatch) {
-    const currentCategory = categories.find(
+    const currentCategory = categoryGroupViewModels.find(
       category => category.slug === categoryMatch[1],
     );
 
@@ -84,7 +60,7 @@ export function getMainMobileHeaderConfig(
     return {
       kind: 'category',
       title: currentCategory.name,
-      siblings: categories.map(category => ({
+      siblings: categoryGroupViewModels.map(category => ({
         label: category.name,
         href: `/category/${category.slug}/all`,
       })),
@@ -126,4 +102,3 @@ export function getMainMobileHeaderConfig(
 
   return { kind: 'brand' };
 }
-import { resolveCartReturnHref } from '@/shared/lib/cart-routes';

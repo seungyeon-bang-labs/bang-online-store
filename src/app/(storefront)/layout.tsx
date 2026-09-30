@@ -1,9 +1,12 @@
 import { ReactNode, Suspense } from 'react';
-import { currentUserRepository } from '@/domains/member';
 import {
-  CartAwareHeader,
-  CartAwareMainMobileHeader,
-} from '@/features/cart/cart-header';
+  categoryRepository,
+  createCategoryGroups,
+  toCategoryGroupViewModels,
+} from '@/domains/category';
+import { currentUserRepository } from '@/domains/member';
+import { CartAwareHeader } from '@/features/cart/cart-header';
+import { StorefrontMobileHeader } from '@/features/storefront/storefront-mobile-header';
 import { SiteLayout } from '@/shared/components/layout/site-layout';
 
 interface StorefrontRouteLayoutProps {
@@ -13,7 +16,13 @@ interface StorefrontRouteLayoutProps {
 }
 
 async function StorefrontRouteLayout({ children, search, category }: StorefrontRouteLayoutProps) {
-  const user = await currentUserRepository.findCurrent();
+  const [user, categories] = await Promise.all([
+    currentUserRepository.findCurrent(),
+    categoryRepository.findMany(),
+  ]);
+  const categoryGroupViewModels = toCategoryGroupViewModels(
+    createCategoryGroups(categories),
+  );
 
   return (
     <SiteLayout
@@ -26,7 +35,9 @@ async function StorefrontRouteLayout({ children, search, category }: StorefrontR
             <Suspense
               fallback={<div aria-hidden="true" className="h-14 w-full md:hidden" />}
             >
-              <CartAwareMainMobileHeader />
+              <StorefrontMobileHeader
+                categoryGroupViewModels={categoryGroupViewModels}
+              />
             </Suspense>
           }
         />
