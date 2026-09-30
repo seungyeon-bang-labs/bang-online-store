@@ -1,13 +1,13 @@
-export type ProductOuterDTO = 'coat' | 'jacket' | 'cardigan' | 'padding';
-export type ProductTopDTO = 't-shirt' | 'shirt' | 'knit' | 'blouse';
-export type ProductBottomDTO = 'denim' | 'slacks' | 'skirt' | 'shorts';
-export type ProductAccShoesDTO = 'bag' | 'shoes' | 'hat' | 'jewelry';
+export type ProductMainCategorySlug =
+  | 'outer'
+  | 'top'
+  | 'bottom'
+  | 'acc-shoes';
 
-export type ProductCategoryDTO =
-  | { parent: 'outer'; current: ProductOuterDTO }
-  | { parent: 'top'; current: ProductTopDTO }
-  | { parent: 'bottom'; current: ProductBottomDTO }
-  | { parent: 'acc-shoes'; current: ProductAccShoesDTO };
+export interface ProductCategoryDTO {
+  parent: ProductMainCategorySlug;
+  current: string;
+}
 
 export type ProductSizeOptionDTO =
   | 'XS'
@@ -63,4 +63,3 @@ export type Product = ProductDTO;
 export type Variant = ProductVariantDTO;
 export type ProductStats = ProductStatsDTO;
 export type ColorOption = ProductColorDTO;
-
