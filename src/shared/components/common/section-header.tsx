@@ -1,20 +1,28 @@
 import Link from 'next/link';
-import { MYPAGE_TYPOGRAPHY } from '../common/styles';
+import { cn } from '@/shared/lib/utils';
 
-interface MypageSectionHeaderProps {
+interface SectionHeaderProps {
   title: string;
   viewAllHref?: string;
+  titleId?: string;
+  className?: string;
 }
 
-export function MypageSectionHeader({
+export function SectionHeader({
   title,
   viewAllHref,
-}: MypageSectionHeaderProps) {
+  titleId,
+  className,
+}: SectionHeaderProps) {
   return (
-    <div className="flex items-end justify-between gap-3">
-      <div>
-        <h2 className={MYPAGE_TYPOGRAPHY.sectionTitle}>{title}</h2>
-      </div>
+    <div className={cn('flex items-center justify-between gap-3', className)}>
+      <h2
+        id={titleId}
+        className="text-lg leading-6 font-bold tracking-tight text-black md:text-xl md:leading-7 md:font-black"
+      >
+        {title}
+      </h2>
+
       {viewAllHref && (
         <Link
           href={viewAllHref}
