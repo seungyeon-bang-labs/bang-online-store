@@ -8,7 +8,7 @@ import {
 import Link from 'next/link';
 import { Fragment } from 'react';
 import { MoreHorizontal } from 'lucide-react';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/shared/components/ui/button';
 import { useCartStore } from '@/domains/cart';
@@ -23,6 +23,7 @@ import {
   getMypageOrderReceiptHref,
   getMypageReviewWriteHref,
 } from '@/shared/lib/mypage-routes';
+import { getCartHref } from '@/shared/lib/cart-routes';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,6 +52,7 @@ export function MypageOrderItemActions({
   repurchaseItem,
 }: MypageOrderItemActionsProps) {
   const addToCart = useCartStore(state => state.addToCart);
+  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const search = searchParams.toString();
@@ -66,6 +68,7 @@ export function MypageOrderItemActions({
       toast.success('상품을 장바구니에 다시 담았습니다.', {
         position: 'bottom-center',
       });
+      router.push(getCartHref(returnTo));
       return;
     }
 
@@ -151,6 +154,9 @@ function getOrderItemActionHref(
   returnTo: string,
   action: OrderItemActionViewModel,
 ): string | null {
+  if (action.type === 'order') {
+    return `/mypage/orders/${orderId}`;
+  }
   if (action.type === 'receipt' || action.type === 'refund') {
     return getMypageOrderReceiptHref(orderId);
   }

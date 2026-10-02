@@ -2,6 +2,7 @@ export * from './home.service';
 export * from './home.view-model';
 export * from './order-detail.mapper';
 export * from './order-detail.service';
+export * from './order-list.service';
 export * from './order-detail.view-model';
 export * from './order-receipt.domain';
 export * from './order-receipt.mapper';

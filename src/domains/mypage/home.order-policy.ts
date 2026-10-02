@@ -72,38 +72,23 @@ function createRepurchaseAction(
   };
 }
 
-function arrangeActions(
-  primaryCandidates: Array<MypageHomeOrderAction | null>,
-  secondaryCandidates: Array<MypageHomeOrderAction | null>,
+function placeActions(
+  primary: MypageHomeOrderAction | null,
+  order: MypageHomeOrderAction | null,
   moreCandidates: Array<MypageHomeOrderAction | null>,
 ): MypageHomeOrderActions {
-  const usedTypes = new Set<MypageHomeOrderAction['type']>();
-
-  const takeFirst = (
-    candidates: Array<MypageHomeOrderAction | null>,
-  ): MypageHomeOrderAction | null => {
-    const action = candidates.find(
-      candidate => candidate && !usedTypes.has(candidate.type),
-    );
-    if (!action) return null;
-    usedTypes.add(action.type);
-    return action;
-  };
-
-  const primary = takeFirst(primaryCandidates);
-  const secondary = takeFirst(secondaryCandidates);
-  const more = moreCandidates.filter(
-    (action): action is MypageHomeOrderAction => {
-      if (!action || usedTypes.has(action.type)) return false;
-      usedTypes.add(action.type);
-      return true;
-    },
+  const usedTypes = new Set(
+    [primary, order].flatMap(action => (action ? [action.type] : [])),
   );
 
   return {
     primary,
-    secondary,
-    more,
+    secondary: order,
+    more: moreCandidates.filter((action): action is MypageHomeOrderAction => {
+      if (!action || usedTypes.has(action.type)) return false;
+      usedTypes.add(action.type);
+      return true;
+    }),
   };
 }
 
@@ -116,29 +101,14 @@ export function buildMypageHomeOrderActions({
   repurchaseItem,
   links,
 }: MypageHomeOrderActionPolicyInput): MypageHomeOrderActions {
-  const payment = createNavigationAction(
-    'payment',
-    '입금 정보',
-    links.payment,
-  );
   const cancel = canCancel
     ? createNavigationAction('cancel', '주문 취소', links.cancel)
     : null;
   const order = createNavigationAction('order', '주문상세', links.order);
-  const tracking = createNavigationAction(
-    'tracking',
-    '배송조회',
-    links.tracking,
-  );
   const reviewWrite = createNavigationAction(
     'review',
     '리뷰 쓰기',
     links.reviewWrite,
-  );
-  const reviewEdit = createNavigationAction(
-    'review',
-    '리뷰 수정',
-    links.reviewEdit,
   );
   const claim = canClaim
     ? createNavigationAction('claim', '교환·반품', links.claim)
@@ -150,68 +120,35 @@ export function buildMypageHomeOrderActions({
     '영수증',
     links.receipt,
   );
-  const refund = createNavigationAction(
-    'refund',
-    '환불 상세',
-    links.refund,
-  );
   const inquiry = createNavigationAction(
     'inquiry',
     '1:1 문의',
     links.inquiry,
   );
 
+  if (itemCount > 1) {
+    return placeActions(inquiry, order, status === 'pending_payment' ? [] : [receipt]);
+  }
+
   if (status === 'pending_payment') {
-    return arrangeActions(
-      [payment, order, inquiry],
-      [cancel, order, inquiry],
-      [order, inquiry],
-    );
+    return placeActions(cancel, order, [inquiry]);
   }
 
   if (status === 'payment_completed') {
-    return arrangeActions(
-      [order, inquiry],
-      [cancel, inquiry, receipt],
-      [receipt, inquiry],
-    );
+    return placeActions(cancel, order, [inquiry, receipt]);
   }
 
   if (status === 'shipping') {
-    return arrangeActions(
-      [tracking, order, inquiry],
-      [order, inquiry, receipt],
-      [receipt, inquiry],
-    );
+    return placeActions(inquiry, order, [receipt]);
   }
 
   if (status === 'delivered') {
     if (reviewState === 'writable') {
-      return arrangeActions(
-        [reviewWrite, claim, repurchase, order, inquiry],
-        [claim, repurchase, order, inquiry],
-        [repurchase, order, receipt, inquiry],
-      );
+      return placeActions(reviewWrite, order, [inquiry, receipt, claim, repurchase]);
     }
 
-    if (reviewState === 'written') {
-      return arrangeActions(
-        [reviewEdit, repurchase, order, inquiry],
-        [repurchase, order, claim, inquiry],
-        [claim, order, receipt, inquiry],
-      );
-    }
-
-    return arrangeActions(
-      [claim, repurchase, order, inquiry],
-      [repurchase, order, inquiry, receipt],
-      [order, receipt, inquiry],
-    );
+    return placeActions(repurchase ?? inquiry, order, [inquiry, receipt, claim]);
   }
 
-  return arrangeActions(
-    [refund, repurchase, order, inquiry],
-    [repurchase, order, inquiry],
-    [order, inquiry],
-  );
+  return placeActions(repurchase ?? inquiry, order, [inquiry, receipt]);
 }

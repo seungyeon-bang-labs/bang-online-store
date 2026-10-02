@@ -7,6 +7,7 @@ import type {
 } from './dto';
 
 export type OrderItemActionType =
+  | 'order'
   | 'payment'
   | 'cancel'
   | 'inquiry'
