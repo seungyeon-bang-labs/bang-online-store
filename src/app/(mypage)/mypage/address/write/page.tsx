@@ -5,7 +5,7 @@ import { createMypageAddressAction } from '../actions';
 
 function MypageAddressWritePage() {
   return (
-    <MypagePageLayout className="-mt-5 md:mt-0">
+    <MypagePageLayout mobileSpacing="flush">
       <MypageAddressForm
         mode="create"
         returnHref={getMypageAddressHref()}

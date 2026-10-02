@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import Link from 'next/link';
 import {
   Carousel,
   CarouselContent,
@@ -8,6 +7,7 @@ import {
   CarouselPrevious,
 } from '@/shared/components/ui/carousel';
 import { cn } from '@/shared/lib/utils';
+import { SectionHeader } from './section-header';
 
 interface SliderProps {
   children: React.ReactNode[];
@@ -56,14 +56,13 @@ export function Slider({
 
   return (
     <div>
-      <div className="flex items-center justify-between">
-        {title && <h2 className="mb-4 text-2xl font-bold">{title}</h2>}
-        {href && (
-          <Link href={href} className="text-sm text-gray-500 hover:underline">
-            전체보기
-          </Link>
-        )}
-      </div>
+      {title && (
+        <SectionHeader
+          title={title}
+          viewAllHref={href}
+          className="mb-4"
+        />
+      )}
       <Carousel
         opts={{
           align: 'start',

@@ -4,7 +4,7 @@ import { CreditCard } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useCartStore } from '@/domains/cart';
-import { createDemoOrderFromCart } from '@/app/(main)/cart/actions';
+import { createDemoOrderFromCart } from '@/app/(storefront)/cart/actions';
 
 interface SelectedProduct {
   id: string;
@@ -77,7 +77,7 @@ export function CartSummary({ selectedProducts }: CartSummaryProps) {
 
   return (
     <>
-      <div className="fixed inset-x-0 bottom-14 z-30 border-t border-gray-200 bg-white p-3 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] md:hidden">
+      <div className="fixed inset-x-0 bottom-[var(--mobile-bottom-nav-height)] z-30 border-t border-gray-200 bg-white p-3 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] md:hidden">
         <div className="mx-auto flex max-w-md items-center gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-xs font-medium text-gray-500">총 결제 금액</p>

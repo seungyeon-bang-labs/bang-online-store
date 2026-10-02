@@ -1,7 +1,7 @@
 import type { ActivityProductViewModel } from '@/domains/activity';
+import { SectionHeader } from '@/shared/components/common/section-header';
 import { MypageEmptyState } from '../common';
 import { MypageHomeProductPreview } from './product-preview';
-import { MypageSectionHeader } from './section-header';
 
 interface MypageHomeWishlistProps {
   items: ActivityProductViewModel[];
@@ -12,7 +12,7 @@ export function MypageHomeWishlist({ items }: MypageHomeWishlistProps) {
 
   return (
     <section className="space-y-3 md:space-y-5">
-      <MypageSectionHeader
+      <SectionHeader
         title="관심 상품"
         viewAllHref="/mypage/wishlist"
       />

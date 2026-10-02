@@ -2,16 +2,13 @@
 
 import Link from 'next/link';
 import { ChevronLeft, ShoppingCart } from 'lucide-react';
-import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
-import { CATEGORIES } from '@/shared/lib/navigation';
-import { getCartHref } from '@/shared/lib/cart-routes';
 import { ButtonLink } from '@/shared/components/ui/button';
 import { CategorySwitcher } from '@/shared/components/common/category-switcher';
 import { MobileProductNavigation } from './mobile-product-navigation';
 import { MobileProductPageTabs } from './mobile-product-page-tabs';
 import { LogoWithIcon } from './logo';
-import { getMainMobileHeaderConfig } from './main-mobile-header-config';
+import type { MainMobileHeaderConfig } from './main-mobile-header.types';
 import {
   CartItemCountBadge,
   getCartAriaLabel,
@@ -131,26 +128,21 @@ function MobileProductHeader({
 
 interface MainMobileHeaderProps {
   cartItemCount?: number;
+  config: MainMobileHeaderConfig;
+  activeHref: string;
+  cartHref: string;
 }
 
 export function MainMobileHeader({
   cartItemCount = 0,
+  config,
+  activeHref,
+  cartHref,
 }: MainMobileHeaderProps) {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const search = searchParams.toString();
-  const currentHref = search ? `${pathname}?${search}` : pathname;
-  const cartHref = getCartHref(currentHref);
-  const config = getMainMobileHeaderConfig(
-    pathname,
-    CATEGORIES,
-    searchParams.get('returnTo'),
-  );
-
   if (config.kind === 'brand') {
     return (
       <MobileProductHeader
-        activeHref={pathname}
+        activeHref={activeHref}
         cartHref={cartHref}
         cartItemCount={cartItemCount}
       />

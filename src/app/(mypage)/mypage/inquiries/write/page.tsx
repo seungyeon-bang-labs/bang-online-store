@@ -1,4 +1,5 @@
 import { MypageFormCard } from '@/features/mypage/common/form';
+import { MypagePageLayout } from '@/features/mypage/common';
 import { notFound } from 'next/navigation';
 import { currentUserRepository } from '@/domains/member';
 import { getInquiryWriteViewModel } from '@/domains/inquiry';
@@ -30,7 +31,7 @@ async function InquiryWritePage({ searchParams }: InquiryWritePageProps) {
   if (!inquiryWriteViewModel) notFound();
 
   return (
-    <div className="-mt-5 md:mt-0">
+    <MypagePageLayout mobileSpacing="flush">
       <MypageFormCard
         title="1:1 문의 작성"
         mobileHeader="hide"
@@ -48,7 +49,7 @@ async function InquiryWritePage({ searchParams }: InquiryWritePageProps) {
           onCreateInquiry={createMypageInquiryAction}
         />
       </MypageFormCard>
-    </div>
+    </MypagePageLayout>
   );
 }
 

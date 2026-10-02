@@ -15,6 +15,10 @@ export function NewProductsSlider() {
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
 
+  if (newProducts.length === 0) {
+    return null
+  }
+
   return (
     <HomeProductSlider
       title="신규 상품"

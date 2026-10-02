@@ -23,7 +23,7 @@ async function MypageAddressEditPage({ params }: MypageAddressEditPageProps) {
   if (!address) notFound();
 
   return (
-    <MypagePageLayout className="-mt-5 md:mt-0">
+    <MypagePageLayout mobileSpacing="flush">
       <MypageAddressForm
         mode="edit"
         initialAddress={toUserAddressFormViewModel(address)}

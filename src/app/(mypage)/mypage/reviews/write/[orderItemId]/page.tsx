@@ -1,6 +1,10 @@
 import { getReviewWritePageViewModel } from '@/domains/activity';
 import { currentUserRepository } from '@/domains/member';
-import { MypageFormCard, MypageFormUnavailable } from '@/features/mypage/common';
+import {
+  MypageFormCard,
+  MypageFormUnavailable,
+  MypagePageLayout,
+} from '@/features/mypage/common';
 import { MypageReviewForm } from '@/features/mypage/reviews';
 import {
   REVIEW_FORM_COPY,
@@ -42,7 +46,7 @@ async function ReviewWritePage({
       onCreateReview={createMypageReviewAction}
     />
   ) : (
-    <div className="-mt-5 md:mt-0">
+    <MypagePageLayout mobileSpacing="flush">
       <MypageFormCard
         title={REVIEW_FORM_COPY.create.title}
         mobileHeader="hide"
@@ -59,7 +63,7 @@ async function ReviewWritePage({
           }}
         />
       </MypageFormCard>
-    </div>
+    </MypagePageLayout>
   );
 }
 

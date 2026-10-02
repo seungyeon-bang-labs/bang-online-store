@@ -34,7 +34,7 @@ async function MyPageHome() {
   } = home;
 
   return (
-    <MypagePageLayout spacing="relaxed" className="-mt-5 md:mt-0">
+    <MypagePageLayout spacing="relaxed" mobileSpacing="flush">
       <MypageHomeSummary summary={summary} />
       <MypageHomeMenuGrid />
       <MypageHomeOrders statuses={orderStatuses} orders={recentOrders} />
