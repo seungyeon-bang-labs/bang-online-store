@@ -1,7 +1,9 @@
 import { formatKoreanDate, formatKoreanDateKey } from '@/shared/lib/format';
 import type { OrderDTO, OrderItemDTO } from '@/domains/order/dto';
-import type { Product } from '@/domains/product/product.dto';
-import { toProductCardViewModel } from '@/domains/product/product.presenter';
+import {
+  toProductCardViewModel,
+  type ProductModel,
+} from '@/domains/product';
 import type { ReviewDTO } from './dto';
 import {
   getReviewDeadlineDday,
@@ -19,7 +21,7 @@ import type {
 
 export function toActivityProductViewModel(
   row: { id: string; recordedAt: string },
-  product: Product,
+  product: ProductModel,
 ): ActivityProductViewModel {
   return {
     id: row.id,
@@ -32,7 +34,7 @@ export function toActivityProductViewModel(
 export function toWrittenReviewViewModel(
   review: ReviewDTO,
   item: OrderItemDTO,
-  product: Product,
+  product: ProductModel,
   now: Date,
 ): WrittenReviewViewModel {
   return {
@@ -54,7 +56,7 @@ export function toWrittenReviewViewModel(
 export function toAvailableReviewViewModel(
   item: OrderItemDTO,
   order: OrderDTO,
-  product: Product,
+  product: ProductModel,
   now: Date,
 ): AvailableReviewViewModel {
   if (!order.delivered_at) {
@@ -79,7 +81,7 @@ export function toAvailableReviewViewModel(
 export function toReviewFormPageViewModel(
   mode: ReviewFormMode,
   item: OrderItemDTO,
-  product: Product,
+  product: ProductModel,
   review?: ReviewDTO,
 ): ReviewFormPageViewModel {
   return {

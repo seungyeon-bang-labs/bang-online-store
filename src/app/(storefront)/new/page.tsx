@@ -1,7 +1,7 @@
 import { EventBanner } from '@/features/event/event-banner';
 import { PageTitle } from '@/shared/components/common/page-title';
 import { eventRepository, toEventBannerViewModels } from '@/domains/event';
-import { products } from '@/domains/product';
+import { productService, toProductCardViewModel, type ProductModel } from '@/domains/product';
 import { NEW_TABS } from '@/shared/lib/navigation';
 import { Tabs } from '@/shared/components/common/tabs';
 import { ProductsSection } from '@/features/product/products-section';
@@ -51,7 +51,7 @@ const getSectionTitle = (type: ProductSectionType) => {
 
 const getProductSectionMeta = (
   createdAt: Date,
-  restockedAt: Date | undefined,
+  restockedAt: Date | null | undefined,
   period: string,
 ): { type: ProductSectionType; date: Date } | null => {
   const isNewArrival = isWithinLast30Days(createdAt);
@@ -122,6 +122,7 @@ async function NewPage({ searchParams }: NewPageProps) {
   const currentPeriod = period || 'now';
 
   const events = await eventRepository.findMany();
+  const products = await productService.findMany();
   const promotionEvents = events.filter(
     event => event.kind === 'promotion',
   );
@@ -160,7 +161,7 @@ async function NewPage({ searchParams }: NewPageProps) {
         type: ProductSectionType;
         dateKey: string;
         dateValue: Date;
-        items: typeof products;
+        items: ProductModel[];
       }
     >,
   );
@@ -202,7 +203,7 @@ async function NewPage({ searchParams }: NewPageProps) {
             <ProductsSection
               key={`${section.type}-${section.dateKey}`}
               title={`${section.dateKey} ${getSectionTitle(section.type)}`}
-              items={section.items}
+              productCardViewModels={section.items.map(toProductCardViewModel)}
             />
           ))}
         </div>

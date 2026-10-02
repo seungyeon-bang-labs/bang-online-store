@@ -1,29 +1,30 @@
 'use client';
 
 import { type ReactNode, useState } from 'react';
-import { toProductCardViewModel } from '@/domains/product';
 import { ProductItem } from '@/features/product/product-item';
-import { type Product } from '@/domains/product';
+import type { ProductCardViewModel } from '@/domains/product';
 import { Button } from '@/shared/components/ui/button';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
 interface ProductsSectionProps {
   title: ReactNode;
-  items: Product[];
+  productCardViewModels: readonly ProductCardViewModel[];
 }
 
-export function ProductsSection({ title, items }: ProductsSectionProps) {
+export function ProductsSection({ title, productCardViewModels }: ProductsSectionProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const LIMIT = 5;
-  const hasMore = items.length > LIMIT;
-  const visibleItems = isExpanded ? items : items.slice(0, LIMIT);
+  const hasMore = productCardViewModels.length > LIMIT;
+  const visibleItems = isExpanded
+    ? productCardViewModels
+    : productCardViewModels.slice(0, LIMIT);
 
   return (
     <section className="rounded-md bg-white px-4 py-5 shadow-sm md:px-8 md:py-6">
       <h2 className="mb-5 flex items-center gap-3 border-l-4 border-black pl-3 text-base font-bold md:mb-8 md:text-lg">
         {title}
         <span className="ml-auto shrink-0 whitespace-nowrap text-xs font-normal text-gray-400 md:text-sm">
-          총 {items.length}개 제품
+          총 {productCardViewModels.length}개 제품
         </span>
       </h2>
 
@@ -31,7 +32,7 @@ export function ProductsSection({ title, items }: ProductsSectionProps) {
         {visibleItems.map(product => (
           <ProductItem
             key={product.id}
-            product={toProductCardViewModel(product)}
+            product={product}
           />
         ))}
       </div>
@@ -45,7 +46,7 @@ export function ProductsSection({ title, items }: ProductsSectionProps) {
           >
             {isExpanded
               ? '간략히 보기'
-              : `${items.length - LIMIT}개 제품 더보기`}
+              : `${productCardViewModels.length - LIMIT}개 제품 더보기`}
             {isExpanded ? <ChevronUp /> : <ChevronDown />}
           </Button>
         </div>

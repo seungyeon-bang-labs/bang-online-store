@@ -2,7 +2,7 @@ import { PageTitle } from '@/shared/components/common/page-title';
 import { EventBanner } from '@/features/event/event-banner';
 import { eventRepository, toEventBannerViewModels } from '@/domains/event';
 import { DISCOUNTS } from '@/domains/discount';
-import { products } from '@/domains/product';
+import { productService, toProductCardViewModel } from '@/domains/product';
 import { ProductsSection } from '@/features/product/products-section';
 import { Container } from '@/shared/components/layout/container';
 
@@ -24,6 +24,7 @@ function getRemainingLabel(endDate: Date): string {
 
 async function SalePage() {
   const events = await eventRepository.findMany();
+  const products = await productService.findMany();
   const saleEvents = events.filter(event => event.kind === 'sale');
   const eventBannerViewModels = toEventBannerViewModels(saleEvents);
   const activeDiscounts = DISCOUNTS.filter(discount => discount.isActive).sort(
@@ -69,7 +70,7 @@ async function SalePage() {
                   </span>
                 </span>
               }
-              items={section.items}
+              productCardViewModels={section.items.map(toProductCardViewModel)}
             />
           ))}
         </div>

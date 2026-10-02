@@ -39,3 +39,30 @@ export function hasSubCategorySlug(
     )
   );
 }
+
+export function findCategoryIdsBySlugs(
+  categories: readonly CategoryDTO[],
+  mainCategorySlug: string,
+  subCategorySlug: string,
+): string[] {
+  const mainCategory = categories.find(
+    category =>
+      category.parent_id === null && category.slug === mainCategorySlug,
+  );
+
+  if (!mainCategory) return [];
+
+  const subCategories = categories.filter(
+    category => category.parent_id === mainCategory.id,
+  );
+
+  if (subCategorySlug === 'all') {
+    return subCategories.map(category => category.id);
+  }
+
+  const subCategory = subCategories.find(
+    category => category.slug === subCategorySlug,
+  );
+
+  return subCategory ? [subCategory.id] : [];
+}

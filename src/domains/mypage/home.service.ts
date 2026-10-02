@@ -28,7 +28,7 @@ import {
   toOrderListItemViewModel,
   toOrderStatusViewModel,
 } from '@/domains/order';
-import { productRepository } from '@/domains/product';
+import { productService } from '@/domains/product';
 import { requireRelation } from '@/shared/lib/data-integrity';
 import {
   MYPAGE_HOME_ORDER_STATUS_SUMMARY_STATUSES,
@@ -72,7 +72,7 @@ export async function getMypageHomeViewModel(
       Array.from(new Set(userCoupons.map(coupon => coupon.coupon_id))),
     ),
   ]);
-  const products = await productRepository.findByIds(
+  const products = await productService.findByIdsIncludingInactive(
     Array.from(
       new Set([
         ...orderItems.map(item => item.product_id),

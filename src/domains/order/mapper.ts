@@ -5,7 +5,7 @@ import {
   formatKoreanShortDateTime,
 } from '@/shared/lib/format';
 import type { StatusViewModel } from '@/shared/types/status';
-import { toProductCardViewModel, type Product } from '@/domains/product';
+import { toProductCardViewModel, type ProductModel } from '@/domains/product';
 import type {
   OrderDTO,
   OrderItemCancellationDTO,
@@ -127,7 +127,7 @@ interface OrderItemViewModelParts {
 function toOrderItemViewModelParts(
   order: OrderDTO,
   item: OrderItemDTO,
-  product: Product,
+  product: ProductModel,
   cancellation: OrderItemCancellationDTO | null,
 ): OrderItemViewModelParts {
   const orderedVariant = product.variants.find(
@@ -226,7 +226,7 @@ export function toOrderListItemViewModel(
   order: OrderDTO,
   joinedItems: Array<{
     item: OrderItemDTO;
-    product: Product;
+    product: ProductModel;
     cancellation: OrderItemCancellationDTO | null;
   }>,
 ): OrderListItemViewModel {
@@ -265,7 +265,7 @@ export function toOrderDetailViewModel(
   order: OrderDTO,
   joinedItems: Array<{
     item: OrderItemDTO;
-    product: Product;
+    product: ProductModel;
     cancellation: OrderItemCancellationDTO | null;
   }>,
   histories: readonly OrderStatusHistoryDTO[],

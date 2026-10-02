@@ -1,7 +1,7 @@
 import {
   toProductCardViewModel,
   toProductColorViewModels,
-  type Product,
+  type ProductModel,
 } from '@/domains/product';
 import {
   formatKoreanDate,
@@ -78,7 +78,7 @@ export function toOrderClaimViewModel(
   claim: OrderClaimDTO,
   order: OrderDTO,
   item: OrderItemDTO,
-  product: Product,
+  product: ProductModel,
   settlement: OrderClaimSettlementDTO | null,
   histories: readonly OrderClaimHistoryDTO[],
 ): OrderClaimViewModel {
@@ -150,8 +150,8 @@ export function toOrderClaimDetailViewModel(
   claim: OrderClaimDTO,
   order: OrderDTO,
   item: OrderItemDTO,
-  product: Product,
-  exchangeProduct: Product | null,
+  product: ProductModel,
+  exchangeProduct: ProductModel | null,
   histories: readonly OrderClaimHistoryDTO[],
   settlement: OrderClaimSettlementDTO | null,
 ): OrderClaimDetailViewModel {
@@ -228,7 +228,7 @@ function toOrderClaimExchangeDetailProductViewModel({
 }: {
   item: OrderItemDTO;
   orderedItem: OrderClaimProductViewModel;
-  exchangeProduct: Product | null;
+  exchangeProduct: ProductModel | null;
   exchangeVariantId: string | null;
 }): OrderClaimDetailExchangeProductViewModel {
   if (!exchangeProduct || !exchangeVariantId) {
@@ -289,7 +289,7 @@ function toOrderClaimSettlementViewModel(
 
 function toOrderClaimProductViewModel(
   item: OrderItemDTO,
-  product: Product,
+  product: ProductModel,
 ): OrderClaimProductViewModel {
   return {
     product: toProductCardViewModel(product),
@@ -302,7 +302,7 @@ function toOrderClaimProductViewModel(
 
 function toOrderClaimExchangeProductViewModel(
   item: OrderItemDTO,
-  product: Product,
+  product: ProductModel,
   variantId: string,
 ): OrderClaimProductViewModel {
   const variant = product.variants.find(current => current.id === variantId);
@@ -321,7 +321,7 @@ function toOrderClaimExchangeProductViewModel(
     optionLabel: `${isSameProduct ? (orderedColorLabel ?? color.label) : color.label} / ${variant.size}`,
     quantity: item.quantity,
     lineTotalText: formatKoreanMoney(
-      (product.price + variant.price_offset) * item.quantity,
+      (product.price + variant.priceOffset) * item.quantity,
     ),
   };
 }
@@ -368,8 +368,8 @@ export function toOrderClaimRequestViewModel({
 }: {
   order: OrderDTO;
   item: OrderItemDTO;
-  product: Product;
-  groupProducts: Product[];
+  product: ProductModel;
+  groupProducts: ProductModel[];
   unavailableReason: OrderClaimRequestUnavailableReason | null;
 }): OrderClaimRequestViewModel {
   const productColors = toProductColorViewModels(groupProducts);
@@ -409,7 +409,7 @@ export function toOrderClaimRequestViewModel({
           isAvailable: variant.stock > 0,
           isExchangeable: hasSameOrderClaimExchangeOptionPrice({
             currentUnitAmount: item.unit_price,
-            targetUnitAmount: productItem.price + variant.price_offset,
+            targetUnitAmount: productItem.price + variant.priceOffset,
           }),
           stock: variant.stock,
         })),

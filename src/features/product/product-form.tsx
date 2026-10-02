@@ -12,7 +12,7 @@ import {
   SelectContent,
   SelectItem,
 } from '@/shared/components/ui/select';
-import { type Variant } from '@/domains/product';
+import type { ProductVariantModel } from '@/domains/product';
 import { useCartStore } from '@/domains/cart';
 import { toast } from 'sonner';
 import { QuantitySelector } from '@/features/product/quantity-selector';
@@ -22,7 +22,7 @@ import { getCartHref } from '@/shared/lib/cart-routes';
 type ProductFormProps = {
   productId: number;
   colors: { id: number; label: string; hex: string }[];
-  variants: Variant[];
+  variants: readonly ProductVariantModel[];
   price: number;
   discount: number;
 };
@@ -77,7 +77,7 @@ export function ProductForm({
           size: variant.size,
           count: 1,
           stock: variant.stock,
-          priceOffset: variant.price_offset,
+          priceOffset: variant.priceOffset,
         },
       ];
     });
@@ -132,6 +132,7 @@ export function ProductForm({
   return (
     <div className="space-y-6">
       {/* 컬러 칩 섹션 (생략 없이 유지) */}
+      {colors.length > 1 && (
       <div className="space-y-3">
         <h4 className="font-black text-base mb-2 flex items-center">색상</h4>
         <div className="grid grid-cols-4 sm:grid-cols-5 gap-y-6 gap-x-2">
@@ -152,6 +153,7 @@ export function ProductForm({
           })}
         </div>
       </div>
+      )}
 
       {/* 사이즈 선택 섹션 */}
       <div className="space-y-3">
@@ -185,9 +187,9 @@ export function ProductForm({
                       {variant.size}
                     </span>
                     {/* 사이즈별 추가 요금 표시 */}
-                    {variant.price_offset > 0 && (
+                    {variant.priceOffset > 0 && (
                       <span className="text-sm font-bold text-gray-800">
-                        (+{variant.price_offset.toLocaleString()}원)
+                        (+{variant.priceOffset.toLocaleString()}원)
                       </span>
                     )}
                   </div>

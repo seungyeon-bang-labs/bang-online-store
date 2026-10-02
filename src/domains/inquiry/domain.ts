@@ -1,6 +1,6 @@
 import type { InquiryDTO, InquiryStatus, InquiryType } from './dto';
 import type { OrderDTO, OrderItemDTO } from '@/domains/order/dto';
-import type { Product } from '@/domains/product';
+import type { ProductModel } from '@/domains/product';
 
 export type InquiryWriteEntryContext =
   | { orderId: string; orderItemId?: string }
@@ -211,7 +211,7 @@ export function hasValidInquiryWriteEntryContext(
   entryContext: InquiryWriteEntryContext | null,
   orders: readonly OrderDTO[],
   items: readonly OrderItemDTO[],
-  products: readonly Product[],
+  products: readonly ProductModel[],
 ): boolean {
   if (!entryContext) return true;
 
