@@ -1,5 +1,6 @@
 export {
   createCategoryGroups,
+  findCategoryIdsBySlugs,
   findCategoryGroupBySlug,
   hasSubCategorySlug,
 } from './domain';

@@ -1,5 +1,5 @@
 import type { StatusViewModel } from '@/shared/types/status';
-import type { ProductCardViewModel } from '@/domains/product/product.view-model';
+import type { ProductCardViewModel } from '@/domains/product';
 import type { PageSlice } from '@/shared/lib/pagination';
 
 export type InquiryContextViewModel =

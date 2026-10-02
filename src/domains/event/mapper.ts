@@ -1,5 +1,5 @@
 import type { EventDTO } from './dto';
-import { toProductCardViewModel, type Product } from '@/domains/product';
+import { toProductCardViewModel, type ProductModel } from '@/domains/product';
 import type {
   EventBannerViewModel,
   EventCardViewModel,
@@ -67,7 +67,7 @@ export function toEventProductSectionViewModel({
   products,
 }: {
   title?: string;
-  products: Product[];
+  products: ProductModel[];
 }): EventProductSectionViewModel {
   return {
     title,

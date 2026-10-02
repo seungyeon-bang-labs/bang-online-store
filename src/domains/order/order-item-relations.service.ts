@@ -1,4 +1,4 @@
-import type { Product } from '@/domains/product/product.dto';
+import type { ProductModel } from '@/domains/product';
 import type { OrderItemDTO } from './dto';
 import type {
   OrderItemRepository,
@@ -8,7 +8,7 @@ import type {
 export interface OrderItemRelations {
   itemsByOrderId: ReadonlyMap<string, OrderItemDTO[]>;
   itemById: ReadonlyMap<string, OrderItemDTO>;
-  productById: ReadonlyMap<number, Product>;
+  productById: ReadonlyMap<number, ProductModel>;
 }
 
 interface OrderItemRelationsServiceDependencies {

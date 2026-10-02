@@ -26,7 +26,7 @@ export interface InquiryWriteOrderOptionViewModel {
 export interface InquiryWriteProductOptionViewModel {
   id: number;
   name: string;
-  category: Exclude<InquiryProductCategoryFilter, 'all'>;
+  category: Exclude<InquiryProductCategoryFilter, 'all'> | 'unknown';
   thumbnailUrl: string;
   price: number;
   discountRate: number;

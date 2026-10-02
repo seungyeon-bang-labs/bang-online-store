@@ -55,8 +55,8 @@ export function createClaimRequestService({
 
     if (!product) return null;
 
-    const groupProducts = await productRepository.findByGroupId(
-      product.group_id,
+    const groupProducts = await productRepository.findByStyleId(
+      product.styleId,
     );
 
     return toOrderClaimRequestViewModel({

@@ -3,7 +3,7 @@ import { Slider } from '@/shared/components/common/slider';
 import { ProductItem } from './product-item';
 
 interface HomeProductSliderProps {
-  products: ProductCardViewModel[];
+  products: readonly ProductCardViewModel[];
   title: string;
   href?: string;
   desktopRows?: number;

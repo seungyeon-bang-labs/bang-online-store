@@ -1,7 +1,11 @@
-import { toProductCardViewModel, type Product } from '@/domains/product';
+import { toProductCardViewModel, type ProductModel } from '@/domains/product';
 import type { OrderDTO, OrderItemDTO } from '@/domains/order/dto';
 import { formatKoreanDate } from '@/shared/lib/format';
-import type { InquiryWriteEntryContext } from './domain';
+import {
+  INQUIRY_PRODUCT_CATEGORY_FILTERS,
+  type InquiryProductCategoryFilter,
+  type InquiryWriteEntryContext,
+} from './domain';
 import type {
   InquiryWriteEntryContextViewModel,
   InquiryWriteOrderOptionViewModel,
@@ -14,16 +18,23 @@ export function toInquiryWriteViewModel({
   orders,
   items,
   products,
+  categories,
   entryContext,
 }: {
   orders: readonly OrderDTO[];
   items: readonly OrderItemDTO[];
-  products: readonly Product[];
+  products: readonly ProductModel[];
+  categories: readonly { id: string; parent_id: string | null }[];
   entryContext: InquiryWriteEntryContext | null;
 }): InquiryWriteViewModel {
   return {
     entryContext: toInquiryWriteEntryContextViewModel(entryContext),
-    selectionOptions: toInquiryWriteSelectionOptions({ orders, items, products }),
+    selectionOptions: toInquiryWriteSelectionOptions({
+      orders,
+      items,
+      products,
+      categories,
+    }),
   };
 }
 
@@ -57,10 +68,12 @@ function toInquiryWriteSelectionOptions({
   orders,
   items,
   products,
+  categories,
 }: {
   orders: readonly OrderDTO[];
   items: readonly OrderItemDTO[];
-  products: readonly Product[];
+  products: readonly ProductModel[];
+  categories: readonly { id: string; parent_id: string | null }[];
 }): InquiryWriteSelectionOptionsViewModel {
   const itemsByOrderId = new Map<string, OrderItemDTO[]>();
 
@@ -71,6 +84,9 @@ function toInquiryWriteSelectionOptions({
   }
 
   const productsById = new Map(products.map(product => [product.id, product]));
+  const categoriesById = new Map(
+    categories.map(category => [category.id, category]),
+  );
 
   const selectionOptions: InquiryWriteSelectionOptionsViewModel = {
     orders: orders.map<InquiryWriteOrderOptionViewModel>(order => {
@@ -113,7 +129,9 @@ function toInquiryWriteSelectionOptions({
       return {
         id: productCard.id,
         name: productCard.name,
-        category: product.category.parent,
+        category: toInquiryProductCategory(
+          categoriesById.get(product.categoryId)?.parent_id,
+        ),
         thumbnailUrl: productCard.thumbnailUrl,
         price: productCard.price,
         discountRate: productCard.discountRate,
@@ -124,6 +142,17 @@ function toInquiryWriteSelectionOptions({
   };
 
   return selectionOptions;
+}
+
+function toInquiryProductCategory(
+  categoryId: string | null | undefined,
+): Exclude<InquiryProductCategoryFilter, 'all'> | 'unknown' {
+  const category = INQUIRY_PRODUCT_CATEGORY_FILTERS.find(
+    (filter): filter is Exclude<InquiryProductCategoryFilter, 'all'> =>
+      filter !== 'all' && filter === categoryId,
+  )
+
+  return category ?? 'unknown';
 }
 
 function toOrderProductSummary({

@@ -3,7 +3,7 @@ import type {
   OrderItemRepository,
   OrderRepository,
 } from '@/domains/order/repository';
-import type { Product } from '@/domains/product/product.dto';
+import type { ProductModel } from '@/domains/product';
 import {
   filterInquiries,
   INQUIRY_PAGE_SIZE,
@@ -16,7 +16,7 @@ import type { InquiryRepository } from './repository';
 import type { InquiryPageViewModel } from './view-model';
 
 interface InquiryProductRepository {
-  findByIds(ids: number[]): Promise<Product[]>;
+  findByIds(ids: number[]): Promise<ProductModel[]>;
 }
 
 export interface InquiryServiceDependencies {

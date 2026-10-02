@@ -4,7 +4,10 @@ import { notFound } from 'next/navigation';
 import { ProductImages } from '@/features/product/product-images';
 import { ProductInfo } from '@/features/product/product-info';
 import { ProductForm } from '@/features/product/product-form';
-import { ProductDO, productRepository } from '@/domains/product';
+import {
+  productService,
+  toProductDetailViewModel,
+} from '@/domains/product';
 
 export async function generateMetadata({
   params,
@@ -12,7 +15,7 @@ export async function generateMetadata({
   params: Promise<{ id: number }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const product = await productRepository.findById(Number(id));
+  const product = await productService.findById(Number(id));
   return { title: product ? `${product.name} | MyStore` : '상품 없음' };
 }
 
@@ -22,10 +25,11 @@ async function ProductPage({
   params: Promise<{ id: number }>;
 }) {
   const { id } = await params;
-  const product = await productRepository.findById(Number(id));
+  const product = await productService.findById(Number(id));
   if (!product) notFound();
 
-  const productView = ProductDO.fromDTO(product).toDetailViewModel();
+  const styleProducts = await productService.findByStyleId(product.styleId);
+  const productView = toProductDetailViewModel(product, styleProducts);
 
   return (
     <div className="w-full max-w-6xl p-8 md:py-10">

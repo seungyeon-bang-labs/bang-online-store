@@ -1,4 +1,4 @@
-import type { Product } from '@/domains/product/product.dto';
+import type { ProductModel } from '@/domains/product';
 import type {
   OrderDTO,
   OrderItemCancellationDTO,
@@ -53,6 +53,6 @@ export interface OrderPaymentReceiptDetailsRepository {
 }
 
 export interface OrderProductRepository {
-  findByIds(ids: number[]): Promise<Product[]>;
-  findByGroupId(groupId: number): Promise<Product[]>;
+  findByIds(ids: number[]): Promise<ProductModel[]>;
+  findByStyleId(styleId: number): Promise<ProductModel[]>;
 }

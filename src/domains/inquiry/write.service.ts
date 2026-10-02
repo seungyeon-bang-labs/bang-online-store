@@ -2,7 +2,7 @@ import type {
   OrderItemRepository,
   OrderRepository,
 } from '@/domains/order/repository';
-import type { Product } from '@/domains/product';
+import type { ProductModel } from '@/domains/product';
 import {
   getInquiryContextRequirement,
   hasValidInquiryWriteEntryContext,
@@ -15,7 +15,13 @@ import type { InquiryWriteViewModel } from './write.view-model';
 import type { InquiryRepository } from './repository';
 
 interface InquiryWriteProductRepository {
-  findMany(): Promise<Product[]>;
+  findMany(): Promise<ProductModel[]>;
+}
+
+interface InquiryWriteCategoryRepository {
+  findMany(): Promise<
+    readonly { id: string; parent_id: string | null }[]
+  >;
 }
 
 interface InquiryWriteServiceDependencies {
@@ -23,6 +29,7 @@ interface InquiryWriteServiceDependencies {
   orderRepository: OrderRepository;
   orderItemRepository: OrderItemRepository;
   productRepository: InquiryWriteProductRepository;
+  categoryRepository: InquiryWriteCategoryRepository;
 }
 
 export interface InquiryWriteService {
@@ -48,14 +55,16 @@ export function createInquiryWriteService({
   orderRepository,
   orderItemRepository,
   productRepository,
+  categoryRepository,
 }: InquiryWriteServiceDependencies): InquiryWriteService {
   async function getInquiryWriteViewModel(
     userId: string,
     entryContext: InquiryWriteEntryContext | null,
   ): Promise<InquiryWriteViewModel | null> {
-    const [orders, products] = await Promise.all([
+    const [orders, products, categories] = await Promise.all([
       orderRepository.findByUserId(userId),
       productRepository.findMany(),
+      categoryRepository.findMany(),
     ]);
     const items = await orderItemRepository.findByOrderIds(
       orders.map(order => order.id),
@@ -65,7 +74,13 @@ export function createInquiryWriteService({
       return null;
     }
 
-    return toInquiryWriteViewModel({ orders, items, products, entryContext });
+    return toInquiryWriteViewModel({
+      orders,
+      items,
+      products,
+      categories,
+      entryContext,
+    });
   }
 
   async function createInquiry(

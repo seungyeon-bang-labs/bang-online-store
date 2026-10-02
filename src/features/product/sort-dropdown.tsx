@@ -10,24 +10,20 @@ import {
 import { cn } from '@/shared/lib/utils';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-
-const SORT_OPTIONS = [
-  { label: '인기순', value: 'popular' },
-  { label: '신상품순', value: 'latest' },
-  { label: '낮은 가격순', value: 'price_asc' },
-  { label: '높은 가격순', value: 'price_desc' },
-  { label: '할인율순', value: 'discount' },
-] as const;
+import {
+  PRODUCT_SORT_OPTIONS,
+  type ProductSortOption,
+} from '@/domains/product';
 
 type SortDropdownProps = {
-  currentSortValue?: (typeof SORT_OPTIONS)[number]['value'] | string;
+  currentSortValue: ProductSortOption;
 };
 
 export function SortDropdown({ currentSortValue }: SortDropdownProps) {
   const searchParams = useSearchParams();
 
   // 💡 기존 쿼리 스트링에 새로운 sort 값을 병합하는 함수
-  const createSortLink = (value: string) => {
+  const createSortLink = (value: ProductSortOption) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set('sort', value); // 기존에 sort가 있으면 덮어쓰고, 없으면 추가함
     return `?${params.toString()}`;
@@ -37,7 +33,7 @@ export function SortDropdown({ currentSortValue }: SortDropdownProps) {
     <DropdownMenu>
       <DropdownMenuTrigger className="group inline-flex min-h-10 items-center gap-1 px-1 text-sm font-black outline-none">
         <span className="tracking-tight">
-          {SORT_OPTIONS.find(sort => sort.value === currentSortValue)?.label ||
+          {PRODUCT_SORT_OPTIONS.find(sort => sort.value === currentSortValue)?.label ||
             '인기순'}
         </span>
         <ChevronDown
@@ -50,7 +46,7 @@ export function SortDropdown({ currentSortValue }: SortDropdownProps) {
         align="end"
         className="min-w-140px border-2 border-black rounded-md p-1 shadow-none bg-white gap-1 flex flex-col"
       >
-        {SORT_OPTIONS.map(sort => (
+        {PRODUCT_SORT_OPTIONS.map(sort => (
           <DropdownMenuItem
             key={sort.value}
             asChild

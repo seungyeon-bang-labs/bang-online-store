@@ -1,4 +1,4 @@
-import type { Product } from '@/domains/product/product.dto';
+import type { ProductModel } from '@/domains/product';
 import type {
   RecentProductViewDTO,
   ReviewDTO,
@@ -21,5 +21,5 @@ export interface ReviewRepository {
 }
 
 export interface ActivityProductRepository {
-  findByIds(ids: number[]): Promise<Product[]>;
+  findByIds(ids: number[]): Promise<ProductModel[]>;
 }

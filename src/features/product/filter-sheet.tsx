@@ -13,55 +13,62 @@ import {
 import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/lib/utils';
 import { Checkbox } from '@/shared/components/ui/checkbox';
-import { FILTER_CONFIG } from '@/domains/product/product-filter.fixture';
-import type { ColorOption, FilterId } from '@/domains/product/product-filter.dto';
 import { FilterBadgeGroup } from '@/features/product/filter-badge-group';
 import { ColorChip } from '@/shared/components/ui/color-chip';
+import {
+  toProductFilterSelectionViewModels,
+  type ProductFilterCriteria,
+  type ProductFilterId,
+  type ProductFilterViewModel,
+} from '@/domains/product';
 
-type SelectedFilters = Record<FilterId, string[]>;
-type FilterBadgeItem = { id: string; label: string };
+type SelectedFilters = Record<ProductFilterId, string[]>;
 
-export function FilterSheet() {
+type FilterSheetProps = {
+  productFilterViewModel: ProductFilterViewModel;
+  productFilterCriteria: ProductFilterCriteria;
+};
+
+function createSelectedFilters(
+  productFilterCriteria: ProductFilterCriteria,
+): SelectedFilters {
+  return {
+    size: [...productFilterCriteria.sizes],
+    price: productFilterCriteria.priceRangeId
+      ? [productFilterCriteria.priceRangeId]
+      : [],
+    discount: productFilterCriteria.discountRateId
+      ? [productFilterCriteria.discountRateId]
+      : [],
+    color: productFilterCriteria.colorIds.map(String),
+  };
+}
+
+export function FilterSheet({
+  productFilterViewModel,
+  productFilterCriteria,
+}: FilterSheetProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
 
-  const optionLabelMap = new Map<string, string>();
-  FILTER_CONFIG.forEach(filter => {
-    filter.options.forEach(option => {
-      const id = String(option.id);
-      optionLabelMap.set(id, option.label);
-    });
-  });
-
-  const readSelectedFromUrl = () => {
-    const initialState: SelectedFilters = {
-      size: [],
-      price: [],
-      discount: [],
-      color: [],
-    };
-    searchParams.forEach((value, key) => {
-      if (key in initialState) {
-        initialState[key as FilterId] = value.split(',');
-      }
-    });
-    return initialState;
-  };
-
-  // 1. URL에서 초기 상태 읽어오기
   const [selected, setSelected] =
-    useState<SelectedFilters>(readSelectedFromUrl);
+    useState<SelectedFilters>(() =>
+      createSelectedFilters(productFilterCriteria),
+    );
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (nextOpen) {
-      setSelected(readSelectedFromUrl());
+      setSelected(createSelectedFilters(productFilterCriteria));
     }
     setOpen(nextOpen);
   };
 
-  // 2. 필터 클릭 핸들러
-  const handleSelect = (id: FilterId, value: string, isMultiple: boolean) => {
+  const handleSelect = (
+    id: ProductFilterId,
+    value: string,
+    isMultiple: boolean,
+  ) => {
     setSelected(prev => {
       const current = prev[id];
       if (isMultiple) {
@@ -77,49 +84,41 @@ export function FilterSheet() {
     });
   };
 
-  // 3. 적용하기 (기존 쿼리 유지하며 필터만 업데이트)
   const handleApply = () => {
-    // 1. 현재 URL의 모든 쿼리 파라미터를 가져옵니다. (sort 등 포함)
     const params = new URLSearchParams(searchParams.toString());
+    productFilterViewModel.sections.forEach(section => params.delete(section.id));
 
-    // 2. 필터에 해당하는 키들(size, price, discount, color)을 먼저 제거합니다.
-    // 이렇게 해야 기존에 선택됐다가 취소된 필터가 URL에서 사라집니다.
-    const filterKeys: FilterId[] = ['size', 'price', 'discount', 'color'];
-    filterKeys.forEach(key => params.delete(key));
-
-    // 3. 현재 state(selected)에 담긴 새로운 필터 값들을 추가합니다.
     Object.entries(selected).forEach(([key, values]) => {
       if (values.length > 0) {
         params.set(key, values.join(','));
       }
     });
 
-    // 4. 생성된 쿼리 스트링으로 이동 (sort는 params에 그대로 남아있음)
     router.push(`?${params.toString()}`);
     setOpen(false);
   };
 
-  // 4. 초기화
   const handleReset = () => {
     setSelected({ size: [], price: [], discount: [], color: [] });
   };
 
-  const handleRemoveFilter = (id: string) => {
-    const targetFilter = FILTER_CONFIG.find(filter =>
-      filter.options.some(option => String(option.id) === id),
-    );
-
-    if (!targetFilter) return;
-
+  const handleRemoveFilter = (filterId: ProductFilterId, value: string) => {
     setSelected(prev => ({
       ...prev,
-      [targetFilter.id]: prev[targetFilter.id].filter(v => v !== id),
+      [filterId]: prev[filterId].filter(item => item !== value),
     }));
   };
 
-  const activeFilterItems: FilterBadgeItem[] = Object.values(selected)
-    .flat()
-    .map(id => ({ id, label: optionLabelMap.get(id) ?? id }));
+  const activeFilterItems = toProductFilterSelectionViewModels(
+    {
+      sizes: selected.size,
+      colorIds: selected.color.map(Number).filter(Number.isSafeInteger),
+      priceRangeId: selected.price[0] ?? null,
+      discountRateId: selected.discount[0] ?? null,
+      sort: productFilterCriteria.sort,
+    },
+    productFilterViewModel,
+  );
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
@@ -144,7 +143,7 @@ export function FilterSheet() {
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-10 scrollbar-hide">
-          {FILTER_CONFIG.map(filter => (
+          {productFilterViewModel.sections.map(filter => (
             <div key={filter.id}>
               <h4 className="font-black text-base mb-4 flex items-center gap-2">
                 {filter.label}
@@ -218,15 +217,17 @@ export function FilterSheet() {
                 )}
                 {filter.type === 'color' && (
                   <div className="grid grid-cols-4 sm:grid-cols-5 gap-y-6 gap-x-2">
-                    {(filter.options as ColorOption[]).map(option => {
+                    {filter.options.map(option => {
                       const optionId = String(option.id);
                       const isSelected = selected[filter.id].includes(optionId);
+
+                      if (!option.hex) return null;
 
                       return (
                         <ColorChip
                           key={option.id}
                           label={option.label}
-                          hex={option.colorCode}
+                          hex={option.hex}
                           isSelected={isSelected}
                           onClick={() =>
                             handleSelect(
@@ -251,7 +252,9 @@ export function FilterSheet() {
               activeFilters={activeFilterItems}
               showReset={false}
               isWrapped={true}
-              onRemove={handleRemoveFilter}
+              onRemove={selection =>
+                handleRemoveFilter(selection.filterId, selection.value)
+              }
             />
           )}
           <div className="flex gap-2">

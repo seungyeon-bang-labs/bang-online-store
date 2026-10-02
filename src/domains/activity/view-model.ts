@@ -1,5 +1,5 @@
 import type { PageSlice } from '@/shared/lib/pagination';
-import type { ProductCardViewModel } from '@/domains/product/product.view-model';
+import type { ProductCardViewModel } from '@/domains/product';
 
 export interface ActivityProductViewModel {
   id: string;

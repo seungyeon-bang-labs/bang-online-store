@@ -1,4 +1,4 @@
-import { toProductCardViewModel, type Product } from '@/domains/product';
+import { toProductCardViewModel, type ProductModel } from '@/domains/product';
 import { formatKoreanDate, formatKoreanMoney } from '@/shared/lib/format';
 import type { OrderDTO, OrderItemDTO } from '../dto';
 import type { OrderCancellationPreviewViewModel } from './view-model';
@@ -11,7 +11,7 @@ export function toOrderCancellationPreviewViewModel({
 }: {
   order: OrderDTO;
   item: OrderItemDTO;
-  product: Product;
+  product: ProductModel;
   expectedRefundAmount: number;
 }): OrderCancellationPreviewViewModel {
   return {
