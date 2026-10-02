@@ -1,8 +1,11 @@
 import { PageTitle } from '@/shared/components/common/page-title';
-import { toProductCardViewModel } from '@/domains/product';
+import {
+  productService,
+  toProductCardViewModel,
+  type ProductStatsModel,
+} from '@/domains/product';
 import { ProductItem } from '@/features/product/product-item';
 import { BEST_TABS } from '@/shared/lib/navigation';
-import { products } from '@/domains/product';
 import { Tabs } from '@/shared/components/common/tabs';
 import { Container } from '@/shared/components/layout/container';
 
@@ -16,11 +19,8 @@ async function BestPage({ searchParams }: BestPageProps) {
   const { period } = await searchParams;
   const currentPeriod = period || 'daily';
 
-  const sortKeyMap: Record<
-    string,
-    keyof (typeof products)[number]['productStats']
-  > = {
-    daily: 'toDaySales',
+  const sortKeyMap: Record<string, keyof ProductStatsModel> = {
+    daily: 'todaySales',
     weekly: 'weeklySales',
     monthly: 'monthlySales',
     total: 'totalSales',
@@ -28,9 +28,11 @@ async function BestPage({ searchParams }: BestPageProps) {
 
   const sortKey = sortKeyMap[currentPeriod] ?? 'totalSales';
 
+  const products = await productService.findMany();
+
   // 선택된 기간 기준 내림차순 정렬 (Top 20개만 노출)
   const bestProducts = [...products].sort(
-    (a, b) => b.productStats[sortKey] - a.productStats[sortKey],
+    (a, b) => (b.stats?.[sortKey] ?? 0) - (a.stats?.[sortKey] ?? 0),
   );
 
   return (

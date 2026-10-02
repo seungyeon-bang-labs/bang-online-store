@@ -4,13 +4,14 @@ import { RotateCcw, X } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
 import { cn } from '@/shared/lib/utils';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import type { ProductFilterSelectionViewModel } from '@/domains/product';
 
 type FilterBadgeGroupProps = {
-  activeFilters: { id: string; label: string }[];
+  activeFilters: readonly ProductFilterSelectionViewModel[];
   showReset?: boolean;
   isWrapped?: boolean;
-  onRemove?: (id: string) => void;
+  onRemove?: (selection: ProductFilterSelectionViewModel) => void;
+  onReset?: () => void;
 };
 
 export function FilterBadgeGroup({
@@ -18,26 +19,8 @@ export function FilterBadgeGroup({
   showReset = true,
   isWrapped,
   onRemove,
+  onReset,
 }: FilterBadgeGroupProps) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams(); // 추가
-
-  const handleReset = () => {
-    const currentSort = searchParams.get('sort'); // 1. 현재 sort 값을 가져옴
-    const params = new URLSearchParams(); // 2. 빈 파라미터 객체 생성
-
-    if (currentSort) {
-      params.set('sort', currentSort); // 3. sort가 있었다면 다시 세팅
-    }
-
-    // 4. 결과: sort만 남거나, 아예 비어있는 쿼리 스트링으로 이동
-    const queryString = params.toString();
-    const targetPath = queryString ? `${pathname}?${queryString}` : pathname;
-
-    router.push(targetPath, { scroll: false });
-  };
-
   return (
     <div
       className={cn(
@@ -59,12 +42,13 @@ export function FilterBadgeGroup({
         )}
       >
         {/* 초기화 버튼 */}
-        {showReset && activeFilters.length > 0 && (
+        {showReset && activeFilters.length > 0 && onReset && (
           <Button
             variant="outline"
             size="icon-sm"
             className="rounded-full bg-secondary shadow-sm shrink-0 min-w-28px h-28px w-28px"
-            onClick={handleReset}
+            onClick={onReset}
+            aria-label="선택한 필터 초기화"
           >
             <RotateCcw strokeWidth={3} />
           </Button>
@@ -72,7 +56,7 @@ export function FilterBadgeGroup({
         {activeFilters.map(activeFilter => (
           <Badge
             variant="secondary"
-            key={activeFilter.id}
+            key={`${activeFilter.filterId}:${activeFilter.value}`}
             className="text-sm py-1 px-3 shadow-sm whitespace-nowrap flex items-center gap-1 border-none "
           >
             {activeFilter.label}
@@ -80,7 +64,8 @@ export function FilterBadgeGroup({
               variant="ghost"
               size="icon-sm"
               className="flex items-center justify-center size-4"
-              onClick={() => onRemove?.(activeFilter.id)}
+              onClick={() => onRemove?.(activeFilter)}
+              aria-label={`${activeFilter.label} 필터 제거`}
             >
               <X strokeWidth={2} />
             </Button>

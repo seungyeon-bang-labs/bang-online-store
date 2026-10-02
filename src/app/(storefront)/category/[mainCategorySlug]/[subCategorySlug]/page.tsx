@@ -3,17 +3,24 @@ import { PageTitle } from '@/shared/components/common/page-title';
 import {
   categoryRepository,
   createCategoryGroups,
+  findCategoryIdsBySlugs,
   findCategoryGroupBySlug,
   hasSubCategorySlug,
   toCategoryGroupViewModel,
   toCategoryGroupViewModels,
 } from '@/domains/category';
-import { toProductCardViewModel } from '@/domains/product';
+import {
+  filterProducts,
+  parseProductFilterCriteria,
+  productService,
+  toProductCardViewModel,
+  toProductFilterSelectionViewModels,
+  toProductFilterViewModel,
+} from '@/domains/product';
 import { notFound } from 'next/navigation';
 import { ProductItem } from '@/features/product/product-item';
 import { ButtonLink } from '@/shared/components/ui/button';
 import { ProductFilterBar } from '@/features/product/product-filter-bar';
-import { getCategoryProducts } from './_lib/utils';
 import {
   getCategoryEmptyNotice,
   getCategoryHeader,
@@ -24,19 +31,12 @@ interface PageProps {
     mainCategorySlug: string;
     subCategorySlug: string;
   }>;
-  searchParams: Promise<{ [key: string]: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 const CategoryProductPage = async ({ params, searchParams }: PageProps) => {
   const { mainCategorySlug, subCategorySlug } = await params;
   const search = await searchParams;
-
-  const activeFilterValues = Object.entries(search)
-    .filter(([key]) => key !== 'sort') // 정렬(sort) 파라미터는 제외하고 싶을 때
-    .flatMap(([, value]) => (typeof value === 'string' ? value.split(',') : []))
-    .filter(Boolean);
-
-  const activeSortValue = search.sort || 'popular';
 
   const categories = await categoryRepository.findMany();
   const categoryGroups = createCategoryGroups(categories);
@@ -52,11 +52,26 @@ const CategoryProductPage = async ({ params, searchParams }: PageProps) => {
   const categoryGroupViewModels = toCategoryGroupViewModels(categoryGroups);
   const currentCategoryViewModel = toCategoryGroupViewModel(currentCategory);
 
-  const filteredProducts = await getCategoryProducts(
-    activeSortValue,
-    activeFilterValues,
+  const categoryIds = findCategoryIdsBySlugs(
+    categories,
     mainCategorySlug,
-    subCategorySlug ?? 'all',
+    subCategorySlug,
+  );
+  const categoryProducts = await productService.findByCategoryIds(
+    categoryIds,
+  );
+  const productFilterViewModel = toProductFilterViewModel(categoryProducts);
+  const productFilterCriteria = parseProductFilterCriteria(
+    search,
+    productFilterViewModel,
+  );
+  const filteredProducts = filterProducts(
+    categoryProducts,
+    productFilterCriteria,
+  );
+  const productFilterSelectionViewModels = toProductFilterSelectionViewModels(
+    productFilterCriteria,
+    productFilterViewModel,
   );
 
   const categoryHeader = getCategoryHeader(
@@ -105,8 +120,9 @@ const CategoryProductPage = async ({ params, searchParams }: PageProps) => {
 
       {/* 3. 유틸리티 바 */}
       <ProductFilterBar
-        activeFilterValues={activeFilterValues}
-        currentSortValue={activeSortValue}
+        productFilterViewModel={productFilterViewModel}
+        productFilterCriteria={productFilterCriteria}
+        productFilterSelectionViewModels={productFilterSelectionViewModels}
       />
 
       {/* 4. 상품 그리드 (이전 디자인 계승) */}

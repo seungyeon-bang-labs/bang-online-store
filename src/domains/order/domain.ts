@@ -2,7 +2,7 @@ import {
   DataIntegrityError,
   requireRelation,
 } from '@/shared/lib/data-integrity';
-import type { Product } from '@/domains/product/product.dto';
+import type { ProductModel } from '@/domains/product';
 import type {
   OrderDTO,
   OrderItemCancellationDTO,
@@ -12,7 +12,7 @@ import type {
 
 export interface OrderJoinedItem {
   item: OrderItemDTO;
-  product: Product;
+  product: ProductModel;
   cancellation: OrderItemCancellationDTO | null;
 }
 
@@ -125,7 +125,7 @@ export function filterOrdersByCancellation(
 export function joinOrderItems(
   orderId: string,
   itemsByOrderId: ReadonlyMap<string, OrderItemDTO[]>,
-  productById: ReadonlyMap<number, Product>,
+  productById: ReadonlyMap<number, ProductModel>,
   cancellationByOrderItemId: ReadonlyMap<
     string,
     OrderItemCancellationDTO

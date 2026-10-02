@@ -2,7 +2,7 @@ import {
   couponRepository,
   toCouponSectionViewModel,
 } from '@/domains/coupon';
-import { productRepository } from '@/domains/product';
+import { productService } from '@/domains/product';
 import { eventRepository } from './repository';
 import {
   toEventHeroViewModel,
@@ -36,7 +36,7 @@ export async function getEventDetailViewModel(
       ? couponRepository.findByIds(event.couponList.items.map(item => item.id))
       : [],
     shouldLoadProducts && event.productList
-      ? productRepository.findByIds(
+      ? productService.findByIds(
           event.productList.items.map(item => item.id),
         )
       : [],

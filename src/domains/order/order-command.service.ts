@@ -1,5 +1,4 @@
-import { colorMap, getProductSalePrice } from '@/domains/product';
-import type { Product } from '@/domains/product';
+import { getProductSalePrice, type ProductModel } from '@/domains/product';
 import { getOrderShippingFee } from './domain';
 import type {
   OrderDTO,
@@ -31,7 +30,7 @@ export interface OrderCommandService {
 }
 
 interface ProductLookupRepository {
-  findByIds(ids: number[]): Promise<Product[]>;
+  findByIds(ids: number[]): Promise<ProductModel[]>;
 }
 
 interface OrderCommandServiceDependencies {
@@ -51,7 +50,7 @@ function getOrderNumber(now: Date): string {
 
 function toOrderItem(
   orderId: string,
-  product: Product,
+  product: ProductModel,
   variantId: string,
   quantity: number,
   now: string,
@@ -62,8 +61,7 @@ function toOrderItem(
     throw new Error('주문할 수 없는 상품 옵션입니다.');
   }
 
-  const color = colorMap.find(item => item.id === product.colorId);
-  const unitPrice = product.price + variant.price_offset;
+  const unitPrice = product.price + variant.priceOffset;
   const salePrice = getProductSalePrice({
     ...product,
     price: unitPrice,
@@ -76,7 +74,7 @@ function toOrderItem(
     product_id: product.id,
     variant_id: variant.id,
     product_name: product.name,
-    option_label: `${color?.label ?? '옵션'} / ${variant.size}`,
+    option_label: `${product.color.name} / ${variant.size}`,
     quantity,
     unit_price: unitPrice,
     discount_amount: discountAmount,

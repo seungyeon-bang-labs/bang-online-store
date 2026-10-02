@@ -1,6 +1,7 @@
 import { orderRepository } from '@/domains/order';
 import { orderItemRepository } from '@/domains/order';
-import { productRepository } from '@/domains/product';
+import { productService } from '@/domains/product';
+import { categoryRepository } from '@/domains/category';
 import { fixtureInquiryRepository } from './fixture-repository';
 import { createInquiryCancelService } from './cancel.service';
 import { createInquiryEditService } from './edit.service';
@@ -26,14 +27,15 @@ const inquiryService = createInquiryService({
   inquiryRepository,
   orderRepository,
   orderItemRepository,
-  productRepository,
+  productRepository: productService,
 });
 
 const inquiryWriteService = createInquiryWriteService({
   inquiryRepository,
   orderRepository,
   orderItemRepository,
-  productRepository,
+  productRepository: productService,
+  categoryRepository,
 });
 
 const inquiryEditService = createInquiryEditService({

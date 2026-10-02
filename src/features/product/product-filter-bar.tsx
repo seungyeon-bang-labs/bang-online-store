@@ -1,65 +1,94 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { FilterSheet } from '@/features/product/filter-sheet';
 import { SortDropdown } from '@/features/product/sort-dropdown';
 import { FilterBadgeGroup } from '@/features/product/filter-badge-group';
-import { FILTER_CONFIG } from '@/domains/product/product-filter.fixture';
+import type {
+  ProductFilterCriteria,
+  ProductFilterSelectionViewModel,
+  ProductFilterViewModel,
+} from '@/domains/product';
 
 type ProductFilterBarProps = {
-  activeFilterValues: string[];
-  currentSortValue?: string;
+  productFilterViewModel: ProductFilterViewModel;
+  productFilterCriteria: ProductFilterCriteria;
+  productFilterSelectionViewModels: readonly ProductFilterSelectionViewModel[];
 };
 
 export function ProductFilterBar({
-  activeFilterValues,
-  currentSortValue,
+  productFilterViewModel,
+  productFilterCriteria,
+  productFilterSelectionViewModels,
 }: ProductFilterBarProps) {
-    const optionLabelMap = new Map<string, string>();
-    FILTER_CONFIG.forEach(filter => {
-      filter.options.forEach(option => {
-        optionLabelMap.set(String(option.id), option.label);
-      });
-    });
-
-    const activeFilterItems = activeFilterValues.map(id => ({
-      id,
-      label: optionLabelMap.get(id) ?? id,
-    }));
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
 
-  const handleRemoveFilter = (id: string) => {
+  const navigateWithParams = (params: URLSearchParams) => {
+    const queryString = params.toString();
+    router.push(queryString ? `${pathname}?${queryString}` : pathname);
+  };
+
+  const getSelectedValues = (
+    filterId: ProductFilterSelectionViewModel['filterId'],
+  ) => {
+    switch (filterId) {
+      case 'size':
+        return productFilterCriteria.sizes;
+      case 'color':
+        return productFilterCriteria.colorIds.map(String);
+      case 'price':
+        return productFilterCriteria.priceRangeId
+          ? [productFilterCriteria.priceRangeId]
+          : [];
+      case 'discount':
+        return productFilterCriteria.discountRateId
+          ? [productFilterCriteria.discountRateId]
+          : [];
+    }
+  };
+
+  const handleRemoveFilter = (
+    selection: ProductFilterSelectionViewModel,
+  ) => {
     const params = new URLSearchParams(searchParams.toString());
-    const targetFilter = FILTER_CONFIG.find(filter =>
-      filter.options.some(option => String(option.id) === id),
+    const nextValues = getSelectedValues(selection.filterId).filter(
+      value => value !== selection.value,
     );
 
-    if (!targetFilter) return;
-
-    const current = params.get(targetFilter.id)?.split(',') ?? [];
-    const nextValues = current.filter(value => value !== id);
-
+    params.delete(selection.filterId);
     if (nextValues.length === 0) {
-      params.delete(targetFilter.id);
+      navigateWithParams(params);
     } else {
-      params.set(targetFilter.id, nextValues.join(','));
+      params.set(selection.filterId, nextValues.join(','));
+      navigateWithParams(params);
     }
-
-    router.push(`?${params.toString()}`);
   };
-  
+
+  const handleReset = () => {
+    const params = new URLSearchParams(searchParams.toString());
+    productFilterViewModel.sections.forEach(section =>
+      params.delete(section.id),
+    );
+    navigateWithParams(params);
+  };
+
   return (
     <div className="mt-6 mb-4 flex flex-col gap-4 md:mt-8">
       <div className="flex items-center justify-between">
-        <FilterSheet />
-        <SortDropdown currentSortValue={currentSortValue} />
+        <FilterSheet
+          productFilterViewModel={productFilterViewModel}
+          productFilterCriteria={productFilterCriteria}
+        />
+        <SortDropdown currentSortValue={productFilterCriteria.sort} />
       </div>
 
-      {activeFilterItems.length > 0 && (
+      {productFilterSelectionViewModels.length > 0 && (
         <FilterBadgeGroup
-          activeFilters={activeFilterItems}
+          activeFilters={productFilterSelectionViewModels}
           onRemove={handleRemoveFilter}
+          onReset={handleReset}
         />
       )}
     </div>

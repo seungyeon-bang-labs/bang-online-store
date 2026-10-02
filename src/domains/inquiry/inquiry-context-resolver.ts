@@ -1,7 +1,6 @@
 import { requireRelation } from '@/shared/lib/data-integrity';
 import type { OrderDTO, OrderItemDTO } from '@/domains/order/dto';
-import type { Product } from '@/domains/product/product.dto';
-import { toProductCardViewModel } from '@/domains/product/product.presenter';
+import { toProductCardViewModel, type ProductModel } from '@/domains/product';
 import type { InquiryDTO } from './dto';
 import type { InquiryContextViewModel } from './view-model';
 
@@ -9,7 +8,7 @@ interface InquiryContextResolverDependencies {
   orderById: ReadonlyMap<string, OrderDTO>;
   itemById: ReadonlyMap<string, OrderItemDTO>;
   itemsByOrderId: ReadonlyMap<string, readonly OrderItemDTO[]>;
-  productById: ReadonlyMap<number, Product>;
+  productById: ReadonlyMap<number, ProductModel>;
 }
 
 export interface InquiryContextResolver {

@@ -19,7 +19,6 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from '@/shared/components/ui/drawer';
-import { colorMap, products } from '@/domains/product';
 import { ColorChip } from '@/shared/components/ui/color-chip';
 import {
   Select,
@@ -30,17 +29,18 @@ import {
 } from '@/shared/components/ui/select';
 import { cn } from '@/shared/lib/utils';
 import { useCartStore } from '@/domains/cart';
+import type { ProductOptionViewModel } from '@/domains/product';
 
 interface OptionChangeModalProps {
-  groupId: number;
   currentProductId: number;
   currentVariantId: string;
+  productOptionViewModels: readonly ProductOptionViewModel[];
 }
 
 export function OptionChangeModal({
-  groupId,
   currentProductId,
   currentVariantId,
+  productOptionViewModels,
 }: OptionChangeModalProps) {
   const updateOption = useCartStore(state => state.updateOption);
   const [open, setOpen] = React.useState(false);
@@ -53,20 +53,17 @@ export function OptionChangeModal({
       number,
       { id: number; label: string; hex: string }
     >();
-    products
-      .filter(p => p.group_id === groupId)
-      .forEach(p => {
-        const colorInfo = colorMap.find(c => c.id === p.colorId);
-        if (colorInfo && !options.has(p.colorId)) {
-          options.set(p.colorId, {
-            id: p.colorId,
-            label: colorInfo.label,
-            hex: colorInfo.hexCode,
+    productOptionViewModels.forEach(product => {
+        if (!options.has(product.color.id)) {
+          options.set(product.color.id, {
+            id: product.color.id,
+            label: product.color.label,
+            hex: product.color.hex,
           });
         }
       });
     return Array.from(options.values());
-  }, [groupId]);
+  }, [productOptionViewModels]);
 
   // 2. 현재 선택된 컬러/사이즈 상태 관리
   const [selectedColorId, setSelectedColorId] = React.useState<number | null>(
@@ -77,22 +74,22 @@ export function OptionChangeModal({
   // 3. 선택된 컬러에 따른 실시간 사이즈 옵션 목록 계산
   const sizeOptions = React.useMemo(() => {
     if (!selectedColorId) return [];
-    const targetProduct = products.find(
-      p => p.group_id === groupId && p.colorId === selectedColorId,
+    const targetProduct = productOptionViewModels.find(
+      product => product.color.id === selectedColorId,
     );
     return targetProduct ? targetProduct.variants : [];
-  }, [groupId, selectedColorId]);
+  }, [productOptionViewModels, selectedColorId]);
 
   // 모달이 열릴 때 초기값 동기화
   React.useEffect(() => {
     if (open) {
-      const currentColorId = products.find(
-        p => p.id === currentProductId,
-      )?.colorId;
+      const currentColorId = productOptionViewModels.find(
+        product => product.productId === currentProductId,
+      )?.color.id;
       setSelectedColorId(currentColorId ?? groupColors[0]?.id);
       setSelectedSizeId(currentVariantId);
     }
-  }, [open, currentProductId, currentVariantId, groupColors]);
+  }, [open, currentProductId, currentVariantId, groupColors, productOptionViewModels]);
 
   // 컬러 변경 시 처리 로직
   const handleColorChange = (colorId: number) => {
@@ -100,14 +97,14 @@ export function OptionChangeModal({
     setSelectedColorId(colorId);
 
     // 2. 새 컬러의 상품 정보 가져오기
-    const targetProduct = products.find(
-      p => p.group_id === groupId && p.colorId === colorId,
+    const targetProduct = productOptionViewModels.find(
+      product => product.color.id === colorId,
     );
 
     // 3. [중요] '장바구니 기준'이 아닌 '현재 화면에서 선택된 사이즈의 명칭' 찾기
     // 현재 선택된 사이즈 ID(selectedSizeId)를 가진 variant를 전체 상품 데이터에서 찾아서 그 이름(S, M, L 등)을 가져옵니다.
-    const currentSelectedSizeName = products
-      .flatMap(p => p.variants)
+    const currentSelectedSizeName = productOptionViewModels
+      .flatMap(product => product.variants)
       .find(v => v.id === selectedSizeId)?.size;
 
     // 4. 새 컬러 상품(targetProduct)에서 방금 그 이름(L 등)과 똑같고 재고가 있는 옵션 찾기
@@ -121,11 +118,11 @@ export function OptionChangeModal({
 
   const handleApply = () => {
     if (!selectedColorId || !selectedSizeId) return;
-    const targetProduct = products.find(
-      p => p.group_id === groupId && p.colorId === selectedColorId,
+    const targetProduct = productOptionViewModels.find(
+      product => product.color.id === selectedColorId,
     );
     if (targetProduct) {
-      updateOption(currentVariantId, targetProduct.id, selectedSizeId);
+      updateOption(currentVariantId, targetProduct.productId, selectedSizeId);
       setOpen(false);
     }
   };
@@ -190,9 +187,9 @@ export function OptionChangeModal({
                       {variant.size}
                     </span>
                     {/* 사이즈별 추가 요금 표시 */}
-                    {variant.price_offset > 0 && (
+                    {variant.priceOffset > 0 && (
                       <span className="text-sm font-bold text-gray-800">
-                        (+{variant.price_offset.toLocaleString()}원)
+                        (+{variant.priceOffset.toLocaleString()}원)
                       </span>
                     )}
                   </div>
