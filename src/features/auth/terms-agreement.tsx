@@ -95,7 +95,7 @@ export function TermsAgreement({
           약관 동의
         </FieldLegend>
 
-        <FieldGroup className="gap-4 px-4 flex-1">
+        <FieldGroup className="flex-1 gap-4 pl-4 pr-0 md:px-4">
           {termsAcceptedData.map(({ id, label, link, type }) => (
             <Field orientation="horizontal" key={id}>
               <Controller
@@ -114,7 +114,7 @@ export function TermsAgreement({
               <Label
                 htmlFor={id}
                 className={cn(
-                  'font-semibold',
+                  'min-w-0 flex-1 font-semibold',
                   ariaInvalid &&
                     !checkedState[id] &&
                     type === 'essential' &&
@@ -129,8 +129,13 @@ export function TermsAgreement({
                 {label}
               </Label>
               {link && (
-                <Link href={link} target="_blank" className="text-sm underline">
-                  자세히 보기
+                <Link
+                  href={link}
+                  target="_blank"
+                  className="ml-auto shrink-0 text-sm underline"
+                >
+                  <span className="md:hidden">보기</span>
+                  <span className="hidden md:inline">자세히 보기</span>
                 </Link>
               )}
             </Field>
