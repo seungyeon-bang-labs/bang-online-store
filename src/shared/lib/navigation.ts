@@ -65,6 +65,11 @@ const SHARED_MENU: { [key: string]: MenuItem } = {
   LOGOUT: { name: '로그아웃', href: '/logout', requiresAuth: true },
 };
 
+const MOBILE_MY_PAGE_MENU: MenuItem = {
+  ...SHARED_MENU.MY_PAGE,
+  requiresAuth: false,
+};
+
 export const PC_UTILITY_MENU: MenuItem[] = [
   SHARED_MENU.CS,
   SHARED_MENU.MY_PAGE,
@@ -97,8 +102,7 @@ export const MOBILE_FOOTER_MENU: MenuItem[] = [
   SHARED_MENU.CATEGORIES,
   SHARED_MENU.SNAPSHOT,
   SHARED_MENU.SEARCH,
-  SHARED_MENU.LOGIN_SIGNUP,
-  SHARED_MENU.MY_PAGE,
+  MOBILE_MY_PAGE_MENU,
 ];
 
 export const CS_MENU: MenuItem[] = [
