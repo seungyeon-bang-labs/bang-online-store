@@ -61,12 +61,18 @@ export function SiteLayout({
         <MobileBottomNav isLoggedIn={isLoggedIn} />
       </div>
       <Toaster
+        position="bottom-center"
+        offset={{ bottom: 'var(--toast-bottom-offset)' }}
+        mobileOffset={{
+          bottom: 'var(--toast-bottom-offset)',
+          left: 8,
+          right: 8,
+        }}
         toastOptions={{
           style: {
             background: '#000000',
             color: '#ffffff',
             border: '1px solid #27272a',
-            fontSize: '14px',
           },
           className: 'my-toast',
           actionButtonStyle: {
@@ -74,6 +80,7 @@ export function SiteLayout({
             color: '#000000',
             borderRadius: '4px',
             fontWeight: 'bold',
+            fontSize: '10px',
           },
         }}
       />

@@ -8,6 +8,7 @@ import {
   productService,
   toProductDetailViewModel,
 } from '@/domains/product';
+import { Container } from '@/shared/components/layout/container';
 
 export async function generateMetadata({
   params,
@@ -32,8 +33,8 @@ async function ProductPage({
   const productView = toProductDetailViewModel(product, styleProducts);
 
   return (
-    <div className="w-full max-w-6xl p-8 md:py-10">
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_360px] lg:grid-cols-[1fr_450px] gap-10 xl:gap-16 items-start">
+    <Container className="mb-20 pb-6 pt-2 md:py-10 md:pt-10">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_360px] md:gap-10 lg:grid-cols-[1fr_450px] xl:gap-16 items-start">
         {/* 왼쪽 섹션: 이미지 (PC에서 남은 공간 전부 차지) */}
         <div className="w-full">
           <ProductImages images={productView.detailImages} />
@@ -65,7 +66,7 @@ async function ProductPage({
           </ul>
         </div>
       </div>
-    </div>
+    </Container>
   );
 }
 

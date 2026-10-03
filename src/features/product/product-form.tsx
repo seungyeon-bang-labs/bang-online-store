@@ -271,15 +271,15 @@ export function ProductForm({
       )}
 
       {/* 액션 버튼 */}
-      <div className="flex gap-2 items-center">
-        <Button variant="ghost" size="icon" className="hover:bg-white group">
+      <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,1fr)] items-center gap-2 md:flex">
+        <Button variant="ghost" size="icon-lg" className="hover:bg-white group">
           <Heart className="size-6 text-gray-400 group-hover:fill-red-500 group-hover:stroke-red-500" />
         </Button>
         <Button
           variant="outline"
           size="xl"
           disabled={selectedItems.length === 0}
-          className="flex-1"
+          className="min-w-0 px-3 md:flex-1 md:px-8"
           onClick={handleAddToCart}
         >
           장바구니
@@ -288,7 +288,7 @@ export function ProductForm({
           variant="default"
           size="xl"
           disabled={selectedItems.length === 0}
-          className="flex-1"
+          className="min-w-0 px-3 md:flex-1 md:px-8"
         >
           구매하기
         </Button>

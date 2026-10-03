@@ -32,7 +32,7 @@ const SnapshotPage = async ({ searchParams }: SnapshotPageProps) => {
     : snapshotData;
 
   return (
-    <Container className="mb-20 py-6 md:py-10">
+    <Container className="mb-20 pb-6 pt-4 md:py-10">
       <div className="flex items-center gap-2 md:hidden">
         <Suspense fallback={<div className="h-10 min-w-0 flex-1" />}>
           <SearchInput initialValue={query} className="min-w-0 flex-1" />
@@ -59,7 +59,7 @@ const SnapshotPage = async ({ searchParams }: SnapshotPageProps) => {
       </PageTitle>
 
       {/* 2. 스냅샷 그리드 */}
-      <div className="mb-20 grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-3 lg:grid-cols-4">
+      <div className="mb-20 mt-4 grid grid-cols-2 gap-2 md:mt-0 md:grid-cols-3 md:gap-3 lg:grid-cols-4">
         {snapshots.map(snap => (
           <Link
             href={`/snapshots/${snap.id}`}
