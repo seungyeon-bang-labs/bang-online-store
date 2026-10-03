@@ -7,7 +7,6 @@ import type {
 } from './dto';
 
 export type OrderItemActionType =
-  | 'order'
   | 'payment'
   | 'cancel'
   | 'inquiry'
@@ -24,8 +23,8 @@ export interface OrderItemActionViewModel {
 }
 
 export interface OrderItemActionsViewModel {
-  primary: OrderItemActionViewModel;
-  secondary: OrderItemActionViewModel;
+  primary: OrderItemActionViewModel | null;
+  secondary: OrderItemActionViewModel | null;
   more: OrderItemActionViewModel[];
 }
 

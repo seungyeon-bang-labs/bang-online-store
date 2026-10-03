@@ -127,7 +127,11 @@ export function buildMypageHomeOrderActions({
   );
 
   if (itemCount > 1) {
-    return placeActions(inquiry, order, status === 'pending_payment' ? [] : [receipt]);
+    return placeActions(
+      inquiry,
+      order,
+      status === 'pending_payment' ? [] : [receipt],
+    );
   }
 
   if (status === 'pending_payment') {
@@ -150,5 +154,9 @@ export function buildMypageHomeOrderActions({
     return placeActions(repurchase ?? inquiry, order, [inquiry, receipt, claim]);
   }
 
-  return placeActions(repurchase ?? inquiry, order, [inquiry, receipt]);
+  if (status === 'cancelled') {
+    return placeActions(repurchase ?? inquiry, order, [inquiry]);
+  }
+
+  return placeActions(null, order, []);
 }

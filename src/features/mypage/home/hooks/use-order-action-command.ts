@@ -20,8 +20,14 @@ export function useOrderActionCommand() {
     );
     toast.success('상품을 장바구니에 다시 담았습니다.', {
       position: 'bottom-center',
+      duration: 3000,
+      action: {
+        label: '보러가기',
+        onClick: () => {
+          const search = searchParams.toString();
+          router.push(getCartHref(search ? `${pathname}?${search}` : pathname));
+        },
+      },
     });
-    const search = searchParams.toString();
-    router.push(getCartHref(search ? `${pathname}?${search}` : pathname));
   };
 }
