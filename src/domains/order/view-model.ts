@@ -23,8 +23,8 @@ export interface OrderItemActionViewModel {
 }
 
 export interface OrderItemActionsViewModel {
-  primary: OrderItemActionViewModel;
-  secondary: OrderItemActionViewModel;
+  primary: OrderItemActionViewModel | null;
+  secondary: OrderItemActionViewModel | null;
   more: OrderItemActionViewModel[];
 }
 

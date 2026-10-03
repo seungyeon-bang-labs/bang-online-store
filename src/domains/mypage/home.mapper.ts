@@ -37,13 +37,11 @@ export function toMypageHomeRecentOrderViewModel({
           '/mypage',
         )
       : orderHref;
-  const inquiryHref = singleItem
-    ? getMypageInquiryWriteHref({
-        orderId: order.id,
-        orderItemId: singleItem.id,
-        returnTo: '/mypage',
-      })
-    : null;
+  const inquiryHref = getMypageInquiryWriteHref({
+    orderId: order.id,
+    orderItemId: singleItem?.id,
+    returnTo: '/mypage',
+  });
   const reviewWriteHref = singleItem
     ? getMypageReviewWriteHref(singleItem.id, '/mypage')
     : '/mypage/reviews?tab=available&page=1';

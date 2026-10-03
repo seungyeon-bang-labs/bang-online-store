@@ -17,12 +17,13 @@ import type {
 import type {
   OrderDetailItemViewModel,
   OrderDetailViewModel,
-  OrderItemActionsViewModel,
   OrderItemViewModel,
   OrderAmountViewModel,
   OrderListItemViewModel,
+  OrderListPageViewModel,
   OrderRefundViewModel,
 } from './view-model';
+import { getOrderItemActionPolicy } from './order-action-policy';
 
 const ORDER_STATUS_VIEW: Record<OrderStatus, StatusViewModel> = {
   pending_payment: { label: '입금대기', tone: 'warning' },
@@ -70,54 +71,6 @@ const ORDER_STATUS_HISTORY_LABELS: Record<
   delivered: '배송 완료',
   cancelled: '주문 취소',
 };
-
-function getOrderItemActions(
-  status: OrderStatus,
-  canRepurchase: boolean,
-): OrderItemActionsViewModel {
-  if (status === 'pending_payment') {
-    return {
-      primary: { type: 'payment', label: '입금 정보' },
-      secondary: { type: 'cancel', label: '주문 취소' },
-      more: [{ type: 'inquiry', label: '1:1 문의' }],
-    };
-  }
-
-  if (status === 'payment_completed') {
-    return {
-      primary: { type: 'cancel', label: '주문 취소' },
-      secondary: { type: 'inquiry', label: '1:1 문의' },
-      more: [{ type: 'receipt', label: '영수증' }],
-    };
-  }
-
-  if (status === 'shipping') {
-    return {
-      primary: { type: 'tracking', label: '배송 조회' },
-      secondary: { type: 'inquiry', label: '1:1 문의' },
-      more: [{ type: 'receipt', label: '영수증' }],
-    };
-  }
-
-  if (status === 'delivered') {
-    return {
-      primary: { type: 'review', label: '리뷰 쓰기' },
-      secondary: { type: 'claim', label: '교환·반품' },
-      more: canRepurchase
-        ? [{ type: 'repurchase', label: '다시 담기' }]
-        : [{ type: 'inquiry', label: '1:1 문의' }],
-    };
-  }
-
-  return {
-    primary: {
-      type: canRepurchase ? 'repurchase' : 'inquiry',
-      label: canRepurchase ? '다시 담기' : '1:1 문의',
-    },
-    secondary: { type: 'refund', label: '환불 상세' },
-    more: [{ type: 'inquiry', label: '주문 문의' }],
-  };
-}
 
 interface OrderItemViewModelParts {
   detailItem: OrderDetailItemViewModel;
@@ -167,7 +120,11 @@ function toOrderItemViewModelParts(
         : null,
       actions: cancellation
         ? null
-        : getOrderItemActions(order.status, canRepurchase),
+        : getOrderItemActionPolicy({
+            status: order.status,
+            canRepurchase,
+            deliveredAt: order.delivered_at,
+          }),
       repurchaseItem,
     },
     repurchaseItem,
@@ -258,6 +215,38 @@ export function toOrderListItemViewModel(
         repurchaseItem,
       };
     }),
+  };
+}
+
+/** 이미 리뷰를 작성한 상품은 리뷰 기간과 무관하게 다시 담기 정책을 적용한다. */
+export function applyReviewedItemActions(
+  page: OrderListPageViewModel,
+  reviewedOrderItemIds: ReadonlySet<string>,
+): OrderListPageViewModel {
+  return {
+    ...page,
+    items: page.items.map(order => ({
+      ...order,
+      items: order.items.map(item => {
+        if (
+          order.statusCode !== 'delivered' ||
+          item.cancellation ||
+          !reviewedOrderItemIds.has(item.id)
+        ) {
+          return item;
+        }
+
+        return {
+          ...item,
+          actions: getOrderItemActionPolicy({
+            status: order.statusCode,
+            canRepurchase: item.repurchaseItem !== null,
+            deliveredAt: null,
+            reviewWritable: false,
+          }),
+        };
+      }),
+    })),
   };
 }
 

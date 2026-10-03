@@ -30,6 +30,7 @@ export * from './claim';
 export * from './cancellation';
 export * from './mapper';
 export * from './order-command.service';
+export * from './order-action-policy';
 export * from './repository';
 export * from './view-model';
 

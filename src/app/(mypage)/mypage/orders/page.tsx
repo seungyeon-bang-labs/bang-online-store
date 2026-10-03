@@ -1,7 +1,7 @@
 import { PackageSearch } from 'lucide-react';
 import { DynamicPagination } from '@/shared/components/common/dynamic-pagination';
 import { currentUserRepository } from '@/domains/member';
-import { getOrderListViewModel } from '@/domains/order';
+import { getMypageOrderListViewModel } from '@/domains/mypage';
 import {
   MypageEmptyState,
   MypageFilterCard,
@@ -33,7 +33,7 @@ async function OrdersPage({ searchParams }: OrdersPageProps) {
   const query = parseOrderListQuery(await searchParams);
 
   const orderListViewModel = user
-    ? await getOrderListViewModel(user.id, query)
+    ? await getMypageOrderListViewModel(user.id, query)
     : {
         items: [],
         currentPage: 1,

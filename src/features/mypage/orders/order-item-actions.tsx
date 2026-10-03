@@ -8,7 +8,7 @@ import {
 import Link from 'next/link';
 import { Fragment } from 'react';
 import { MoreHorizontal } from 'lucide-react';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/shared/components/ui/button';
 import { useCartStore } from '@/domains/cart';
@@ -23,6 +23,7 @@ import {
   getMypageOrderReceiptHref,
   getMypageReviewWriteHref,
 } from '@/shared/lib/mypage-routes';
+import { getCartHref } from '@/shared/lib/cart-routes';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,6 +52,7 @@ export function MypageOrderItemActions({
   repurchaseItem,
 }: MypageOrderItemActionsProps) {
   const addToCart = useCartStore(state => state.addToCart);
+  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const search = searchParams.toString();
@@ -65,6 +67,11 @@ export function MypageOrderItemActions({
       );
       toast.success('상품을 장바구니에 다시 담았습니다.', {
         position: 'bottom-center',
+        duration: 3000,
+        action: {
+          label: '보러가기',
+          onClick: () => router.push(getCartHref(returnTo)),
+        },
       });
       return;
     }
@@ -80,21 +87,25 @@ export function MypageOrderItemActions({
   };
 
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-2">
-      <OrderItemActionButton
-        action={actions.primary}
-        orderId={orderId}
-        orderItemId={orderItemId}
-        returnTo={returnTo}
-        onAction={runAction}
-      />
-      <OrderItemActionButton
-        action={actions.secondary}
-        orderId={orderId}
-        orderItemId={orderItemId}
-        returnTo={returnTo}
-        onAction={runAction}
-      />
+    <div className="flex w-full items-center gap-2">
+      {actions.primary ? (
+        <OrderItemActionButton
+          action={actions.primary}
+          orderId={orderId}
+          orderItemId={orderItemId}
+          returnTo={returnTo}
+          onAction={runAction}
+        />
+      ) : null}
+      {actions.secondary ? (
+        <OrderItemActionButton
+          action={actions.secondary}
+          orderId={orderId}
+          orderItemId={orderItemId}
+          returnTo={returnTo}
+          onAction={runAction}
+        />
+      ) : null}
       {actions.more.length > 0 ? (
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
@@ -130,9 +141,7 @@ export function MypageOrderItemActions({
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
-      ) : (
-        <span aria-hidden="true" />
-      )}
+      ) : null}
     </div>
   );
 }
@@ -178,7 +187,7 @@ function OrderItemActionButton({
 }: OrderItemActionProps) {
   const href = getOrderItemActionHref(orderId, orderItemId, returnTo, action);
   const className =
-    `w-full ${MYPAGE_ACTION_CLASS_NAME.outline}`;
+    `min-w-0 flex-1 ${MYPAGE_ACTION_CLASS_NAME.outline}`;
 
   if (href) {
     return (
