@@ -65,7 +65,6 @@ export function SignupForm() {
     <form className="flex flex-col gap-5">
       <p className="text-sm leading-5 text-zinc-600">
         현재 포트폴리오 데모에서는 신규 회원가입을 제공하지 않습니다.
-        Supabase Auth 전환 후 이메일 회원가입으로 연결할 예정입니다.
       </p>
       <div>
         <EmailVerification control={control} setValue={setValue} />

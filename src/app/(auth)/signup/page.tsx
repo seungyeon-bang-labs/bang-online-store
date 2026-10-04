@@ -4,7 +4,7 @@ import { SignupForm } from '@/features/auth/signup-form';
 
 function Page() {
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col gap-8">
       <SignupForm />
 
       <div className="hidden flex-col gap-8 md:flex">
