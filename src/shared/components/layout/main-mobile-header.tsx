@@ -111,8 +111,8 @@ function MobileProductHeader({
           size="icon-md"
           className="mr-2"
         >
-          <span className="relative inline-flex size-[22px]" aria-hidden="true">
-            <ShoppingCart className="size-[22px]" />
+          <span className="relative inline-flex size-5.5" aria-hidden="true">
+            <ShoppingCart className="size-5.5" />
             <CartItemCountBadge
               count={cartItemCount}
               className="pointer-events-none absolute -right-2 -top-2"
@@ -159,7 +159,7 @@ export function MainMobileHeader({
           size="icon-md"
           className="ml-2 justify-self-start"
         >
-          <ChevronLeft className="size-[22px]" strokeWidth={2} aria-hidden="true" />
+          <ChevronLeft className="size-5.5" strokeWidth={2} aria-hidden="true" />
         </ButtonLink>
       ) : (
         <span aria-hidden="true" />
@@ -187,8 +187,8 @@ export function MainMobileHeader({
           size="icon-md"
           className="mr-2 justify-self-end"
         >
-          <span className="relative inline-flex size-[22px]" aria-hidden="true">
-            <ShoppingCart className="size-[22px]" />
+          <span className="relative inline-flex size-5.5" aria-hidden="true">
+            <ShoppingCart className="size-5.5" />
             <CartItemCountBadge
               count={cartItemCount}
               className="pointer-events-none absolute -right-2 -top-2"
