@@ -22,25 +22,6 @@ export function AccountInformation({ profile }: AccountInformationProps) {
       <MypageCard.Body padding="flush-y" className="divide-y divide-zinc-200">
         <MypageFormField
           layout="horizontal"
-          className="grid-cols-[4rem_minmax(0,1fr)] items-start gap-3 py-2.5 md:grid-cols-[120px_minmax(0,1fr)] md:items-center md:py-3"
-        >
-          <span className={`${fieldLabelClassName} pt-0.5 md:self-center md:pt-0`}>아이디</span>
-          <div className="min-w-0">
-            <div className="flex min-w-0 items-center gap-3 md:min-h-8">
-              <p className="min-w-0 truncate text-sm font-medium text-zinc-700">
-                {profile.loginId}
-              </p>
-              <p className="ml-auto hidden shrink-0 text-xs font-medium text-zinc-500 md:block">
-                아이디는 변경할 수 없습니다.
-              </p>
-            </div>
-            <p className="mt-0.5 text-xs leading-4 font-medium text-zinc-500 md:hidden">
-              아이디는 변경할 수 없습니다.
-            </p>
-          </div>
-        </MypageFormField>
-        <MypageFormField
-          layout="horizontal"
           className="grid-cols-[4rem_minmax(0,1fr)] items-center gap-3 py-2.5 md:grid-cols-[120px_minmax(0,1fr)] md:py-3"
         >
           <span className={`${fieldLabelClassName} md:self-center`}>이메일</span>

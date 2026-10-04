@@ -47,6 +47,10 @@
 }
 
 :root {
+  --mobile-bottom-nav-height: calc(
+    4rem + 1px + env(safe-area-inset-bottom, 0px)
+  );
+  --toast-bottom-offset: 16px;
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -79,6 +83,22 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+}
+
+@media (max-width: 767px) {
+  :root {
+    --toast-bottom-offset: calc(var(--mobile-bottom-nav-height) + 12px);
+  }
+}
+
+.my-toast {
+  font-size: 14px !important;
+}
+
+@media (max-width: 767px) {
+  .my-toast {
+    font-size: 12px !important;
+  }
 }
 
 .dark {

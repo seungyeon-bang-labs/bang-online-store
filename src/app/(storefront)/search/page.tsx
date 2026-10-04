@@ -4,7 +4,7 @@ import { PageTitle } from '@/shared/components/common/page-title';
 
 function SearchPage() {
   return (
-    <Container className="mb-0 py-6 md:mb-20 md:py-10">
+    <Container className="mb-0 pb-6 pt-4 md:mb-20 md:py-10">
       <PageTitle current="SEARCH" className="hidden md:flex" />
       <SearchPanel />
     </Container>

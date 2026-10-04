@@ -18,18 +18,18 @@ export async function loginAction(
   if (!result.success) {
     return {
       ok: false,
-      errorMessage: '아이디 또는 비밀번호가 올바르지 않습니다.',
+      errorMessage: '이메일 또는 비밀번호가 올바르지 않습니다.',
     };
   }
 
-  const { userid, password } = result.data;
+  const { email, password } = result.data;
 
-  console.log('Login attempt:', { userid, password });
+  console.log('Login attempt:', { email, password });
 
   // TODO: 실제 인증 로직 구현
   // 임시로 항상 실패하도록 설정
   return {
     ok: false,
-    errorMessage: '아이디 또는 비밀번호가 올바르지 않습니다.',
+    errorMessage: '이메일 또는 비밀번호가 올바르지 않습니다.',
   };
 }

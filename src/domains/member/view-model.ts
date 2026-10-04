@@ -1,7 +1,6 @@
 import type { UserGender } from './dto';
 
 export interface MemberProfileViewModel {
-  loginId: string;
   name: string;
   email: string;
   isEmailVerified: boolean;

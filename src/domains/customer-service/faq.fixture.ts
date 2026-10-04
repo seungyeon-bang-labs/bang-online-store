@@ -361,8 +361,8 @@ export const FAQ_DATA: FAQDTO[] = [
   },
   {
     id: 49,
-    question: '아이디/비밀번호를 잊어버렸어요.',
-    answer: '로그인 화면의 아이디/비밀번호 찾기를 이용해 주세요.',
+    question: '이메일/비밀번호를 잊어버렸어요.',
+    answer: '로그인 화면의 비밀번호 찾기를 이용해 주세요.',
     category: 'account',
     tag: '계정찾기',
   },
@@ -397,7 +397,7 @@ export const FAQ_DATA: FAQDTO[] = [
   {
     id: 44,
     question: '로그인 오류가 발생해요.',
-    answer: '아이디/비밀번호를 확인한 뒤 다시 시도해 주세요.',
+    answer: '이메일/비밀번호를 확인한 뒤 다시 시도해 주세요.',
     category: 'account',
     tag: '로그인',
   },
@@ -586,7 +586,7 @@ export const FAQ_DATA: FAQDTO[] = [
   {
     id: 17,
     question: '로그인 정보를 변경할 수 있나요?',
-    answer: '아이디는 변경할 수 없고 비밀번호만 변경 가능합니다.',
+    answer: '이메일은 변경할 수 없고 비밀번호만 변경 가능합니다.',
     category: 'account',
     tag: '로그인',
   },

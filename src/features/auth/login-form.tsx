@@ -1,7 +1,7 @@
 'use client';
 
 import { useTransition } from 'react';
-import { User } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import { loginAction } from '@/actions/login';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -24,7 +24,7 @@ export function LoginForm() {
   } = useForm<z.infer<typeof loginFormSchema>>({
     resolver: zodResolver(loginFormSchema),
     defaultValues: {
-      userid: '',
+      email: '',
       password: '',
     },
   });
@@ -48,13 +48,14 @@ export function LoginForm() {
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
       <div>
         <IconInput
-          placeholder="아이디"
-          icon={User}
-          register={register('userid')}
+          placeholder="이메일"
+          type="email"
+          icon={Mail}
+          register={register('email')}
           disabled={isPending}
-          ariaInvalid={!!errors.userid}
+          ariaInvalid={!!errors.email}
         />
-        <InputError message={errors.userid?.message} />
+        <InputError message={errors.email?.message} />
       </div>
       <div>
         <PasswordInput

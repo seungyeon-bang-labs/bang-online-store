@@ -20,7 +20,7 @@ export function SearchPanel({ className }: SearchPanelProps) {
   return (
     <div
       className={cn(
-        'w-full bg-white px-0 pb-4 pt-2 md:pb-5 md:pt-3',
+        'w-full bg-white px-0 pb-4 pt-0 md:pb-5 md:pt-3',
         className,
       )}
     >
