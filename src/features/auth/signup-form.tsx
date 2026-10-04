@@ -1,11 +1,9 @@
 'use client';
 
-import { User } from 'lucide-react';
 import { FormSubmitButton } from '@/shared/components/ui/button';
 import { EmailVerification } from '@/features/auth/email-verification';
-import { IconInput } from '@/shared/components/common/icon-input';
 import { PasswordInput } from '@/shared/components/common/password-input';
-import { useTransition, useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -16,8 +14,6 @@ import { type TermsKey } from '@/shared/lib/terms';
 import type { Tables } from '@/shared/types/supabase';
 
 export function SignupForm() {
-  const [isPending, startTransition] = useTransition();
-  const [serverError, setServerError] = useState<string | null>(null);
   const [termCodes, setTermCodes] = useState<Tables<'term_codes'>[]>([]);
   const [isLoadingTerms, setIsLoadingTerms] = useState(true);
 
@@ -44,7 +40,6 @@ export function SignupForm() {
 
   const {
     register,
-    handleSubmit,
     control,
     setValue,
     formState: { errors },
@@ -53,7 +48,6 @@ export function SignupForm() {
     mode: 'onBlur',
     reValidateMode: 'onBlur',
     defaultValues: {
-      userid: '',
       password: '',
       confirmPassword: '',
       email: '',
@@ -67,38 +61,23 @@ export function SignupForm() {
     .map(item => errors[item.code as TermsKey]?.message)
     .find(Boolean);
 
-  const onSubmit = async (data: z.infer<typeof signupFormSchema>) => {
-    setServerError(null);
-
-    startTransition(async () => {
-      try {
-        // TODO: 회원가입 API 호출
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        console.log('회원가입 성공:', data);
-      } catch {
-        setServerError('회원가입에 실패했습니다. 다시 시도해주세요.');
-      }
-    });
-  };
-
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
+    <form className="flex flex-col gap-5">
+      <p className="text-sm leading-5 text-zinc-600">
+        현재 포트폴리오 데모에서는 신규 회원가입을 제공하지 않습니다.
+        Supabase Auth 전환 후 이메일 회원가입으로 연결할 예정입니다.
+      </p>
       <div>
-        <IconInput
-          placeholder="아이디"
-          icon={User}
-          register={register('userid')}
-          disabled={isPending}
-          ariaInvalid={!!errors.userid}
+        <EmailVerification control={control} setValue={setValue} />
+        <InputError
+          message={errors.email?.message || errors.isEmailVerified?.message}
         />
-        <InputError message={errors.userid?.message} />
       </div>
 
       <div>
         <PasswordInput
           placeholder="비밀번호"
           register={register('password')}
-          disabled={isPending}
           ariaInvalid={!!errors.password}
         />
         <InputError message={errors.password?.message} />
@@ -108,21 +87,9 @@ export function SignupForm() {
         <PasswordInput
           placeholder="비밀번호 확인"
           register={register('confirmPassword')}
-          disabled={isPending}
           ariaInvalid={!!errors.confirmPassword}
         />
         <InputError message={errors.confirmPassword?.message} />
-      </div>
-
-      <div>
-        <EmailVerification
-          control={control}
-          setValue={setValue}
-          disabled={isPending}
-        />
-        <InputError
-          message={errors.email?.message || errors.isEmailVerified?.message}
-        />
       </div>
 
       {isLoadingTerms ? (
@@ -132,16 +99,15 @@ export function SignupForm() {
           <TermsAgreement
             control={control}
             setValue={setValue}
-            disabled={isPending}
             ariaInvalid={!!termsErrorMessage}
           />
           <InputError message={termsErrorMessage ?? undefined} />
         </div>
       )}
 
-      <InputError message={serverError ?? undefined} className="text-center" />
-
-      <FormSubmitButton isPending={isPending}>회원가입</FormSubmitButton>
+      <FormSubmitButton disabled>
+        회원가입은 준비 중입니다
+      </FormSubmitButton>
     </form>
   );
 }

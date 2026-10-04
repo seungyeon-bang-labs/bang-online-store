@@ -4,7 +4,6 @@ export const DEMO_USER_ID = '00000000-0000-4000-8000-000000000001';
 
 export const CURRENT_USER: UserDTO = {
   id: DEMO_USER_ID,
-  login_id: 'gemini',
   name: 'Kim Gemini',
   email: 'gemini@example.com',
   phone_number: '010-1234-5678',

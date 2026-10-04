@@ -12,7 +12,6 @@ import type {
 export const toMemberProfileViewModel = (
   user: UserDTO,
 ): MemberProfileViewModel => ({
-  loginId: user.login_id,
   name: user.name,
   email: user.email,
   isEmailVerified: user.email_verified_at !== null,

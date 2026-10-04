@@ -1,25 +1,15 @@
 import { ButtonLink } from '@/shared/components/ui/button';
 
 type AccountRecoveryLinksProps = {
-  variant?: 'login' | 'userid' | 'password';
+  variant?: 'login' | 'password';
 };
 
 const recoveryLinkMap: Record<
   NonNullable<AccountRecoveryLinksProps['variant']>,
   Array<{ href: string; label: string }>
 > = {
-  login: [
-    { href: '/find-userid', label: '아이디 찾기' },
-    { href: '/find-password', label: '비밀번호 찾기' },
-  ],
-  userid: [
-    { href: '/signup', label: '회원가입' },
-    { href: '/find-password', label: '비밀번호 찾기' },
-  ],
-  password: [
-    { href: '/signup', label: '회원가입' },
-    { href: '/find-userid', label: '아이디 찾기' },
-  ],
+  login: [{ href: '/find-password', label: '비밀번호 찾기' }],
+  password: [{ href: '/signup', label: '회원가입' }],
 };
 
 function AccountRecoveryLinks({

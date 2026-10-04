@@ -25,10 +25,6 @@ function getAuthMobileHeaderConfig(
     return { title: '회원가입', backHref: '/login' };
   }
 
-  if (pathname === '/find-userid') {
-    return { title: '아이디 찾기', backHref: '/login' };
-  }
-
   if (pathname === '/find-password') {
     return { title: '비밀번호 찾기', backHref: '/login' };
   }

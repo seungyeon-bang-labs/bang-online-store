@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { termsAcceptedData } from '@/shared/lib/terms';
 
 export const loginFormSchema = z.object({
-  userid: z.string().trim().min(1, '아이디를 입력해주세요.'),
+  email: z.email('유효한 이메일 주소를 입력해주세요.'),
   password: z.string().trim().min(1, '비밀번호를 입력해주세요.'),
 });
 
@@ -19,19 +19,6 @@ const termsAcceptedSchema = Object.fromEntries(
 
 export const signupFormSchema = z
   .object({
-    userid: z
-      .string()
-      .trim()
-      .min(1, '아이디를 입력해주세요.')
-      .min(4, '아이디는 4자 이상, 쵀대 12자 이하여야 합니다.')
-      .max(12, '아이디는 4자 이상, 쵀대 12자 이하여야 합니다.')
-      .regex(/^\S+$/, {
-        message: '아이디에 공백을 포함할 수 없습니다.',
-      })
-      .regex(/^(?=.*[a-z])[a-z0-9]+$/, {
-        message:
-          '아이디는 영문 소문자, 숫자를 사용 가능하며, 영문자 1자 이상 포함해야 합니다.',
-      }),
     password: z
       .string()
       .trim()
@@ -71,15 +58,7 @@ export const signupFormSchema = z
     path: ['confirmPassword'],
   });
 
-export const findUseridFormSchema = z.object({
-  email: z.email('유효한 이메일 주소를 입력해주세요.'),
-  isEmailVerified: z
-    .boolean()
-    .refine(value => value, { message: '이메일 인증을 완료해주세요.' }),
-});
-
 export const findPasswordFormSchema = z.object({
-  userid: z.string().trim().min(1, '아이디를 입력해주세요.'),
   email: z.email('유효한 이메일 주소를 입력해주세요.'),
   isEmailVerified: z
     .boolean()
