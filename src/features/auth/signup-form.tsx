@@ -20,7 +20,7 @@ export function SignupForm() {
   useEffect(() => {
     async function fetchTermCodes() {
       try {
-        const response = await fetch('/api/auth/term-codes');
+        const response = await fetch('/api/auth/term_codes');
         const result = await response.json();
         if (response.ok && result.termsCodes) {
           setTermCodes(result.termsCodes);
