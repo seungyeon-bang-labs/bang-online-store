@@ -1,15 +1,11 @@
 'use client';
 
-import { useState } from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { Textarea } from '@/shared/components/ui/textarea';
-import { Camera, Plus, X } from 'lucide-react';
+import { Camera, Plus } from 'lucide-react';
 import { PageTitle } from '@/shared/components/common/page-title';
 
 function SnapshotUploadPage() {
-  const [images, setImages] = useState<string[]>([]);
-  const [selectedProducts, setSelectedProducts] = useState([]);
-
   return (
     <div className="w-full max-w-6xl p-8 md:py-10">
       <PageTitle current="SNAPSHOT UPLOAD" className="mb-12 hidden md:flex" />
@@ -32,7 +28,7 @@ function SnapshotUploadPage() {
 
             <div className="flex gap-4 overflow-x-auto py-2">
               {/* 선택된 상품 카드들 */}
-              <div className="min-w-[120px] aspect-square bg-zinc-100 rounded-md border flex items-center justify-center">
+              <div className="min-w-30 aspect-square bg-zinc-100 rounded-md border flex items-center justify-center">
                 <Plus className="text-zinc-400" />
               </div>
             </div>
@@ -46,7 +42,7 @@ function SnapshotUploadPage() {
               </label>
               <Textarea
                 placeholder="착용하신 스타일의 포인트나 사이즈 팁을 공유해주세요."
-                className="min-h-[150px] border-zinc-200 focus:ring-black rounded-none"
+                className="min-h-37.5 border-zinc-200 focus:ring-black rounded-none"
               />
             </div>
 

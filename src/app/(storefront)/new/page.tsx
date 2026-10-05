@@ -1,7 +1,11 @@
 import { EventBanner } from '@/features/event/event-banner';
 import { PageTitle } from '@/shared/components/common/page-title';
 import { eventRepository, toEventBannerViewModels } from '@/domains/event';
-import { productService, toProductCardViewModel, type ProductModel } from '@/domains/product';
+import {
+  productService,
+  toProductCardViewModel,
+  type ProductModel,
+} from '@/domains/product';
 import { NEW_TABS } from '@/shared/lib/navigation';
 import { Tabs } from '@/shared/components/common/tabs';
 import { ProductsSection } from '@/features/product/products-section';
@@ -91,7 +95,9 @@ const getProductSectionMeta = (
         ? { type: 'restock', date: restockedAt }
         : null;
     case 'past':
-      return getDiffInDays(createdAt) > 30 ? { type: 'past', date: createdAt } : null;
+      return getDiffInDays(createdAt) > 30
+        ? { type: 'past', date: createdAt }
+        : null;
     default:
       return null;
   }
@@ -123,9 +129,7 @@ async function NewPage({ searchParams }: NewPageProps) {
 
   const events = await eventRepository.findMany();
   const products = await productService.findMany();
-  const promotionEvents = events.filter(
-    event => event.kind === 'promotion',
-  );
+  const promotionEvents = events.filter(event => event.kind === 'promotion');
   const eventBannerViewModels = toEventBannerViewModels(promotionEvents);
 
   const groupedProducts = products.reduce(
@@ -190,7 +194,7 @@ async function NewPage({ searchParams }: NewPageProps) {
           tabs={NEW_TABS}
           queryKey="period"
           currentTab={currentPeriod}
-          className="hidden md:sticky md:top-24 md:z-20 md:mb-6 md:flex md:border-b md:border-gray-200 md:bg-gray-50 md:px-0.5 md:py-4"
+          className="hidden md:sticky md:top-24 md:z-20 md:mb-12 md:flex md:border-b md:border-gray-200 md:bg-white md:px-0.5 md:py-4"
         />
 
         <div className="flex flex-col gap-8 md:gap-12">
