@@ -1,7 +1,8 @@
 'use client';
 
 import { FormSubmitButton } from '@/shared/components/ui/button';
-import { EmailVerification } from '@/features/auth/email-verification';
+import { Mail } from 'lucide-react';
+import { IconInput } from '@/shared/components/common/icon-input';
 import { PasswordInput } from '@/shared/components/common/password-input';
 import { useEffect, useState } from 'react';
 import { z } from 'zod';
@@ -51,7 +52,6 @@ export function SignupForm() {
       password: '',
       confirmPassword: '',
       email: '',
-      isEmailVerified: false,
       ...termsDefaults,
     },
   });
@@ -62,14 +62,20 @@ export function SignupForm() {
     .find(Boolean);
 
   return (
-    <form className="flex flex-col gap-5">
+    <form onSubmit={event => event.preventDefault()} className="flex flex-col gap-5">
       <p className="text-sm leading-5 text-zinc-600">
         현재 포트폴리오 데모에서는 신규 회원가입을 제공하지 않습니다.
       </p>
       <div>
-        <EmailVerification control={control} setValue={setValue} />
+        <IconInput
+          placeholder="이메일"
+          type="email"
+          icon={Mail}
+          register={register('email')}
+          ariaInvalid={!!errors.email}
+        />
         <InputError
-          message={errors.email?.message || errors.isEmailVerified?.message}
+          message={errors.email?.message}
         />
       </div>
 

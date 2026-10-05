@@ -45,9 +45,6 @@ export const signupFormSchema = z
       ),
     confirmPassword: z.string().trim().min(1, '비밀번호를 확인해주세요.'),
     email: z.email('유효한 이메일 주소를 입력해주세요.'),
-    isEmailVerified: z
-      .boolean()
-      .refine(value => value, { message: '이메일 인증을 완료해주세요.' }),
     ...(termsAcceptedSchema as Record<
       (typeof termsAcceptedData)[number]['id'],
       z.ZodBoolean
@@ -60,7 +57,4 @@ export const signupFormSchema = z
 
 export const findPasswordFormSchema = z.object({
   email: z.email('유효한 이메일 주소를 입력해주세요.'),
-  isEmailVerified: z
-    .boolean()
-    .refine(value => value, { message: '이메일 인증을 완료해주세요.' }),
 });
