@@ -56,13 +56,10 @@ export function Slider({
 
   return (
     <div>
-      {title && (
-        <SectionHeader
-          title={title}
-          viewAllHref={href}
-          className="mb-4"
-        />
-      )}
+      {title ? (
+        <SectionHeader title={title} viewAllHref={href} className="mb-4" />
+      ) : null}
+
       <Carousel
         opts={{
           align: 'start',
@@ -152,7 +149,10 @@ function getGridItems({
   itemsPerPage: number;
   incompletePageLayout: SliderProps['incompletePageLayout'];
 }) {
-  if (incompletePageLayout !== 'balanced' || pageItems.length === itemsPerPage) {
+  if (
+    incompletePageLayout !== 'balanced' ||
+    pageItems.length === itemsPerPage
+  ) {
     return pageItems;
   }
 
