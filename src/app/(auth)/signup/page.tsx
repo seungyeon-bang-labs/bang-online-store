@@ -1,11 +1,15 @@
 import { Separator } from '@/shared/components/ui/separator';
 import { ButtonLink } from '@/shared/components/ui/button';
 import { SignupForm } from '@/features/auth/signup-form';
+import { termCodeRepository, toSignupTerms } from '@/domains/terms';
 
-function Page() {
+async function Page() {
+  const termCodes = await termCodeRepository.findActive();
+  const termsViewModel = toSignupTerms(termCodes);
+
   return (
     <div className="flex flex-col gap-8">
-      <SignupForm />
+      <SignupForm termsViewModel={termsViewModel} />
 
       <div className="hidden flex-col gap-8 md:flex">
         <Separator label="또는" />

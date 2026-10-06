@@ -1,118 +1,163 @@
 'use client';
 
 import { FormSubmitButton } from '@/shared/components/ui/button';
-import { Mail } from 'lucide-react';
+import { Mail, Phone, User } from 'lucide-react';
 import { IconInput } from '@/shared/components/common/icon-input';
 import { PasswordInput } from '@/shared/components/common/password-input';
-import { useEffect, useState } from 'react';
-import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { signupFormSchema } from '@/shared/lib/form-schemas';
+import {
+  createSignupFormSchema,
+  type SignupFormValues,
+} from './signup-form-schema';
 import { InputError } from '@/shared/components/ui/input';
 import { TermsAgreement } from '@/features/auth/terms-agreement';
-import { type TermsKey } from '@/shared/lib/terms';
-import type { Tables } from '@/shared/types/supabase';
+import type { SignupTermViewModel } from '@/domains/terms/view-model';
 
-export function SignupForm() {
-  const [termCodes, setTermCodes] = useState<Tables<'term_codes'>[]>([]);
-  const [isLoadingTerms, setIsLoadingTerms] = useState(true);
+interface SignupFormProps {
+  termsViewModel: SignupTermViewModel[];
+}
 
-  useEffect(() => {
-    async function fetchTermCodes() {
-      try {
-        const response = await fetch('/api/auth/term_codes');
-        const result = await response.json();
-        if (response.ok && result.termsCodes) {
-          setTermCodes(result.termsCodes);
-        }
-      } catch (error) {
-        console.error('Failed to fetch term codes:', error);
-      } finally {
-        setIsLoadingTerms(false);
-      }
-    }
-    fetchTermCodes();
-  }, []);
-
+export function SignupForm({ termsViewModel }: SignupFormProps) {
   const termsDefaults = Object.fromEntries(
-    termCodes.map(item => [item.code, false]),
-  ) as Record<TermsKey, boolean>;
+    termsViewModel.map(item => [item.code, false]),
+  ) as Record<string, boolean>;
 
   const {
     register,
     control,
     setValue,
+    trigger,
     formState: { errors },
-  } = useForm<z.infer<typeof signupFormSchema>>({
-    resolver: zodResolver(signupFormSchema),
+  } = useForm<SignupFormValues>({
+    resolver: zodResolver(createSignupFormSchema(termsViewModel)),
     mode: 'onBlur',
     reValidateMode: 'onBlur',
     defaultValues: {
+      name: '',
+      phone_number: '',
       password: '',
       confirmPassword: '',
       email: '',
-      ...termsDefaults,
+      agreements: termsDefaults,
     },
   });
 
-  const termsErrorMessage = termCodes
-    .filter(item => item.is_required)
-    .map(item => errors[item.code as TermsKey]?.message)
+  const agreementsErrorMessage = errors.agreements?.message;
+  const termsErrorMessage = typeof agreementsErrorMessage === 'string'
+    ? agreementsErrorMessage
+    : termsViewModel
+    .filter(item => item.required)
+    .map(item => errors.agreements?.[item.code]?.message)
     .find(Boolean);
 
   return (
-    <form onSubmit={event => event.preventDefault()} className="flex flex-col gap-5">
+    <form
+      onSubmit={event => event.preventDefault()}
+      className="flex flex-col gap-5"
+    >
       <p className="text-sm leading-5 text-zinc-600">
         현재 포트폴리오 데모에서는 신규 회원가입을 제공하지 않습니다.
       </p>
       <div>
         <IconInput
-          placeholder="이메일"
+          id="signup-email"
+          aria-label="이메일"
+          autoComplete="email"
+          placeholder="이메일*"
           type="email"
           icon={Mail}
           register={register('email')}
           ariaInvalid={!!errors.email}
+          aria-describedby={errors.email ? 'signup-email-error' : undefined}
         />
-        <InputError
-          message={errors.email?.message}
-        />
+        <InputError id="signup-email-error" message={errors.email?.message} />
       </div>
 
       <div>
         <PasswordInput
-          placeholder="비밀번호"
+          id="signup-password"
+          aria-label="비밀번호"
+          autoComplete="new-password"
+          placeholder="비밀번호*"
           register={register('password')}
           ariaInvalid={!!errors.password}
+          aria-describedby={
+            errors.password ? 'signup-password-error' : undefined
+          }
         />
-        <InputError message={errors.password?.message} />
+        <InputError
+          id="signup-password-error"
+          message={errors.password?.message}
+        />
       </div>
 
       <div>
         <PasswordInput
-          placeholder="비밀번호 확인"
+          id="signup-confirm-password"
+          aria-label="비밀번호 확인"
+          autoComplete="new-password"
+          placeholder="비밀번호 확인*"
           register={register('confirmPassword')}
           ariaInvalid={!!errors.confirmPassword}
+          aria-describedby={
+            errors.confirmPassword ? 'signup-confirm-password-error' : undefined
+          }
         />
-        <InputError message={errors.confirmPassword?.message} />
+        <InputError
+          id="signup-confirm-password-error"
+          message={errors.confirmPassword?.message}
+        />
       </div>
 
-      {isLoadingTerms ? (
-        <div className="text-sm text-muted-foreground">약관 로딩 중...</div>
-      ) : (
+      <div>
+        <IconInput
+          id="signup-name"
+          autoComplete="name"
+          placeholder="이름*"
+          aria-label="이름"
+          icon={User}
+          register={register('name')}
+          ariaInvalid={!!errors.name}
+          aria-describedby={errors.name ? 'signup-name-error' : undefined}
+        />
+        <InputError id="signup-name-error" message={errors.name?.message} />
+      </div>
+      <div>
+        <IconInput
+          id="signup-phone"
+          autoComplete="tel-national"
+          inputMode="tel"
+          placeholder="휴대폰 번호* (예: 01012345678)"
+          aria-label="휴대폰 번호"
+          icon={Phone}
+          register={register('phone_number')}
+          ariaInvalid={!!errors.phone_number}
+          aria-describedby={
+            errors.phone_number ? 'signup-phone-error' : undefined
+          }
+        />
+        <InputError
+          id="signup-phone-error"
+          message={errors.phone_number?.message}
+        />
+      </div>
+
+      {termsViewModel.length > 0 && (
         <div>
           <TermsAgreement
+            termsViewModel={termsViewModel}
             control={control}
             setValue={setValue}
+            trigger={trigger}
             ariaInvalid={!!termsErrorMessage}
+            errorId={termsErrorMessage ? 'signup-terms-error' : undefined}
           />
-          <InputError message={termsErrorMessage ?? undefined} />
+          <InputError id="signup-terms-error" message={termsErrorMessage} />
         </div>
       )}
 
-      <FormSubmitButton disabled>
-        회원가입은 준비 중입니다
-      </FormSubmitButton>
+      <FormSubmitButton disabled>회원가입은 준비 중입니다</FormSubmitButton>
     </form>
   );
 }
