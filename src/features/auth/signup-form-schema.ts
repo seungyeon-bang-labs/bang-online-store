@@ -49,7 +49,12 @@ export function createSignupFormSchema(terms: readonly SignupTermViewModel[]) {
         }
         for (const term of terms) {
           if (term.required && values[term.code] !== true) {
-            ctx.addIssue({ code: 'custom', path: [term.code], message: `'${term.label}'에 동의해주세요.` });
+            const message = term.kind === 'confirmation'
+              ? term.code === 'age_over_14'
+                ? '만 14세 이상인지 확인해주세요.'
+                : `'${term.label}' 항목을 확인해주세요.`
+              : `'${term.label}'에 동의해주세요.`;
+            ctx.addIssue({ code: 'custom', path: [term.code], message });
           }
         }
       }),

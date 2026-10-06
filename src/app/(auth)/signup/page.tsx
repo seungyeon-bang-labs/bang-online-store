@@ -1,11 +1,13 @@
 import { Separator } from '@/shared/components/ui/separator';
 import { ButtonLink } from '@/shared/components/ui/button';
 import { SignupForm } from '@/features/auth/signup-form';
-import { termCodeRepository, toSignupTerms } from '@/domains/terms';
+import { termRepository, toSignupTerms } from '@/domains/terms';
+
+export const dynamic = 'force-dynamic';
 
 async function Page() {
-  const termCodes = await termCodeRepository.findActive();
-  const termsViewModel = toSignupTerms(termCodes);
+  const terms = await termRepository.findEffective();
+  const termsViewModel = toSignupTerms(terms);
 
   return (
     <div className="flex flex-col gap-8">

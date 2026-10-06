@@ -1,5 +1,5 @@
 export type { SignupTermViewModel } from './view-model';
-export type { TermCodeRepository } from './repository';
+export { getTermDetailViewModel } from './detail.service';
 export { toSignupTerms } from './mapper';
-export { supabaseTermCodeRepository as termCodeRepository } from './supabase-repository';
-export { getAgreementState, type AgreementTerm } from './domain';
+export { termRepository } from './repository';
+export { getAgreementState } from './domain';
