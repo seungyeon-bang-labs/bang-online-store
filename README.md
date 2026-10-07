@@ -44,7 +44,7 @@
 | Styling | Tailwind CSS 4, Radix UI, shadcn/ui 기반 컴포넌트 |
 | Form & Validation | React Hook Form, Zod |
 | Client State | Zustand |
-| Authentication | Auth.js 구조 준비 중 |
+| Authentication | Supabase Auth 연동 준비 중 |
 | Data | Fixture repository, Supabase 연동 준비 중 |
 | UI Utilities | Embla Carousel, Sonner, Lucide Icons |
 
@@ -110,7 +110,6 @@ npm run dev
 
 | 변수 | 용도 | 현재 필요 여부 |
 | --- | --- | --- |
-| `AUTH_SECRET` | Auth.js 세션 암호화용 비밀값 | 인증 연동 시 필요 |
 | `SUPABASE_URL` | Supabase 프로젝트 URL | 약관 API 및 DB 연동 시 필요 |
 | `SUPABASE_ANON_KEY` | Supabase anonymous key | 약관 API 및 DB 연동 시 필요 |
 
@@ -133,6 +132,6 @@ npm run start      # 빌드 결과 실행
 ## 향후 계획
 
 - fixture repository를 Supabase repository로 점진적으로 교체
-- Auth.js 또는 Supabase Auth 기반 실제 회원 인증 연결
+- Supabase Auth 기반 실제 회원 인증 연결
 - 장바구니와 주문 생성의 서버 검증·영속화
 - 주문, 취소, 교환·반품, 쿠폰 규칙에 대한 핵심 단위 테스트 추가

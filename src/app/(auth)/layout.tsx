@@ -3,11 +3,11 @@ import Link from 'next/link';
 import { AuthMobileHeader } from '@/features/auth/auth-mobile-header';
 import { LogoWithIcon } from '@/shared/components/layout/logo';
 
-interface LayoutProps {
+interface AuthLayoutProps {
   children: ReactNode;
 }
 
-function Layout({ children }: LayoutProps) {
+function AuthLayout({ children }: AuthLayoutProps) {
   return (
     <div className="min-h-dvh bg-background md:flex md:min-h-screen md:items-center md:justify-center md:bg-accent md:py-8">
       <Suspense
@@ -27,4 +27,4 @@ function Layout({ children }: LayoutProps) {
   );
 }
 
-export default Layout;
+export default AuthLayout;

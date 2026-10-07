@@ -17,121 +17,119 @@ import { cn } from '@/shared/lib/utils';
 import {
   Controller,
   type Control,
-  type Path,
-  type PathValue,
   type UseFormSetValue,
+  type UseFormTrigger,
   useWatch,
 } from 'react-hook-form';
-import type { z } from 'zod';
-import { signupFormSchema } from '@/shared/lib/form-schemas';
-import { termsAcceptedData, type TermsKey } from '@/shared/lib/terms';
+import type { SignupFormValues } from './signup-form-schema';
+import type { SignupTermViewModel } from '@/domains/terms/view-model';
+import { getAgreementState } from '@/domains/terms/domain';
 
-type SignupFormValues = z.infer<typeof signupFormSchema>;
-type TermsPath = Extract<Path<SignupFormValues>, TermsKey>;
+type TermsPath = `agreements.${string}`;
 
 type TermsAgreementProps = {
+  termsViewModel: readonly SignupTermViewModel[];
   control: Control<SignupFormValues>;
   setValue: UseFormSetValue<SignupFormValues>;
+  trigger: UseFormTrigger<SignupFormValues>;
   ariaInvalid?: boolean;
+  errorId?: string;
   disabled?: boolean;
 };
 
 export function TermsAgreement({
+  termsViewModel,
   control,
   setValue,
+  trigger,
   ariaInvalid,
+  errorId,
   disabled,
 }: TermsAgreementProps) {
   const termsKeys = useMemo<readonly TermsPath[]>(
-    () => termsAcceptedData.map(item => item.id as TermsPath),
-    [],
+    () => termsViewModel.map(item => `agreements.${item.code}` as TermsPath),
+    [termsViewModel],
   );
 
   const termsValuesArray = useWatch({ control, name: termsKeys });
-  const checkedState = termsKeys.reduce(
-    (acc, key, index) => {
-      acc[key as TermsKey] = Boolean(termsValuesArray?.[index]);
-      return acc;
-    },
-    {} as Record<TermsKey, boolean>,
+  const agreements = Object.fromEntries(
+    termsViewModel.map((term, index) => [
+      term.code,
+      termsValuesArray?.[index] === true,
+    ]),
+  );
+  const { allChecked, essentialOnlyChecked } = getAgreementState(
+    termsViewModel,
+    agreements,
   );
 
-  const allChecked = termsAcceptedData.every(item => checkedState[item.id]);
-  const essentialOnlyChecked = termsAcceptedData.every(item =>
-    item.type === 'essential' ? checkedState[item.id] : !checkedState[item.id],
-  );
-
-  const setChecked = (key: TermsKey, value: boolean) => {
-    setValue(
-      key as TermsPath,
-      value as PathValue<SignupFormValues, TermsPath>,
-      {
-        shouldValidate: true,
-        shouldDirty: true,
-        shouldTouch: true,
-      },
-    );
+  const setChecked = (key: TermsPath, value: boolean) => {
+    setValue(key, value, {
+      shouldValidate: false,
+      shouldDirty: true,
+      shouldTouch: true,
+    });
   };
 
   const handleToggleAll = (value: boolean) => {
     termsKeys.forEach(key => {
       setChecked(key, value);
     });
+    void trigger('agreements');
   };
 
   const handleToggleEssentialOnly = (value: boolean) => {
-    termsAcceptedData.forEach(item => {
-      setChecked(item.id, item.type === 'essential' ? value : false);
+    termsViewModel.forEach(item => {
+      setChecked(`agreements.${item.code}`, item.required ? value : false);
     });
+    void trigger('agreements');
   };
 
   return (
     <Card
       className={cn('p-3 rounded-md', ariaInvalid && 'border border-red-500')}
     >
-      <FieldSet className="flex gap-4">
+      <FieldSet className="flex gap-4" aria-describedby={errorId}>
         <FieldLegend variant="legend" className="flex items-center gap-2 mb-4">
           <FileCheck className="size-5 text-muted-foreground" />
           약관 동의
         </FieldLegend>
 
         <FieldGroup className="flex-1 gap-4 pl-4 pr-0 md:px-4">
-          {termsAcceptedData.map(({ id, label, link, type }) => (
-            <Field orientation="horizontal" key={id}>
+          {termsViewModel.map(({ code, label, href, required }) => (
+            <Field orientation="horizontal" key={code}>
               <Controller
                 control={control}
-                name={id as TermsPath}
-                render={({ field }) => (
-                  <Checkbox
-                    id={id}
-                    checked={Boolean(field.value)}
-                    onCheckedChange={value => field.onChange(Boolean(value))}
-                    aria-invalid={ariaInvalid && type === 'essential'}
-                    disabled={disabled}
-                  />
+                name={`agreements.${code}`}
+                render={({ field, fieldState }) => (
+                  <>
+                    <Checkbox
+                      id={`signup-term-${code}`}
+                      ref={field.ref}
+                      onBlur={field.onBlur}
+                      aria-describedby={fieldState.error ? errorId : undefined}
+                      checked={Boolean(field.value)}
+                      onCheckedChange={value => field.onChange(value === true)}
+                      aria-invalid={!!fieldState.error}
+                      disabled={disabled}
+                    />
+                    <Label
+                      htmlFor={`signup-term-${code}`}
+                      className={cn('min-w-0 flex-1 font-semibold', fieldState.error && 'text-destructive')}
+                    >
+                      <span className={!required ? 'text-muted-foreground' : ''}>
+                        ({required ? '필수' : '선택'})
+                      </span>{' '}
+                      {label}
+                    </Label>
+                  </>
                 )}
               />
-              <Label
-                htmlFor={id}
-                className={cn(
-                  'min-w-0 flex-1 font-semibold',
-                  ariaInvalid &&
-                    !checkedState[id] &&
-                    type === 'essential' &&
-                    'text-destructive',
-                )}
-              >
-                <span
-                  className={type === 'optional' ? 'text-muted-foreground' : ''}
-                >
-                  ({type === 'essential' ? '필수' : '선택'})
-                </span>{' '}
-                {label}
-              </Label>
-              {link && (
+              {href && (
                 <Link
-                  href={link}
+                  href={href}
                   target="_blank"
+                  aria-label={`${label} 자세히 보기 (새 창)`}
                   className="ml-auto shrink-0 text-sm underline"
                 >
                   <span className="md:hidden">보기</span>
@@ -150,7 +148,7 @@ export function TermsAgreement({
               id="terms-checkbox1"
               name="terms-checkbox1"
               checked={allChecked}
-              onCheckedChange={value => handleToggleAll(Boolean(value))}
+              onCheckedChange={value => handleToggleAll(value === true)}
               disabled={disabled}
             />
             <Label htmlFor="terms-checkbox1" className="font-semibold">
@@ -163,7 +161,7 @@ export function TermsAgreement({
               name="terms-checkbox2"
               checked={essentialOnlyChecked}
               onCheckedChange={value =>
-                handleToggleEssentialOnly(Boolean(value))
+                handleToggleEssentialOnly(value === true)
               }
               disabled={disabled}
             />

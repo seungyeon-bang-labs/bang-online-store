@@ -38,6 +38,7 @@ yarn-error.log*
 /.superpowers/
 
 # local project documentation
+/docs/db/
 /docs/**/*.md
 
 # credentials
