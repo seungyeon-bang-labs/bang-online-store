@@ -1609,35 +1609,35 @@ export const PRODUCT_IMAGE_FIXTURE = [
   {
     "id": "1-2",
     "product_id": 1,
-    "image_url": "Coat-1-1.png",
+    "image_url": "coat-1-1.png",
     "image_type": "detail",
     "display_order": 2
   },
   {
     "id": "2-1",
     "product_id": 2,
-    "image_url": "Coat-1-2.png",
+    "image_url": "coat-1-2.png",
     "image_type": "thumbnail",
     "display_order": 1
   },
   {
     "id": "2-2",
     "product_id": 2,
-    "image_url": "Coat-1-3.png",
+    "image_url": "coat-1-3.png",
     "image_type": "detail",
     "display_order": 2
   },
   {
     "id": "3-1",
     "product_id": 3,
-    "image_url": "Coat-1-4.png",
+    "image_url": "coat-1-4.png",
     "image_type": "thumbnail",
     "display_order": 1
   },
   {
     "id": "3-2",
     "product_id": 3,
-    "image_url": "Coat-1-5.png",
+    "image_url": "coat-1-5.png",
     "image_type": "detail",
     "display_order": 2
   },
