@@ -130,36 +130,39 @@ export type Database = {
       users: {
         Row: {
           created_at: string
+          deleted_at: string | null
           email: string
           email_verified_at: string | null
           id: string
-          login_id: string
-          password_changed_at: string
-          password_hash: string
+          name: string
+          phone_number: string
           role: Database["public"]["Enums"]["user_role"]
           status: Database["public"]["Enums"]["user_status"]
+          updated_at: string
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
           email: string
           email_verified_at?: string | null
-          id?: string
-          login_id: string
-          password_changed_at?: string
-          password_hash: string
+          id: string
+          name: string
+          phone_number: string
           role?: Database["public"]["Enums"]["user_role"]
           status?: Database["public"]["Enums"]["user_status"]
+          updated_at?: string
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
           email?: string
           email_verified_at?: string | null
           id?: string
-          login_id?: string
-          password_changed_at?: string
-          password_hash?: string
+          name?: string
+          phone_number?: string
           role?: Database["public"]["Enums"]["user_role"]
           status?: Database["public"]["Enums"]["user_status"]
+          updated_at?: string
         }
         Relationships: []
       }
@@ -168,7 +171,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      complete_signup: {
+        Args: {
+          p_agreements: Json
+          p_email: string
+          p_name: string
+          p_phone_number: string
+          p_user_id: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       term_kind: "document" | "confirmation"

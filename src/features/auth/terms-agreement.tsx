@@ -21,7 +21,7 @@ import {
   type UseFormTrigger,
   useWatch,
 } from 'react-hook-form';
-import type { SignupFormValues } from './signup-form-schema';
+import type { SignupFormValues } from '@/domains/auth/schema';
 import type { SignupTermViewModel } from '@/domains/terms/view-model';
 import { getAgreementState } from '@/domains/terms/domain';
 

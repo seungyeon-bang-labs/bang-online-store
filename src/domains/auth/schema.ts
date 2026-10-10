@@ -1,8 +1,44 @@
 import { z } from 'zod';
 import { isValidPhoneNumber } from 'libphonenumber-js/min';
-import type { SignupTermViewModel } from '@/domains/terms/view-model';
+import type { Enums } from '@/shared/types/supabase';
 
-export function createSignupFormSchema(terms: readonly SignupTermViewModel[]) {
+export interface SignupValidationTerm {
+  code: string;
+  label: string;
+  required: boolean;
+  kind: Enums<'term_kind'>;
+}
+
+export const loginFormSchema = z.object({
+  email: z.email('유효한 이메일 주소를 입력해주세요.'),
+  password: z.string().min(1, '비밀번호를 입력해주세요.'),
+});
+
+export const findPasswordFormSchema = z.object({
+  email: z.email('유효한 이메일 주소를 입력해주세요.'),
+});
+
+export const signupDetailsSchema = z.object({
+  name: z.string().trim().min(1).max(50),
+  phone_number: z
+    .string()
+    .transform(value => value.replace(/[\s-]/g, ''))
+    .pipe(z.string().regex(/^01[016789][0-9]{7,8}$/)),
+  agreed_term_ids: z.array(z.uuid()).max(100),
+});
+
+export const SIGNUP_OTP_LENGTH = 6;
+export const SIGNUP_OTP_DURATION_SECONDS = 300;
+
+export const signupOtpSchema = z.object({
+  email: z.string().trim().pipe(z.email()),
+  token: z.string().regex(
+    new RegExp(`^\\d{${SIGNUP_OTP_LENGTH}}$`),
+    `인증번호 ${SIGNUP_OTP_LENGTH}자리를 입력해주세요.`,
+  ),
+});
+
+export function createSignupFormSchema(terms: readonly SignupValidationTerm[]) {
   const knownCodes = new Set(terms.map(term => term.code));
 
   return z
@@ -65,4 +101,6 @@ export function createSignupFormSchema(terms: readonly SignupTermViewModel[]) {
     });
 }
 
+export type LoginFormInput = z.infer<typeof loginFormSchema>;
+export type FindPasswordInput = z.infer<typeof findPasswordFormSchema>;
 export type SignupFormValues = z.infer<ReturnType<typeof createSignupFormSchema>>;

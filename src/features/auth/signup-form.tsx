@@ -1,5 +1,6 @@
 'use client';
 
+import { signupAction } from '@/app/(auth)/actions';
 import { FormSubmitButton } from '@/shared/components/ui/button';
 import { Mail, Phone, User } from 'lucide-react';
 import { IconInput } from '@/shared/components/common/icon-input';
@@ -9,16 +10,22 @@ import { useForm } from 'react-hook-form';
 import {
   createSignupFormSchema,
   type SignupFormValues,
-} from './signup-form-schema';
+} from '@/domains/auth/schema';
 import { InputError } from '@/shared/components/ui/input';
 import { TermsAgreement } from '@/features/auth/terms-agreement';
 import type { SignupTermViewModel } from '@/domains/terms/view-model';
 
 interface SignupFormProps {
   termsViewModel: SignupTermViewModel[];
+  defaultEmail?: string;
+  onSuccess: (email: string) => void;
 }
 
-export function SignupForm({ termsViewModel }: SignupFormProps) {
+export function SignupForm({
+  termsViewModel,
+  defaultEmail = '',
+  onSuccess,
+}: SignupFormProps) {
   const termsDefaults = Object.fromEntries(
     termsViewModel.map(item => [item.code, false]),
   ) as Record<string, boolean>;
@@ -28,7 +35,10 @@ export function SignupForm({ termsViewModel }: SignupFormProps) {
     control,
     setValue,
     trigger,
-    formState: { errors },
+    handleSubmit,
+    setError,
+    clearErrors,
+    formState: { errors, isSubmitting },
   } = useForm<SignupFormValues>({
     resolver: zodResolver(createSignupFormSchema(termsViewModel)),
     mode: 'onBlur',
@@ -38,27 +48,35 @@ export function SignupForm({ termsViewModel }: SignupFormProps) {
       phone_number: '',
       password: '',
       confirmPassword: '',
-      email: '',
+      email: defaultEmail,
       agreements: termsDefaults,
     },
   });
 
+  const onSubmit = handleSubmit(async values => {
+    clearErrors('root');
+
+    const result = await signupAction(values);
+
+    if (!result.ok) {
+      setError('root', { message: result.message });
+      return;
+    }
+
+    onSuccess(values.email);
+  });
+
   const agreementsErrorMessage = errors.agreements?.message;
-  const termsErrorMessage = typeof agreementsErrorMessage === 'string'
-    ? agreementsErrorMessage
-    : termsViewModel
-    .filter(item => item.required)
-    .map(item => errors.agreements?.[item.code]?.message)
-    .find(Boolean);
+  const termsErrorMessage =
+    typeof agreementsErrorMessage === 'string'
+      ? agreementsErrorMessage
+      : termsViewModel
+          .filter(item => item.required)
+          .map(item => errors.agreements?.[item.code]?.message)
+          .find(Boolean);
 
   return (
-    <form
-      onSubmit={event => event.preventDefault()}
-      className="flex flex-col gap-5"
-    >
-      <p className="text-sm leading-5 text-zinc-600">
-        현재 포트폴리오 데모에서는 신규 회원가입을 제공하지 않습니다.
-      </p>
+    <form onSubmit={onSubmit} className="flex flex-col gap-5">
       <div>
         <IconInput
           id="signup-email"
@@ -157,7 +175,8 @@ export function SignupForm({ termsViewModel }: SignupFormProps) {
         </div>
       )}
 
-      <FormSubmitButton disabled>회원가입은 준비 중입니다</FormSubmitButton>
+      <InputError message={errors.root?.message} />
+      <FormSubmitButton isPending={isSubmitting}>회원가입</FormSubmitButton>
     </form>
   );
 }

@@ -1,20 +1,21 @@
 'use client';
 
 import { Mail } from 'lucide-react';
-import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { loginFormSchema } from '@/shared/lib/form-schemas';
+import { loginFormSchema, type LoginFormInput } from '@/domains/auth/schema';
 import { InputError } from '@/shared/components/ui/input';
 import { FormSubmitButton } from '@/shared/components/ui/button';
 import { IconInput } from '@/shared/components/common/icon-input';
 import { PasswordInput } from '@/shared/components/common/password-input';
+import { loginAction } from '@/app/(auth)/actions';
 
 export function LoginForm() {
   const {
     register,
-    formState: { errors },
-  } = useForm<z.infer<typeof loginFormSchema>>({
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginFormInput>({
     resolver: zodResolver(loginFormSchema),
     defaultValues: {
       email: '',
@@ -22,11 +23,16 @@ export function LoginForm() {
     },
   });
 
+  const onSubmit = handleSubmit(async values => {
+    const result = await loginAction(values);
+
+    if (result?.error) {
+      console.error(result.error);
+    }
+  });
+
   return (
-    <form onSubmit={event => event.preventDefault()} className="flex flex-col gap-5">
-      <p className="text-sm leading-5 text-zinc-600">
-        로그인 기능은 준비 중입니다.
-      </p>
+    <form onSubmit={onSubmit} className="flex flex-col gap-5">
       <div>
         <IconInput
           placeholder="이메일"
@@ -46,7 +52,7 @@ export function LoginForm() {
         <InputError message={errors.password?.message} />
       </div>
 
-      <FormSubmitButton disabled>로그인은 준비 중입니다</FormSubmitButton>
+      <FormSubmitButton isPending={isSubmitting}>로그인</FormSubmitButton>
     </form>
   );
 }

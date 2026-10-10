@@ -1,20 +1,22 @@
 'use client';
 
-import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Mail } from 'lucide-react';
 import { IconInput } from '@/shared/components/common/icon-input';
 import { FormSubmitButton } from '@/shared/components/ui/button';
 import { InputError } from '@/shared/components/ui/input';
-import { findPasswordFormSchema } from '@/shared/lib/form-schemas';
+import {
+  findPasswordFormSchema,
+  type FindPasswordInput,
+} from '@/domains/auth/schema';
 import { AccountRecoveryLinks } from '@/features/auth/account-recovery-links';
 
 function Page() {
   const {
     register,
     formState: { errors },
-  } = useForm<z.infer<typeof findPasswordFormSchema>>({
+  } = useForm<FindPasswordInput>({
     resolver: zodResolver(findPasswordFormSchema),
     defaultValues: {
       email: '',

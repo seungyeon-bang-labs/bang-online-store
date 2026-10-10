@@ -108,8 +108,8 @@ function FormSubmitButton({
       className={className}
       {...props}
     >
-      {isPending && <Loader2 className="size-4 animate-spin" />}
       {children}
+      {isPending && <Loader2 className="size-4 animate-spin" />}
     </Button>
   )
 }

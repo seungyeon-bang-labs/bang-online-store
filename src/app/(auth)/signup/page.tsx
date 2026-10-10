@@ -1,6 +1,6 @@
 import { Separator } from '@/shared/components/ui/separator';
 import { ButtonLink } from '@/shared/components/ui/button';
-import { SignupForm } from '@/features/auth/signup-form';
+import { SignupFlow } from '@/features/auth/signup-flow';
 import { termRepository, toSignupTerms } from '@/domains/terms';
 
 export const dynamic = 'force-dynamic';
@@ -11,7 +11,7 @@ async function Page() {
 
   return (
     <div className="flex flex-col gap-8">
-      <SignupForm termsViewModel={termsViewModel} />
+      <SignupFlow termsViewModel={termsViewModel} />
 
       <div className="hidden flex-col gap-8 md:flex">
         <Separator label="또는" />
