@@ -9,11 +9,14 @@ import { FormSubmitButton } from '@/shared/components/ui/button';
 import { IconInput } from '@/shared/components/common/icon-input';
 import { PasswordInput } from '@/shared/components/common/password-input';
 import { loginAction } from '@/app/(auth)/actions';
+import { useRouter } from 'next/navigation';
 
 export function LoginForm() {
+  const router = useRouter();
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormInput>({
     resolver: zodResolver(loginFormSchema),
@@ -24,10 +27,20 @@ export function LoginForm() {
   });
 
   const onSubmit = handleSubmit(async values => {
-    const result = await loginAction(values);
+    try {
+      const result = await loginAction(values);
 
-    if (result?.error) {
-      console.error(result.error);
+      if (result.status === 'error') {
+        setError('root', { message: result.message });
+      } else if (result.status === 'verification_required') {
+        router.push(`/verify-email?email=${encodeURIComponent(result.email)}`);
+      } else {
+        router.replace('/');
+      }
+    } catch {
+      setError('root', {
+        message: '로그인 요청을 처리하지 못했습니다. 다시 시도해주세요.',
+      });
     }
   });
 
@@ -52,6 +65,7 @@ export function LoginForm() {
         <InputError message={errors.password?.message} />
       </div>
 
+      <InputError message={errors.root?.message} />
       <FormSubmitButton isPending={isSubmitting}>로그인</FormSubmitButton>
     </form>
   );

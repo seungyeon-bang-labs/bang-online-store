@@ -21,6 +21,8 @@ export function toSignupTerms(
     label: term.title,
     required: term.is_required,
     kind: term.term_codes.kind,
-    ...(term.term_codes.kind === 'document' ? { href: `/terms/${term.id}` } : {}),
+    ...(term.term_codes.kind === 'document'
+      ? { href: `/terms/${term.id}` }
+      : {}),
   }));
 }

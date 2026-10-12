@@ -5,7 +5,7 @@ import { Card } from '@/shared/components/ui/card';
 import { Checkbox } from '@/shared/components/ui/checkbox';
 import { Label } from '@/shared/components/ui/label';
 import { Separator } from '@/shared/components/ui/separator';
-import Link from 'next/link';
+import { TermDetailDialog } from '@/features/terms/term-detail-dialog';
 import {
   Field,
   FieldGroup,
@@ -96,7 +96,7 @@ export function TermsAgreement({
         </FieldLegend>
 
         <FieldGroup className="flex-1 gap-4 pl-4 pr-0 md:px-4">
-          {termsViewModel.map(({ code, label, href, required }) => (
+          {termsViewModel.map(({ termId, code, label, href, required }) => (
             <Field orientation="horizontal" key={code}>
               <Controller
                 control={control}
@@ -115,9 +115,14 @@ export function TermsAgreement({
                     />
                     <Label
                       htmlFor={`signup-term-${code}`}
-                      className={cn('min-w-0 flex-1 font-semibold', fieldState.error && 'text-destructive')}
+                      className={cn(
+                        'min-w-0 flex-1 font-semibold',
+                        fieldState.error && 'text-destructive',
+                      )}
                     >
-                      <span className={!required ? 'text-muted-foreground' : ''}>
+                      <span
+                        className={!required ? 'text-muted-foreground' : ''}
+                      >
                         ({required ? '필수' : '선택'})
                       </span>{' '}
                       {label}
@@ -126,15 +131,12 @@ export function TermsAgreement({
                 )}
               />
               {href && (
-                <Link
-                  href={href}
-                  target="_blank"
-                  aria-label={`${label} 자세히 보기 (새 창)`}
-                  className="ml-auto shrink-0 text-sm underline"
-                >
-                  <span className="md:hidden">보기</span>
-                  <span className="hidden md:inline">자세히 보기</span>
-                </Link>
+                <TermDetailDialog
+                  key={termId}
+                  termId={termId}
+                  label={label}
+                  disabled={disabled}
+                />
               )}
             </Field>
           ))}

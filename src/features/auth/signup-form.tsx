@@ -17,13 +17,11 @@ import type { SignupTermViewModel } from '@/domains/terms/view-model';
 
 interface SignupFormProps {
   termsViewModel: SignupTermViewModel[];
-  defaultEmail?: string;
   onSuccess: (email: string) => void;
 }
 
 export function SignupForm({
   termsViewModel,
-  defaultEmail = '',
   onSuccess,
 }: SignupFormProps) {
   const termsDefaults = Object.fromEntries(
@@ -37,7 +35,6 @@ export function SignupForm({
     trigger,
     handleSubmit,
     setError,
-    clearErrors,
     formState: { errors, isSubmitting },
   } = useForm<SignupFormValues>({
     resolver: zodResolver(createSignupFormSchema(termsViewModel)),
@@ -48,18 +45,27 @@ export function SignupForm({
       phone_number: '',
       password: '',
       confirmPassword: '',
-      email: defaultEmail,
+      email: '',
       agreements: termsDefaults,
     },
   });
 
   const onSubmit = handleSubmit(async values => {
-    clearErrors('root');
+    try {
+      const result = await signupAction({
+        ...values,
+        displayed_term_ids: termsViewModel.map(term => term.termId),
+      });
 
-    const result = await signupAction(values);
-
-    if (!result.ok) {
-      setError('root', { message: result.message });
+      if (!result.ok) {
+        setError('root', { message: result.message });
+        return;
+      }
+    } catch {
+      setError('root', {
+        message:
+          '회원가입 결과를 확인하지 못했습니다. 이메일을 확인하거나 로그인 화면에서 인증을 이어가주세요.',
+      });
       return;
     }
 

@@ -5,7 +5,7 @@ import { termRepository, toSignupTerms } from '@/domains/terms';
 
 export const dynamic = 'force-dynamic';
 
-async function Page() {
+async function SignupPage() {
   const terms = await termRepository.findEffective();
   const termsViewModel = toSignupTerms(terms);
 
@@ -26,4 +26,4 @@ async function Page() {
   );
 }
 
-export default Page;
+export default SignupPage;

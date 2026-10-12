@@ -64,3 +64,12 @@ export const formatKoreanMoney = (value: number) =>
 
 export const formatKoreanPoints = (value: number) =>
   value.toLocaleString('ko-KR') + ' P';
+
+export const formatMinutesSeconds = (totalSeconds: number) => {
+  const minutes = Math.floor(totalSeconds / 60)
+    .toString()
+    .padStart(2, '0');
+  const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+
+  return `${minutes}:${seconds}`;
+};

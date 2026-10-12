@@ -1,14 +1,14 @@
 import { ButtonLink } from '@/shared/components/ui/button';
 import { Separator } from '@/shared/components/ui/separator';
 import { LoginForm } from '@/features/auth/login-form';
-import { AccountRecoveryLinks } from '@/features/auth/account-recovery-links';
+import { AuthSecondaryLink } from '@/features/auth/auth-secondary-link';
 
-function Page() {
+function LoginPage() {
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-3">
         <LoginForm />
-        <AccountRecoveryLinks />
+        <AuthSecondaryLink />
       </div>
 
       <Separator label="또는" />
@@ -21,4 +21,4 @@ function Page() {
   );
 }
 
-export default Page;
+export default LoginPage;

@@ -1,13 +1,14 @@
 'use server';
 
-import { currentUserRepository, userAddressRepository } from '@/domains/member';
+import { requireActiveMember } from '@/app/(auth)/require-active-member';
+
+import { userAddressRepository } from '@/domains/member';
 import { createDemoOrder, type DemoOrderCartItem } from '@/domains/order';
 
 export async function createDemoOrderFromCart(
   items: DemoOrderCartItem[],
 ): Promise<string> {
-  const user = await currentUserRepository.findCurrent();
-  if (!user) throw new Error('주문자 정보를 확인할 수 없습니다.');
+  const user = await requireActiveMember();
 
   const address = await userAddressRepository.findDefaultByUserId(user.id);
   if (!address) throw new Error('기본 배송지를 확인할 수 없습니다.');

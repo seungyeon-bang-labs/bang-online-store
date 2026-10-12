@@ -1,13 +1,13 @@
 'use server';
 
+import { requireActiveMember } from '@/app/(auth)/require-active-member';
+
 import { cancelInquiry, createInquiry, type InquiryType } from '@/domains/inquiry';
-import { currentUserRepository } from '@/domains/member';
 
 export async function cancelMypageInquiryAction(
   inquiryId: string,
 ): Promise<boolean> {
-  const user = await currentUserRepository.findCurrent();
-  if (!user) return false;
+  const user = await requireActiveMember();
 
   return cancelInquiry(user.id, inquiryId);
 }
@@ -20,8 +20,7 @@ export async function createMypageInquiryAction(input: {
   orderItemId: string;
   productId: string;
 }): Promise<boolean> {
-  const user = await currentUserRepository.findCurrent();
-  if (!user) return false;
+  const user = await requireActiveMember();
 
   return createInquiry(user.id, input);
 }

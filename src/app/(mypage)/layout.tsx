@@ -1,5 +1,5 @@
 import { Suspense, type ReactNode } from 'react';
-import { currentUserRepository } from '@/domains/member';
+import { requireActiveMember } from '@/app/(auth)/require-active-member';
 import { CartAwareHeader } from '@/features/cart/cart-header';
 import { MypageMobileHeader } from '@/features/mypage/navigation/mobile-mypage-header';
 import { SiteLayout } from '@/shared/components/layout/site-layout';
@@ -9,12 +9,12 @@ interface MypageRouteLayoutProps {
 }
 
 async function MypageRouteLayout({ children }: MypageRouteLayoutProps) {
-  const user = await currentUserRepository.findCurrent();
+  await requireActiveMember();
 
   return (
     <SiteLayout
       className="min-h-dvh bg-zinc-50 dark:bg-zinc-50 md:min-h-screen md:bg-transparent md:dark:bg-black"
-      isLoggedIn={user !== null}
+      isLoggedIn
       headerContent={
         <CartAwareHeader
           mobileContent={

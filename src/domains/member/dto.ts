@@ -1,3 +1,5 @@
+import type { Tables } from '@/shared/types/supabase';
+
 export type UserGender = 'male' | 'female' | 'unspecified';
 
 export interface UserDTO {
@@ -26,3 +28,8 @@ export interface UserAddressDTO {
   created_at: string;
   updated_at: string;
 }
+
+export type MemberAccessDTO = Pick<
+  Tables<'users'>,
+  'id' | 'status' | 'deleted_at'
+>;
