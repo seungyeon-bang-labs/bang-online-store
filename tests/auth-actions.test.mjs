@@ -14,9 +14,14 @@ const input = {
   agreements: { service: true, marketing: false }, displayed_term_ids: [requiredId, optionalId],
 };
 
-function setup({ signInError = null, signInThrows = null, otpError = null, access = { status: 'active', member: { id: 'server-user' } }, signupError = null, signupThrows = null } = {}) {
-  const calls = { signup: [], otp: [], resend: [], access: 0 };
+function setup({ signInError = null, signInThrows = null, otpError = null, access = { status: 'active', member: { id: 'server-user' } }, signupError = null, signupThrows = null, signOutError = null, signOutThrows = null } = {}) {
+  const calls = { signup: [], otp: [], resend: [], signOut: [], access: 0 };
   const client = { auth: {
+    signOut: async options => {
+      calls.signOut.push(options);
+      if (signOutThrows) throw signOutThrows;
+      return { error: signOutError };
+    },
     signInWithPassword: async () => {
       if (signInThrows) throw signInThrows;
       return { error: signInError };
@@ -31,7 +36,10 @@ function setup({ signInError = null, signInThrows = null, otpError = null, acces
   } };
   const { toSignupTerms } = loadTs('src/domains/terms/mapper.ts');
   const actions = loadTs('src/app/(auth)/actions.ts', {
-    'next/navigation': { redirect: href => { throw new Error(`REDIRECT:${href}`); } },
+    'next/navigation': {
+      RedirectType: { replace: 'replace' },
+      redirect: (href, type) => { throw new Error(`REDIRECT:${href}:${type}`); },
+    },
     '@/shared/lib/supabase/auth-server': { createAuthClient: async () => client },
     '@/domains/terms': { termRepository: { findEffective: async () => terms }, toSignupTerms },
     '@/domains/auth/member-access.server': { getCurrentMemberAccess: async () => { calls.access++; return access; } },
@@ -39,6 +47,34 @@ function setup({ signInError = null, signInThrows = null, otpError = null, acces
   });
   return { actions, calls };
 }
+
+test('logout ends only the current session and replaces the page with home', async () => {
+  const { actions, calls } = setup();
+  assert.equal(typeof actions.logoutAction, 'function');
+  await assert.rejects(actions.logoutAction(null), { message: 'REDIRECT:/:replace' });
+  assert.deepEqual(calls.signOut, [{ scope: 'local' }]);
+  assert.equal(calls.access, 0);
+});
+test('a rejected logout returns a safe retry message instead of navigating', async () => {
+  const { actions } = setup({ signOutError: { message: 'PRIVATE_AUTH_FAILURE' } });
+  assert.equal(typeof actions.logoutAction, 'function');
+  const result = await actions.logoutAction(null);
+  assert.match(result.message, /다시 시도/);
+  assert.doesNotMatch(result.message, /PRIVATE_AUTH_FAILURE/);
+});
+test('a logout transport failure returns a retry message', async () => {
+  const { actions } = setup({ signOutThrows: new Error('PRIVATE_NETWORK_FAILURE') });
+  assert.equal(typeof actions.logoutAction, 'function');
+  const result = await actions.logoutAction(null);
+  assert.match(result.message, /다시 시도/);
+  assert.doesNotMatch(result.message, /PRIVATE_NETWORK_FAILURE/);
+});
+test('an unavailable member can still sign out without a member access lookup', async () => {
+  const { actions, calls } = setup({ access: { status: 'unavailable' } });
+  assert.equal(typeof actions.logoutAction, 'function');
+  await assert.rejects(actions.logoutAction(null), { message: 'REDIRECT:/:replace' });
+  assert.equal(calls.access, 0);
+});
 
 test('confirmed login with an active store member returns success without throwing a redirect', async () => {
   const { actions, calls } = setup();

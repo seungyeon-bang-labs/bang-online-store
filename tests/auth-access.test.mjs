@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { loadTs } from './helpers/load-ts.mjs';
 
 const active = { id: 'member-1', status: 'active', deleted_at: null };
@@ -88,4 +89,27 @@ test('protected mutation uses the server session ID rather than a fixture identi
   });
   assert.equal(await createMypageAddressAction({}), true);
   assert.equal(receivedId, 'real-member');
+});
+
+test('an active member cannot render the password recovery page', async () => {
+  const { default: FindPasswordPage } = loadTs('src/app/(auth)/find-password/page.tsx', {
+    '@/domains/auth/member-access.server': {
+      getCurrentMemberAccess: async () => ({ status: 'active', member: active }),
+    },
+    'next/navigation': { redirect: href => { throw new Error(`REDIRECT:${href}`); } },
+  });
+  await assert.rejects(async () => FindPasswordPage(), { message: 'REDIRECT:/' });
+});
+
+test('a guest can still see the disabled demo recovery form and account navigation', async () => {
+  const { default: FindPasswordPage } = loadTs('src/app/(auth)/find-password/page.tsx', {
+    '@/domains/auth/member-access.server': {
+      getCurrentMemberAccess: async () => ({ status: 'unauthenticated' }),
+    },
+  });
+  const html = renderToStaticMarkup(await FindPasswordPage());
+  assert.match(html, /type="email"/);
+  assert.match(html, /type="submit"[^>]*disabled=""/);
+  assert.match(html, /href="\/login"/);
+  assert.match(html, /href="\/signup"/);
 });

@@ -1,5 +1,6 @@
 'use server';
 
+import { redirect, RedirectType } from 'next/navigation';
 import { createAuthClient } from '@/shared/lib/supabase/auth-server';
 import {
   loginFormSchema,
@@ -40,6 +41,20 @@ const accessMessages = {
 
 const signupRecoveryMessage =
   '회원가입 결과를 확인하지 못했습니다. 이메일을 확인하거나 로그인 화면에서 인증을 이어가주세요.';
+
+export async function logoutAction(): Promise<{ message: string } | null> {
+  const client = await createAuthClient();
+  const failure = { message: '로그아웃하지 못했습니다. 다시 시도해주세요.' };
+
+  try {
+    const { error } = await client.auth.signOut({ scope: 'local' });
+    if (error) return failure;
+  } catch {
+    return failure;
+  }
+
+  redirect('/', RedirectType.replace);
+}
 
 export async function loginAction(input: unknown): Promise<LoginResult> {
   const parsed = loginFormSchema.safeParse(input);

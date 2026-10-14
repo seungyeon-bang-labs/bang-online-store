@@ -2,8 +2,16 @@ import { ButtonLink } from '@/shared/components/ui/button';
 import { Separator } from '@/shared/components/ui/separator';
 import { LoginForm } from '@/features/auth/login-form';
 import { AuthSecondaryLink } from '@/features/auth/auth-secondary-link';
+import { getCurrentMemberAccess } from '@/domains/auth/member-access.server';
+import { redirect } from 'next/navigation';
 
-function LoginPage() {
+async function LoginPage() {
+  const access = await getCurrentMemberAccess();
+
+  if (access.status === 'active') {
+    redirect('/');
+  }
+
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-3">
@@ -19,6 +27,6 @@ function LoginPage() {
       </div>
     </div>
   );
-}
+};
 
 export default LoginPage;

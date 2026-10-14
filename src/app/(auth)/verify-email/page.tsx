@@ -10,12 +10,16 @@ interface VerifyEmailPageProps {
 }
 
 async function VerifyEmailPage({ searchParams }: VerifyEmailPageProps) {
-  const access = await getCurrentMemberAccess();
-  if (access.status === 'active') redirect('/');
-  if (access.status === 'unavailable') redirect('/login');
-  if (access.status === 'missing') redirect('/login');
+  const [access, { email: requestedEmail }] = await Promise.all([
+    getCurrentMemberAccess(),
+    searchParams,
+  ]);
 
-  const { email: requestedEmail } = await searchParams;
+  if (access.status === 'active') redirect('/');
+  if (access.status === 'unavailable' || access.status === 'missing') {
+    redirect('/login');
+  }
+
   const parsed = signupOtpSchema.pick({ email: true }).safeParse({
     email: access.status === 'unverified' ? access.email : requestedEmail,
   });

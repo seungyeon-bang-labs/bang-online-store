@@ -62,7 +62,6 @@ const SHARED_MENU: { [key: string]: MenuItem } = {
   },
   HOME: { name: '홈', href: '/', icon: House },
   CATEGORIES: { name: '카테고리', href: '/category', icon: LayoutGrid },
-  LOGOUT: { name: '로그아웃', href: '/logout', requiresAuth: true },
 };
 
 const MOBILE_MY_PAGE_MENU: MenuItem = {
@@ -76,7 +75,6 @@ export const PC_UTILITY_MENU: MenuItem[] = [
   SHARED_MENU.CART,
   SHARED_MENU.ORDER_TRACKING,
   SHARED_MENU.LOGIN_SIGNUP,
-  SHARED_MENU.LOGOUT,
 ];
 
 export const PC_MAIN_MENU: MenuItem[] = [

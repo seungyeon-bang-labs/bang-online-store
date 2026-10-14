@@ -1,54 +1,21 @@
-'use client';
-
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Mail } from 'lucide-react';
-import { IconInput } from '@/shared/components/common/icon-input';
-import { ButtonLink, FormSubmitButton } from '@/shared/components/ui/button';
-import { InputError } from '@/shared/components/ui/input';
+import { redirect } from 'next/navigation';
+import { getCurrentMemberAccess } from '@/domains/auth/member-access.server';
+import { ButtonLink } from '@/shared/components/ui/button';
 import { Separator } from '@/shared/components/ui/separator';
-import {
-  findPasswordFormSchema,
-  type FindPasswordInput,
-} from '@/domains/auth/schema';
 import { AuthSecondaryLink } from '@/features/auth/auth-secondary-link';
+import { FindPasswordForm } from '@/features/auth/find-password-form';
 
-function Page() {
-  const {
-    register,
-    formState: { errors },
-  } = useForm<FindPasswordInput>({
-    resolver: zodResolver(findPasswordFormSchema),
-    defaultValues: {
-      email: '',
-    },
-  });
+async function FindPasswordPage() {
+  const access = await getCurrentMemberAccess();
+
+  if (access.status === 'active') {
+    redirect('/');
+  }
 
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-3">
-        <form
-          onSubmit={event => event.preventDefault()}
-          className="flex flex-col gap-4"
-        >
-          <p className="text-sm leading-5 text-zinc-600">
-            현재 포트폴리오 데모에서는 비밀번호 재설정을 제공하지 않습니다.
-          </p>
-          <div>
-            <IconInput
-              placeholder="이메일"
-              type="email"
-              icon={Mail}
-              register={register('email')}
-              ariaInvalid={!!errors.email}
-            />
-            <InputError message={errors.email?.message} />
-          </div>
-
-          <FormSubmitButton disabled>
-            비밀번호 재설정은 준비 중입니다
-          </FormSubmitButton>
-        </form>
+        <FindPasswordForm />
         <AuthSecondaryLink variant="password" />
       </div>
 
@@ -62,4 +29,4 @@ function Page() {
   );
 }
 
-export default Page;
+export default FindPasswordPage;

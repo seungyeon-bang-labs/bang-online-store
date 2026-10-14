@@ -2,11 +2,21 @@ import { Separator } from '@/shared/components/ui/separator';
 import { ButtonLink } from '@/shared/components/ui/button';
 import { SignupFlow } from '@/features/auth/signup-flow';
 import { termRepository, toSignupTerms } from '@/domains/terms';
+import { getCurrentMemberAccess } from '@/domains/auth/member-access.server';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
 async function SignupPage() {
-  const terms = await termRepository.findEffective();
+  const [access, terms] = await Promise.all([
+    getCurrentMemberAccess(),
+    termRepository.findEffective(),
+  ]);
+
+  if (access.status === 'active') {
+    redirect('/');
+  }
+
   const termsViewModel = toSignupTerms(terms);
 
   return (
