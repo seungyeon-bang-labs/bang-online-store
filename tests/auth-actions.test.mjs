@@ -43,7 +43,6 @@ function setup({ signInError = null, signInThrows = null, otpError = null, acces
     '@/shared/lib/supabase/auth-server': { createAuthClient: async () => client },
     '@/domains/terms': { termRepository: { findEffective: async () => terms }, toSignupTerms },
     '@/domains/auth/member-access.server': { getCurrentMemberAccess: async () => { calls.access++; return access; } },
-    '@/domains/auth/complete-signup.server': { completeCurrentSignup: async () => { throw new Error('Legacy completion must not run'); } },
   });
   return { actions, calls };
 }
@@ -69,11 +68,13 @@ test('a logout transport failure returns a retry message', async () => {
   assert.match(result.message, /다시 시도/);
   assert.doesNotMatch(result.message, /PRIVATE_NETWORK_FAILURE/);
 });
-test('an unavailable member can still sign out without a member access lookup', async () => {
-  const { actions, calls } = setup({ access: { status: 'unavailable' } });
-  assert.equal(typeof actions.logoutAction, 'function');
-  await assert.rejects(actions.logoutAction(null), { message: 'REDIRECT:/:replace' });
-  assert.equal(calls.access, 0);
+test('unavailable and missing members can sign out without a member access lookup', async () => {
+  for (const status of ['unavailable', 'missing']) {
+    const { actions, calls } = setup({ access: { status } });
+    await assert.rejects(actions.logoutAction(null), { message: 'REDIRECT:/:replace' });
+    assert.deepEqual(calls.signOut, [{ scope: 'local' }]);
+    assert.equal(calls.access, 0);
+  }
 });
 
 test('confirmed login with an active store member returns success without throwing a redirect', async () => {

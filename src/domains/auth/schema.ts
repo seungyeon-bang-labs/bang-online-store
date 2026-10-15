@@ -13,6 +13,40 @@ export interface SignupRequestTerm extends SignupValidationTerm {
   termId: string;
 }
 
+export const passwordSchema = z
+  .string()
+  .min(1, '비밀번호를 입력해주세요.')
+  .pipe(
+    z.string().superRefine((value, ctx) => {
+      const reject = (message: string) =>
+        ctx.addIssue({ code: 'custom', message });
+      if (value.length < 8 || value.length > 20) {
+        reject('비밀번호는 8자 이상, 최대 20자 이하여야 합니다.');
+        return;
+      }
+      if (/\s/.test(value)) {
+        reject('비밀번호에 공백을 포함할 수 없습니다.');
+        return;
+      }
+      if (!/^[\x21-\x7E]+$/.test(value)) {
+        reject(
+          '비밀번호는 영문, 숫자, ASCII 특수문자만 사용할 수 있습니다.',
+        );
+        return;
+      }
+      const kinds = [
+        /[A-Za-z]/.test(value),
+        /[0-9]/.test(value),
+        /[^A-Za-z0-9]/.test(value),
+      ];
+      if (kinds.filter(Boolean).length < 2) {
+        reject(
+          '비밀번호는 영문, 숫자, 특수문자 중 2가지 이상 포함해야 합니다.',
+        );
+      }
+    }),
+  );
+
 export const loginFormSchema = z.object({
   email: z
     .string()
@@ -22,18 +56,7 @@ export const loginFormSchema = z.object({
   password: z.string().min(1, '비밀번호를 입력해주세요.'),
 });
 
-export const findPasswordFormSchema = z.object({
-  email: z.email('유효한 이메일 주소를 입력해주세요.'),
-});
-
-export const signupDetailsSchema = z.object({
-  name: z.string().trim().min(1).max(50),
-  phone_number: z
-    .string()
-    .transform(value => value.replace(/[\s-]/g, ''))
-    .pipe(z.string().regex(/^01[016789][0-9]{7,8}$/)),
-  agreed_term_ids: z.array(z.uuid()).max(100),
-});
+export const findPasswordFormSchema = loginFormSchema.pick({ email: true });
 
 export const SIGNUP_OTP_LENGTH = 6;
 export const SIGNUP_OTP_DURATION_SECONDS = 300;
@@ -75,39 +98,7 @@ export function createSignupFormSchema(terms: readonly SignupValidationTerm[]) {
               { message: '유효한 휴대폰 번호를 입력해주세요.' },
             ),
         ),
-      password: z
-        .string()
-        .min(1, '비밀번호를 입력해주세요.')
-        .pipe(
-          z.string().superRefine((value, ctx) => {
-            const reject = (message: string) =>
-              ctx.addIssue({ code: 'custom', message });
-            if (value.length < 8 || value.length > 20) {
-              reject('비밀번호는 8자 이상, 최대 20자 이하여야 합니다.');
-              return;
-            }
-            if (/\s/.test(value)) {
-              reject('비밀번호에 공백을 포함할 수 없습니다.');
-              return;
-            }
-            if (!/^[\x21-\x7E]+$/.test(value)) {
-              reject(
-                '비밀번호는 영문, 숫자, ASCII 특수문자만 사용할 수 있습니다.',
-              );
-              return;
-            }
-            const kinds = [
-              /[A-Za-z]/.test(value),
-              /[0-9]/.test(value),
-              /[^A-Za-z0-9]/.test(value),
-            ];
-            if (kinds.filter(Boolean).length < 2) {
-              reject(
-                '비밀번호는 영문, 숫자, 특수문자 중 2가지 이상 포함해야 합니다.',
-              );
-            }
-          }),
-        ),
+      password: passwordSchema,
       confirmPassword: z.string().min(1, '비밀번호를 확인해주세요.'),
       email: z
         .string()
@@ -177,3 +168,40 @@ export type FindPasswordInput = z.infer<typeof findPasswordFormSchema>;
 export type SignupFormValues = z.infer<
   ReturnType<typeof createSignupFormSchema>
 >;
+
+export const PASSWORD_RECOVERY_OTP_LENGTH = 6;
+export const PASSWORD_RECOVERY_DURATION_SECONDS = 300;
+
+export const passwordRecoveryOtpSchema = findPasswordFormSchema.extend({
+  token: z.string().regex(/^\d{6}$/, '인증번호 6자리를 입력해주세요.'),
+});
+export const passwordRecoveryOtpFormSchema = passwordRecoveryOtpSchema.pick({ token: true });
+export const resetPasswordFormSchema = z.object({
+  password: passwordSchema,
+  confirmPassword: z.string().min(1, '비밀번호를 확인해주세요.'),
+}).refine(data => data.password === data.confirmPassword, {
+  path: ['confirmPassword'], message: '비밀번호가 일치하지 않습니다.',
+});
+export type PasswordRecoveryOtpFormValues = z.infer<typeof passwordRecoveryOtpFormSchema>;
+export type ResetPasswordFormValues = z.infer<typeof resetPasswordFormSchema>;
+
+export type PasswordRecoveryGrant = {
+  purpose: 'password-recovery';
+  userId: string;
+  email: string;
+  refreshToken: string;
+  expiresAt: number;
+};
+export type PasswordRecoveryRequestResult =
+  | { status: 'sent'; otpExpiresAt: number }
+  | { status: 'error'; message: string };
+export type PasswordRecoveryVerificationResult =
+  | { status: 'verified'; recoveryExpiresAt: number }
+  | { status: 'error'; message: string }
+  | { status: 'restart'; message: string };
+export type PasswordResetResult =
+  | { status: 'success' }
+  | { status: 'error'; message: string }
+  | { status: 'restart'; message: string }
+  | { status: 'partial_success'; message: string }
+  | { status: 'unknown'; message: string };

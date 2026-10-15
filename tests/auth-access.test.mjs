@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { createElement } from 'react';
 import { loadTs } from './helpers/load-ts.mjs';
 
 const active = { id: 'member-1', status: 'active', deleted_at: null };
@@ -91,6 +92,55 @@ test('protected mutation uses the server session ID rather than a fixture identi
   assert.equal(receivedId, 'real-member');
 });
 
+function loadLoginPage(access) {
+  return loadTs('src/app/(auth)/login/page.tsx', {
+    '@/domains/auth/member-access.server': {
+      getCurrentMemberAccess: async () => access,
+    },
+    '@/app/(auth)/actions': {
+      loginAction: async () => { throw new Error('Unexpected login during render'); },
+      logoutAction: async () => { throw new Error('Unexpected logout during render'); },
+    },
+    'next/navigation': {
+      redirect: href => { throw new Error(`REDIRECT:${href}`); },
+      useRouter: () => ({ push() {}, replace() {} }),
+    },
+  }).default;
+}
+
+for (const status of ['missing', 'unavailable']) {
+  test(`${status} member gets a logout form instead of login and recovery controls`, async () => {
+    const LoginPage = loadLoginPage({ status });
+    const html = renderToStaticMarkup(await LoginPage());
+    assert.match(html, /role="alert"/);
+    assert.match(html, /<button\b[^>]*type="submit"[^>]*>로그아웃<\/button>/);
+    assert.equal((html.match(/<form\b/g) || []).length, 1);
+    assert.doesNotMatch(html, /type="(?:email|password)"/);
+    assert.doesNotMatch(html, /href="\/(?:signup|find-password)"/);
+  });
+}
+
+for (const access of [
+  { status: 'unauthenticated' },
+  { status: 'unverified', email: 'visitor@example.com' },
+  { status: 'error' },
+]) {
+  test(`${access.status} keeps the normal login form without a blocked-account notice`, async () => {
+    const LoginPage = loadLoginPage(access);
+    const html = renderToStaticMarkup(await LoginPage());
+    assert.match(html, /type="email"/);
+    assert.match(html, /type="password"/);
+    assert.match(html, /href="\/find-password"/);
+    assert.match(html, /href="\/signup"/);
+    assert.doesNotMatch(html, />로그아웃<\/button>/);
+  });
+}
+
+test('an active member is redirected away from login', async () => {
+  const LoginPage = loadLoginPage({ status: 'active', member: active });
+  await assert.rejects(LoginPage(), { message: 'REDIRECT:/' });
+});
+
 test('an active member cannot render the password recovery page', async () => {
   const { default: FindPasswordPage } = loadTs('src/app/(auth)/find-password/page.tsx', {
     '@/domains/auth/member-access.server': {
@@ -101,7 +151,7 @@ test('an active member cannot render the password recovery page', async () => {
   await assert.rejects(async () => FindPasswordPage(), { message: 'REDIRECT:/' });
 });
 
-test('a guest can still see the disabled demo recovery form and account navigation', async () => {
+test('a guest can see an enabled recovery form and account navigation', async () => {
   const { default: FindPasswordPage } = loadTs('src/app/(auth)/find-password/page.tsx', {
     '@/domains/auth/member-access.server': {
       getCurrentMemberAccess: async () => ({ status: 'unauthenticated' }),
@@ -109,7 +159,28 @@ test('a guest can still see the disabled demo recovery form and account navigati
   });
   const html = renderToStaticMarkup(await FindPasswordPage());
   assert.match(html, /type="email"/);
-  assert.match(html, /type="submit"[^>]*disabled=""/);
+  assert.doesNotMatch(html, /type="submit"[^>]*disabled=""/);
   assert.match(html, /href="\/login"/);
   assert.match(html, /href="\/signup"/);
+});
+
+test('recovery OTP has six slots and blocks expired verification while allowing resend', () => {
+  const { PasswordResetOtpForm } = loadTs('src/features/auth/password-reset-otp-form.tsx');
+  const html = renderToStaticMarkup(createElement(PasswordResetOtpForm, {
+    email: 'visitor@example.com', otpExpiresAt: Date.now() - 1000,
+    requestAction: async () => {}, verifyAction: async () => {}, onResult: () => {},
+  }));
+  assert.match(html, /maxlength="6"/i);
+  assert.equal((html.match(/data-slot="input-otp-slot"/g) || []).length, 6);
+  const buttons = html.match(/<button\b[^>]*>[\s\S]*?<\/button>/g);
+  assert.match(buttons.find(button => button.includes('인증 확인')), /disabled=""/);
+  assert.doesNotMatch(buttons.find(button => button.includes('인증번호 재전송')), /disabled=""/);
+  assert.match(html, /00:00/);
+});
+test('reset form provides two new-password inputs and no identity input', () => {
+  const { ResetPasswordForm } = loadTs('src/features/auth/reset-password-form.tsx');
+  const html = renderToStaticMarkup(createElement(ResetPasswordForm, { resetAction: async () => {}, onResult: () => {} }));
+  assert.equal((html.match(/type="password"/g) || []).length, 2);
+  assert.equal((html.match(/autoComplete="new-password"/gi) || []).length, 2);
+  assert.doesNotMatch(html, /name="(?:email|userId)"/);
 });

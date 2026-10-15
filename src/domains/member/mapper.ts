@@ -1,4 +1,4 @@
-import type { UserAddressDTO, UserDTO } from './dto';
+import type { UserAddressDTO, MemberProfileDTO } from './dto';
 import {
   getUserAddressDisplayName,
   getUserAddressText,
@@ -10,14 +10,14 @@ import type {
 } from './view-model';
 
 export const toMemberProfileViewModel = (
-  user: UserDTO,
+  user: MemberProfileDTO,
 ): MemberProfileViewModel => ({
   name: user.name,
   email: user.email,
   isEmailVerified: user.email_verified_at !== null,
   phoneNumber: user.phone_number,
-  birthDate: user.birth_date ?? '',
-  gender: user.gender,
+  birthDate: '',
+  gender: 'unspecified',
 });
 
 export const toUserAddressViewModel = (
