@@ -42,7 +42,8 @@ async function MyPageHome() {
       <MypageHomeOrders statuses={orderStatuses} orders={recentOrders} />
       <MypageHomeRecentProducts items={recentProducts} />
       <MypageHomeWishlist items={wishlistProducts} />
-      <div className="px-4 pb-4 md:hidden">
+
+      <div className="md:hidden">
         <LogoutButton logoutAction={logoutAction} />
       </div>
     </MypagePageLayout>

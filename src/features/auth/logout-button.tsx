@@ -12,7 +12,6 @@ interface LogoutButtonProps
 
 export function LogoutButton({
   logoutAction,
-  variant = 'outline',
   size = 'xl',
   className,
 }: LogoutButtonProps) {
@@ -21,7 +20,7 @@ export function LogoutButton({
   return (
     <form action={formAction} className="flex flex-col gap-2">
       <FormSubmitButton
-        variant={variant}
+        variant="default"
         size={size}
         className={className}
         isPending={isPending}
