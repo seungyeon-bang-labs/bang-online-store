@@ -3,6 +3,8 @@ import { test } from 'node:test';
 import fs from 'node:fs';
 import { loadTs } from './helpers/load-ts.mjs';
 
+process.env.AUTH_FEATURES_ENABLED = 'true';
+
 const path = 'src/app/(auth)/find-password/actions.ts';
 const grant = () => ({ purpose: 'password-recovery', userId: '11111111-1111-4111-8111-111111111111', email: 'visitor@example.com', refreshToken: 'PRIVATE_REFRESH', expiresAt: Date.now() + 300000 });
 function setup({ ordinaryUser = null, ordinaryError = null, cookie = { status: 'missing' }, writeThrows, clearThrows, resetResult = { status: 'success' }, restoreResult, contextThrows } = {}) {
@@ -30,6 +32,33 @@ function setup({ ordinaryUser = null, ordinaryError = null, cookie = { status: '
 }
 const otp = { email: 'visitor@example.com', token: '123456' };
 const password = { password: 'Password!1', confirmPassword: 'Password!1' };
+
+test('disabled recovery blocks every action before Auth, cookies, restoration or password changes', async () => {
+  process.env.AUTH_FEATURES_ENABLED = 'false';
+  try {
+    const actions = loadTs(path, {
+      'next/headers': { cookies: async () => { throw new Error('UNEXPECTED_COOKIES'); } },
+      '@/shared/lib/supabase/auth-server': {
+        createAuthClient: async () => { throw new Error('UNEXPECTED_AUTH'); },
+      },
+      './recovery-session.server': {
+        assertRecoveryConfiguration: () => { throw new Error('UNEXPECTED_CONFIG'); },
+      },
+    });
+    for (const [name, input] of [
+      ['requestPasswordRecoveryAction', { email: otp.email }],
+      ['verifyPasswordRecoveryOtpAction', otp],
+      ['resetPasswordAction', password],
+    ]) {
+      assert.deepEqual(await actions[name](input), {
+        status: 'error', reason: 'feature_disabled',
+        message: '데모 환경에서는 비밀번호를 재설정할 수 없습니다.',
+      });
+    }
+  } finally {
+    process.env.AUTH_FEATURES_ENABLED = 'true';
+  }
+});
 
 test('invalid input, ordinary confirmed sessions and transient auth reads cannot request recovery', async () => {
   const invalid = setup();

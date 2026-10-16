@@ -2,11 +2,13 @@
 
 import { redirect, RedirectType } from 'next/navigation';
 import { createAuthClient } from '@/shared/lib/supabase/auth-server';
+import { getAuthFeatureRestriction } from '@/domains/auth/feature-policy.server';
 import {
   loginFormSchema,
   createSignupRequestSchema,
   signupOtpSchema,
   SIGNUP_OTP_LENGTH,
+  type AuthFeatureRestriction,
 } from '@/domains/auth/schema';
 import { termRepository, toSignupTerms } from '@/domains/terms';
 import {
@@ -28,7 +30,7 @@ export type SignupMemberFailure = {
 export type SignupMemberResult = { ok: true } | SignupMemberFailure;
 
 export type SignupVerificationResult =
-  | { ok: false; stage: 'otp'; message: string }
+  | { ok: false; stage: 'otp'; message: string; reason?: AuthFeatureRestriction['reason'] }
   | SignupMemberResult;
 
 const accessMessages = {
@@ -88,7 +90,10 @@ export async function loginAction(input: unknown): Promise<LoginResult> {
 
 export async function signupAction(
   input: unknown,
-): Promise<{ ok: boolean; message: string }> {
+): Promise<{ ok: boolean; message: string; reason?: AuthFeatureRestriction['reason'] }> {
+  const restriction = getAuthFeatureRestriction('signup');
+  if (restriction) return { ok: false, ...restriction };
+
   const terms = toSignupTerms(await termRepository.findEffective());
 
   if (terms.length === 0) {
@@ -148,6 +153,9 @@ export async function signupAction(
 export async function verifySignupOtpAction(
   input: unknown,
 ): Promise<SignupVerificationResult> {
+  const restriction = getAuthFeatureRestriction('emailVerification');
+  if (restriction) return { ok: false, stage: 'otp', ...restriction };
+
   const parsed = signupOtpSchema.safeParse(input);
 
   if (!parsed.success) {
@@ -211,7 +219,12 @@ export async function retrySignupMemberAction(): Promise<SignupMemberResult> {
   };
 }
 
-export async function resendSignupOtpAction(input: unknown) {
+export async function resendSignupOtpAction(
+  input: unknown,
+): Promise<{ ok: boolean; message: string; reason?: AuthFeatureRestriction['reason'] }> {
+  const restriction = getAuthFeatureRestriction('emailVerification');
+  if (restriction) return { ok: false, ...restriction };
+
   const parsed = signupOtpSchema.pick({ email: true }).safeParse(input);
 
   if (!parsed.success) {

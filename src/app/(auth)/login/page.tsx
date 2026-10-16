@@ -4,6 +4,7 @@ import { LoginForm } from '@/features/auth/login-form';
 import { LogoutButton } from '@/features/auth/logout-button';
 import { AuthSecondaryLink } from '@/features/auth/auth-secondary-link';
 import { getCurrentMemberAccess } from '@/domains/auth/member-access.server';
+import { getAuthFeatureRestriction } from '@/domains/auth/feature-policy.server';
 import { redirect } from 'next/navigation';
 import { logoutAction } from '@/app/(auth)/actions';
 
@@ -27,10 +28,14 @@ async function LoginPage() {
     );
   }
 
+  const demoAccount = getAuthFeatureRestriction('signup')
+    ? { email: 'demo@example.com', password: 'demoexample123' }
+    : undefined;
+
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-3">
-        <LoginForm />
+        <LoginForm demoAccount={demoAccount} />
         <AuthSecondaryLink />
       </div>
 

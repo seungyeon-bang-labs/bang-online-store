@@ -11,8 +11,13 @@ import { PasswordInput } from '@/shared/components/common/password-input';
 import { loginAction } from '@/app/(auth)/actions';
 import { useRouter } from 'next/navigation';
 
-export function LoginForm() {
+interface LoginFormProps {
+  demoAccount?: LoginFormInput;
+}
+
+export function LoginForm({ demoAccount }: LoginFormProps) {
   const router = useRouter();
+  const defaultValues = demoAccount ?? { email: '', password: '' };
   const {
     register,
     handleSubmit,
@@ -20,10 +25,7 @@ export function LoginForm() {
     formState: { errors, isSubmitting },
   } = useForm<LoginFormInput>({
     resolver: zodResolver(loginFormSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-    },
+    defaultValues,
   });
 
   const onSubmit = handleSubmit(async values => {
@@ -46,12 +48,22 @@ export function LoginForm() {
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-5">
+      {demoAccount && (
+        <div
+          role="status"
+          className="rounded-md border bg-muted px-4 py-3 text-sm leading-6 text-foreground"
+        >
+          <p className="font-semibold">데모 안내</p>
+          <p>데모 계정으로 로그인하고 쇼핑몰을 둘러보세요.</p>
+        </div>
+      )}
       <div>
         <IconInput
           placeholder="이메일"
           type="email"
           icon={Mail}
           register={register('email')}
+          defaultValue={defaultValues.email}
           ariaInvalid={!!errors.email}
         />
         <InputError message={errors.email?.message} />
@@ -59,6 +71,7 @@ export function LoginForm() {
       <div>
         <PasswordInput
           register={register('password')}
+          defaultValue={defaultValues.password}
           ariaInvalid={!!errors.password}
           placeholder="비밀번호"
         />

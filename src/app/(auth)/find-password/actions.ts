@@ -2,6 +2,7 @@
 
 import { cookies } from 'next/headers';
 import { createAuthClient } from '@/shared/lib/supabase/auth-server';
+import { getAuthFeatureRestriction } from '@/domains/auth/feature-policy.server';
 import {
   findPasswordFormSchema, passwordRecoveryOtpSchema, resetPasswordFormSchema,
   type PasswordRecoveryRequestResult,
@@ -74,6 +75,9 @@ async function finish(
 export async function requestPasswordRecoveryAction(
   input: unknown,
 ): Promise<PasswordRecoveryRequestResult> {
+  const restriction = getAuthFeatureRestriction('passwordRecovery');
+  if (restriction) return { status: 'error', ...restriction };
+
   const parsed = findPasswordFormSchema.safeParse(input);
   if (!parsed.success) return { status: 'error', message: '이메일 주소를 확인해주세요.' };
   const client = await createAuthClient();
@@ -92,6 +96,9 @@ export async function requestPasswordRecoveryAction(
 export async function verifyPasswordRecoveryOtpAction(
   input: unknown,
 ): Promise<PasswordRecoveryVerificationResult> {
+  const restriction = getAuthFeatureRestriction('passwordRecovery');
+  if (restriction) return { status: 'error', ...restriction };
+
   const parsed = passwordRecoveryOtpSchema.safeParse(input);
   if (!parsed.success) return { status: 'error', message: '이메일과 인증번호 6자리를 확인해주세요.' };
   const client = await createAuthClient();
@@ -133,6 +140,9 @@ export async function verifyPasswordRecoveryOtpAction(
 }
 
 export async function resetPasswordAction(input: unknown): Promise<PasswordResetResult> {
+  const restriction = getAuthFeatureRestriction('passwordRecovery');
+  if (restriction) return { status: 'error', ...restriction };
+
   const parsed = resetPasswordFormSchema.safeParse(input);
   if (!parsed.success) {
     return { status: 'error', message: parsed.error.issues[0]?.message ?? '비밀번호를 확인해주세요.' };

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { signupOtpSchema } from '@/domains/auth/schema';
 import { getCurrentMemberAccess } from '@/domains/auth/member-access.server';
+import { getAuthFeatureRestriction } from '@/domains/auth/feature-policy.server';
 import { SignupOtpForm } from '@/features/auth/signup-otp-form';
 import { ButtonLink } from '@/shared/components/ui/button';
 import { Separator } from '@/shared/components/ui/separator';
@@ -30,6 +31,7 @@ async function VerifyEmailPage({ searchParams }: VerifyEmailPageProps) {
         <SignupOtpForm
           key={parsed.data.email}
           email={parsed.data.email}
+          restriction={getAuthFeatureRestriction('emailVerification')}
           initialMemberFailure={
             access.status === 'error'
               ? {

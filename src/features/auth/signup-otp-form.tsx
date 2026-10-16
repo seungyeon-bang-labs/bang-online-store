@@ -17,6 +17,7 @@ import {
   SIGNUP_OTP_DURATION_SECONDS,
   signupOtpFormSchema,
   type SignupOtpFormValues,
+  type AuthFeatureRestriction,
 } from '@/domains/auth/schema';
 import { IconInput } from '@/shared/components/common/icon-input';
 import { formatMinutesSeconds } from '@/shared/lib/format';
@@ -29,17 +30,22 @@ import {
 } from '@/shared/components/ui/input-otp';
 
 interface SignupOtpFormProps {
+  restriction?: AuthFeatureRestriction | null;
   email: string;
   initialCodeRequested?: boolean;
   initialMemberFailure?: SignupMemberFailure;
 }
 
 export function SignupOtpForm({
+  restriction,
   email,
   initialCodeRequested = false,
   initialMemberFailure,
 }: SignupOtpFormProps) {
   const router = useRouter();
+  const [serverRestriction, setServerRestriction] =
+    useState<AuthFeatureRestriction | null>(null);
+  const activeRestriction = restriction ?? serverRestriction;
   const [isResending, setIsResending] = useState(false);
   const [isCheckingMember, setIsCheckingMember] = useState(false);
   const [memberFailure, setMemberFailure] = useState(
@@ -72,9 +78,9 @@ export function SignupOtpForm({
 
   let otpDescriptionIds = 'signup-otp-help';
 
-  if (isExpired) {
+  if (isExpired && !activeRestriction) {
     otpDescriptionIds += ' signup-otp-expired';
-  } else if (errors.token) {
+  } else if (errors.token && !activeRestriction) {
     otpDescriptionIds += ' signup-otp-error';
   }
 
@@ -93,6 +99,7 @@ export function SignupOtpForm({
 
   const onSubmit = handleSubmit(async values => {
     if (
+      activeRestriction ||
       isResending ||
       isCheckingMember ||
       memberFailure ||
@@ -115,6 +122,8 @@ export function SignupOtpForm({
 
       if (result.ok) {
         router.replace('/');
+      } else if ('reason' in result && result.reason === 'feature_disabled') {
+        setServerRestriction({ reason: result.reason, message: result.message });
       } else if (result.stage === 'member') {
         setMemberFailure(result);
       } else {
@@ -160,6 +169,7 @@ export function SignupOtpForm({
 
   const handleResend = async () => {
     if (
+      activeRestriction ||
       isBusy ||
       memberFailure ||
       (expiresAt !== null && Date.now() < expiresAt)
@@ -172,6 +182,10 @@ export function SignupOtpForm({
     try {
       const result = await resendSignupOtpAction({ email });
       if (!result.ok) {
+        if (result.reason === 'feature_disabled') {
+          setServerRestriction({ reason: result.reason, message: result.message });
+          return;
+        }
         setError('root', { message: result.message });
         return;
       }
@@ -195,6 +209,15 @@ export function SignupOtpForm({
     return (
       <div className="flex flex-col gap-5">
         <h2 className="text-lg font-semibold">회원 상태 확인</h2>
+        {activeRestriction && (
+          <div
+            role="status"
+            className="rounded-md border bg-muted px-4 py-3 text-sm leading-6 text-foreground"
+          >
+            <p className="font-semibold">데모 안내</p>
+            <p>{activeRestriction.message}</p>
+          </div>
+        )}
         <p role="alert" className="text-sm text-destructive">
           {memberFailure.message}
         </p>
@@ -216,11 +239,22 @@ export function SignupOtpForm({
     <form onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
       <div className="space-y-2">
         <h2 className="text-lg font-semibold">이메일 인증</h2>
-        <p id="signup-otp-help" className="text-muted-foreground text-sm">
-          {hasCode
-            ? `이메일로 받은 인증번호 ${SIGNUP_OTP_LENGTH}자리를 입력해주세요.`
-            : '아직 이메일 인증이 완료되지 않았습니다. 로그인을 계속하려면 아래 이메일로 인증번호를 받아 인증을 완료해주세요.'}
-        </p>
+        {activeRestriction ? (
+          <div
+            id="signup-otp-help"
+            role="status"
+            className="rounded-md border bg-muted px-4 py-3 text-sm leading-6 text-foreground"
+          >
+            <p className="font-semibold">데모 안내</p>
+            <p>{activeRestriction.message}</p>
+          </div>
+        ) : (
+          <p id="signup-otp-help" className="text-muted-foreground text-sm">
+            {hasCode
+              ? `이메일로 받은 인증번호 ${SIGNUP_OTP_LENGTH}자리를 입력해주세요.`
+              : '아직 이메일 인증이 완료되지 않았습니다. 로그인을 계속하려면 아래 이메일로 인증번호를 받아 인증을 완료해주세요.'}
+          </p>
+        )}
       </div>
       <IconInput
         id="signup-otp-email"
@@ -276,9 +310,11 @@ export function SignupOtpForm({
           />
           <InputError
             id="signup-otp-error"
-            message={isExpired ? undefined : errors.token?.message}
+            message={
+              isExpired || activeRestriction ? undefined : errors.token?.message
+            }
           />
-          {isExpired && (
+          {isExpired && !activeRestriction && (
             <p
               id="signup-otp-expired"
               role="alert"
@@ -289,8 +325,8 @@ export function SignupOtpForm({
           )}
         </div>
       )}
-      <InputError message={errors.root?.message} />
-      {resendMessage && (
+      <InputError message={activeRestriction ? undefined : errors.root?.message} />
+      {resendMessage && !activeRestriction && (
         <p role="status" className="text-sm">
           {resendMessage}
         </p>
@@ -298,7 +334,7 @@ export function SignupOtpForm({
       {hasCode && (
         <FormSubmitButton
           isPending={isSubmitting}
-          disabled={isBusy || isExpired}
+          disabled={!!activeRestriction || isBusy || isExpired}
         >
           인증 확인
         </FormSubmitButton>
@@ -308,7 +344,7 @@ export function SignupOtpForm({
         variant={isResending || !hasCode ? 'default' : 'outline'}
         size="xl"
         onClick={handleResend}
-        disabled={isBusy || (hasCode && !isExpired)}
+        disabled={!!activeRestriction || isBusy || (hasCode && !isExpired)}
       >
         {isResending
           ? '발송 중…'

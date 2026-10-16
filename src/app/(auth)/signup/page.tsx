@@ -3,6 +3,7 @@ import { ButtonLink } from '@/shared/components/ui/button';
 import { SignupFlow } from '@/features/auth/signup-flow';
 import { termRepository, toSignupTerms } from '@/domains/terms';
 import { getCurrentMemberAccess } from '@/domains/auth/member-access.server';
+import { getAuthFeatureRestriction } from '@/domains/auth/feature-policy.server';
 import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
@@ -21,7 +22,10 @@ async function SignupPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <SignupFlow termsViewModel={termsViewModel} />
+      <SignupFlow
+        termsViewModel={termsViewModel}
+        restriction={getAuthFeatureRestriction('signup')}
+      />
 
       <div className="hidden flex-col gap-8 md:flex">
         <Separator label="또는" />

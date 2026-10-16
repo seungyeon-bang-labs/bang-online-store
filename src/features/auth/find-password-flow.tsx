@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type {
+  AuthFeatureRestriction,
   PasswordRecoveryRequestResult,
   PasswordRecoveryVerificationResult,
   PasswordResetResult,
@@ -24,12 +25,14 @@ type FlowState =
   | { step: 'complete'; result: TerminalResult };
 
 interface FindPasswordFlowProps {
+  restriction?: AuthFeatureRestriction | null;
   requestAction: (input: unknown) => Promise<PasswordRecoveryRequestResult>;
   verifyAction: (input: unknown) => Promise<PasswordRecoveryVerificationResult>;
   resetAction: (input: unknown) => Promise<PasswordResetResult>;
 }
 
 export function FindPasswordFlow({
+  restriction,
   requestAction,
   verifyAction,
   resetAction,
@@ -72,6 +75,7 @@ export function FindPasswordFlow({
             </p>
           )}
           <FindPasswordForm
+            restriction={restriction}
             requestAction={requestAction}
             onSent={(email, otpExpiresAt) =>
               setState({ step: 'otp', email, otpExpiresAt })
@@ -82,6 +86,7 @@ export function FindPasswordFlow({
       )}
       {state.step === 'otp' && (
         <PasswordResetOtpForm
+          restriction={restriction}
           email={state.email}
           otpExpiresAt={state.otpExpiresAt}
           requestAction={requestAction}
@@ -97,6 +102,7 @@ export function FindPasswordFlow({
       )}
       {state.step === 'password' && (
         <ResetPasswordForm
+          restriction={restriction}
           resetAction={resetAction}
           onResult={result =>
             setState(

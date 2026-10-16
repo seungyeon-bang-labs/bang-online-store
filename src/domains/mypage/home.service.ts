@@ -1,3 +1,8 @@
+import 'server-only';
+
+import { getCurrentMemberAccess } from '@/domains/auth/member-access.server';
+import { createMemberProfileRepository } from '@/domains/member/supabase-repository.server';
+import { createAuthClient } from '@/shared/lib/supabase/auth-server';
 import {
   getRecentProductItems,
   getWishlistProductItems,
@@ -37,8 +42,22 @@ import { toMypageHomeRecentOrderViewModel } from './home.mapper';
 import type { MypageHomeViewModel } from './home.view-model';
 
 export async function getMypageHomeViewModel(
-  user: UserDTO,
+  demoUser: UserDTO,
 ): Promise<MypageHomeViewModel> {
+  const access = await getCurrentMemberAccess();
+
+  if (access.status !== 'active') {
+    throw new Error('회원 정보를 확인하지 못했습니다.');
+  }
+
+  const client = await createAuthClient();
+  const profile = await createMemberProfileRepository(client)
+    .findById(access.member.id);
+
+  if (!profile) {
+    throw new Error('회원 정보를 확인하지 못했습니다.');
+  }
+
   const [
     defaultAddress,
     membership,
@@ -51,16 +70,16 @@ export async function getMypageHomeViewModel(
     recentProducts,
     wishlistProducts,
   ] = await Promise.all([
-    userAddressRepository.findDefaultByUserId(user.id),
-    userMembershipRepository.findByUserId(user.id),
+    userAddressRepository.findDefaultByUserId(demoUser.id),
+    userMembershipRepository.findByUserId(demoUser.id),
     membershipTierRepository.findMany(),
-    pointTransactionRepository.findByUserId(user.id),
-    userCouponRepository.findByUserId(user.id),
-    orderRepository.findByUserId(user.id),
-    reviewRepository.findByUserId(user.id),
-    orderClaimRepository.findByUserId(user.id),
-    getRecentProductItems(user.id),
-    getWishlistProductItems(user.id),
+    pointTransactionRepository.findByUserId(demoUser.id),
+    userCouponRepository.findByUserId(demoUser.id),
+    orderRepository.findByUserId(demoUser.id),
+    reviewRepository.findByUserId(demoUser.id),
+    orderClaimRepository.findByUserId(demoUser.id),
+    getRecentProductItems(demoUser.id),
+    getWishlistProductItems(demoUser.id),
   ]);
 
   const [orderItems, orderItemCancellations, coupons] = await Promise.all([
@@ -178,7 +197,7 @@ export async function getMypageHomeViewModel(
 
   return {
     summary: {
-      memberName: user.name,
+      memberName: profile.name,
       defaultAddressText: defaultAddress
         ? getUserAddressText(defaultAddress)
         : '등록된 배송지 없음',

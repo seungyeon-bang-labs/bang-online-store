@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { loadTs } from './helpers/load-ts.mjs';
 
+process.env.AUTH_FEATURES_ENABLED = 'true';
+
 const requiredId = '11111111-1111-4111-8111-111111111111';
 const optionalId = '22222222-2222-4222-8222-222222222222';
 const terms = [
@@ -53,6 +55,36 @@ test('logout ends only the current session and replaces the page with home', asy
   await assert.rejects(actions.logoutAction(null), { message: 'REDIRECT:/:replace' });
   assert.deepEqual(calls.signOut, [{ scope: 'local' }]);
   assert.equal(calls.access, 0);
+});
+
+test('disabled signup and email verification reject before client setup, terms reads or member checks', async () => {
+  process.env.AUTH_FEATURES_ENABLED = 'false';
+  try {
+    const actions = loadTs('src/app/(auth)/actions.ts', {
+      '@/shared/lib/supabase/auth-server': {
+        createAuthClient: async () => { throw new Error('UNEXPECTED_AUTH'); },
+      },
+      '@/domains/terms': {
+        termRepository: { findEffective: async () => { throw new Error('UNEXPECTED_TERMS'); } },
+      },
+      '@/domains/auth/member-access.server': {
+        getCurrentMemberAccess: async () => { throw new Error('UNEXPECTED_ACCESS'); },
+      },
+    });
+    for (const action of [actions.signupAction, actions.resendSignupOtpAction, actions.verifySignupOtpAction]) {
+      const result = await action({ email: 'visitor@example.com', token: '123456' });
+      assert.equal(result.ok, false);
+      assert.equal(result.reason, 'feature_disabled');
+      assert.match(result.message, /데모 환경/);
+    }
+    const { actions: ordinary, calls } = setup();
+    assert.equal((await ordinary.loginAction({ email: 'visitor@example.com', password: 'Password!1' })).status, 'success');
+    assert.deepEqual(await ordinary.retrySignupMemberAction(), { ok: true });
+    await assert.rejects(ordinary.logoutAction(), /REDIRECT:\/:replace/);
+    assert.equal(calls.signOut.length, 1);
+  } finally {
+    process.env.AUTH_FEATURES_ENABLED = 'true';
+  }
 });
 test('a rejected logout returns a safe retry message instead of navigating', async () => {
   const { actions } = setup({ signOutError: { message: 'PRIVATE_AUTH_FAILURE' } });

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { signupAction } from '@/app/(auth)/actions';
 import { FormSubmitButton } from '@/shared/components/ui/button';
 import { Mail, Phone, User } from 'lucide-react';
@@ -10,20 +11,26 @@ import { useForm } from 'react-hook-form';
 import {
   createSignupFormSchema,
   type SignupFormValues,
+  type AuthFeatureRestriction,
 } from '@/domains/auth/schema';
 import { InputError } from '@/shared/components/ui/input';
 import { TermsAgreement } from '@/features/auth/terms-agreement';
 import type { SignupTermViewModel } from '@/domains/terms/view-model';
 
 interface SignupFormProps {
+  restriction?: AuthFeatureRestriction | null;
   termsViewModel: SignupTermViewModel[];
   onSuccess: (email: string) => void;
 }
 
 export function SignupForm({
+  restriction,
   termsViewModel,
   onSuccess,
 }: SignupFormProps) {
+  const [serverRestriction, setServerRestriction] =
+    useState<AuthFeatureRestriction | null>(null);
+  const activeRestriction = restriction ?? serverRestriction;
   const termsDefaults = Object.fromEntries(
     termsViewModel.map(item => [item.code, false]),
   ) as Record<string, boolean>;
@@ -51,6 +58,8 @@ export function SignupForm({
   });
 
   const onSubmit = handleSubmit(async values => {
+    if (activeRestriction) return;
+
     try {
       const result = await signupAction({
         ...values,
@@ -58,6 +67,10 @@ export function SignupForm({
       });
 
       if (!result.ok) {
+        if (result.reason === 'feature_disabled') {
+          setServerRestriction({ reason: result.reason, message: result.message });
+          return;
+        }
         setError('root', { message: result.message });
         return;
       }
@@ -83,6 +96,15 @@ export function SignupForm({
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-5">
+      {activeRestriction && (
+        <div
+          role="status"
+          className="rounded-md border bg-muted px-4 py-3 text-sm leading-6 text-foreground"
+        >
+          <p className="font-semibold">데모 안내</p>
+          <p>{activeRestriction.message}</p>
+        </div>
+      )}
       <div>
         <IconInput
           id="signup-email"
@@ -181,8 +203,10 @@ export function SignupForm({
         </div>
       )}
 
-      <InputError message={errors.root?.message} />
-      <FormSubmitButton isPending={isSubmitting}>회원가입</FormSubmitButton>
+      <InputError message={activeRestriction ? undefined : errors.root?.message} />
+      <FormSubmitButton isPending={isSubmitting} disabled={!!activeRestriction}>
+        회원가입
+      </FormSubmitButton>
     </form>
   );
 }

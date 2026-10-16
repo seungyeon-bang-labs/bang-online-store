@@ -2,6 +2,11 @@ import { z } from 'zod';
 import { isValidPhoneNumber } from 'libphonenumber-js/min';
 import type { Enums } from '@/shared/types/supabase';
 
+export type AuthFeatureRestriction = {
+  reason: 'feature_disabled';
+  message: string;
+};
+
 export interface SignupValidationTerm {
   code: string;
   label: string;
@@ -194,14 +199,14 @@ export type PasswordRecoveryGrant = {
 };
 export type PasswordRecoveryRequestResult =
   | { status: 'sent'; otpExpiresAt: number }
-  | { status: 'error'; message: string };
+  | { status: 'error'; message: string; reason?: AuthFeatureRestriction['reason'] };
 export type PasswordRecoveryVerificationResult =
   | { status: 'verified'; recoveryExpiresAt: number }
-  | { status: 'error'; message: string }
+  | { status: 'error'; message: string; reason?: AuthFeatureRestriction['reason'] }
   | { status: 'restart'; message: string };
 export type PasswordResetResult =
   | { status: 'success' }
-  | { status: 'error'; message: string }
+  | { status: 'error'; message: string; reason?: AuthFeatureRestriction['reason'] }
   | { status: 'restart'; message: string }
   | { status: 'partial_success'; message: string }
   | { status: 'unknown'; message: string };

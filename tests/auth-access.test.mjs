@@ -4,6 +4,62 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { createElement } from 'react';
 import { loadTs } from './helpers/load-ts.mjs';
 
+process.env.AUTH_FEATURES_ENABLED = 'true';
+
+test('restricted auth forms keep inputs available, show the restriction and disable request buttons', () => {
+  const signupRestriction = { reason: 'feature_disabled', message: '데모 환경에서는 회원가입을 이용할 수 없습니다.' };
+  const recoveryRestriction = { reason: 'feature_disabled', message: '데모 환경에서는 비밀번호를 재설정할 수 없습니다.' };
+  const emailRestriction = { reason: 'feature_disabled', message: '데모 환경에서는 이메일 인증을 진행할 수 없습니다.' };
+  const unexpected = async () => { throw new Error('UNEXPECTED_REQUEST'); };
+  for (const [file, name, props, restriction] of [
+    ['signup-form', 'SignupForm', { termsViewModel: [], onSuccess() {} }, signupRestriction],
+    ['signup-otp-form', 'SignupOtpForm', { email: 'visitor@example.com', initialCodeRequested: true }, emailRestriction],
+    ['find-password-form', 'FindPasswordForm', { requestAction: unexpected, onSent() {} }, recoveryRestriction],
+    ['password-reset-otp-form', 'PasswordResetOtpForm', { email: 'visitor@example.com', otpExpiresAt: Date.now() + 300000, requestAction: unexpected, verifyAction: unexpected, onResult() {} }, recoveryRestriction],
+    ['reset-password-form', 'ResetPasswordForm', { resetAction: unexpected, onResult() {} }, recoveryRestriction],
+  ]) {
+    const Component = loadTs(`src/features/auth/${file}.tsx`, {
+      'next/navigation': { useRouter: () => ({ push() {}, replace() {} }) },
+      '@/shared/lib/supabase/server': { supabase: {} },
+    })[name];
+    const html = renderToStaticMarkup(createElement(Component, { ...props, restriction }));
+    assert.ok(html.includes(restriction.message), `${name} must explain the restriction`);
+    const buttons = html.match(/<button\b[^>]*>[\s\S]*?<\/button>/g) ?? [];
+    const requests = buttons.filter(button => /type="submit"/.test(button) || /인증번호 (?:받기|재전송)/.test(button));
+    assert.ok(requests.length > 0, `${name} must retain its request controls`);
+    for (const button of requests) assert.match(button, /disabled=""/, name);
+    for (const input of html.match(/<input\b[^>]*>/g) ?? []) {
+      assert.doesNotMatch(input, /disabled=""/, `${name} inputs must stay available`);
+    }
+  }
+});
+
+test('restricted auth pages forward feature-specific restrictions while keeping navigation', async () => {
+  process.env.AUTH_FEATURES_ENABLED = 'false';
+  try {
+    const { toSignupTerms } = loadTs('src/domains/terms/mapper.ts');
+    for (const [route, message, props] of [
+      ['signup', '데모 환경에서는 회원가입을 이용할 수 없습니다.', {}],
+      ['find-password', '데모 환경에서는 비밀번호를 재설정할 수 없습니다.', {}],
+      ['verify-email', '데모 환경에서는 이메일 인증을 진행할 수 없습니다.', {
+        searchParams: Promise.resolve({ email: 'visitor@example.com' }),
+      }],
+    ]) {
+      const Page = loadTs(`src/app/(auth)/${route}/page.tsx`, {
+        '@/domains/auth/member-access.server': { getCurrentMemberAccess: async () => ({ status: 'unauthenticated' }) },
+        '@/domains/terms': { termRepository: { findEffective: async () => [] }, toSignupTerms },
+        'next/navigation': { useRouter: () => ({ push() {}, replace() {} }), redirect: href => { throw new Error(`REDIRECT:${href}`); } },
+      }).default;
+      const html = renderToStaticMarkup(await Page(props));
+      assert.ok(html.includes(message), route);
+      assert.match(html, /href="\/login"/, route);
+      assert.match(html, /type="(?:submit|button)"[^>]*disabled=""/, route);
+    }
+  } finally {
+    process.env.AUTH_FEATURES_ENABLED = 'true';
+  }
+});
+
 const active = { id: 'member-1', status: 'active', deleted_at: null };
 const verified = { id: 'member-1', email: 'visitor@example.com', email_confirmed_at: '2026-10-11' };
 
@@ -107,6 +163,54 @@ function loadLoginPage(access) {
     },
   }).default;
 }
+
+test('demo login defaults are real editable values and leave login enabled', () => {
+  const { LoginForm } = loadTs('src/features/auth/login-form.tsx', {
+    '@/app/(auth)/actions': { loginAction: async () => { throw new Error('Unexpected login during render'); } },
+    'next/navigation': { useRouter: () => ({ push() {}, replace() {} }) },
+  });
+  const html = renderToStaticMarkup(createElement(LoginForm, {
+    demoAccount: { email: 'demo@example.com', password: 'PublicDemo!234' },
+  }));
+  assert.match(html, /데모 계정으로 로그인하고 쇼핑몰을 둘러보세요/);
+  assert.match(html, /name="email"[^>]*value="demo@example.com"/);
+  assert.match(html, /name="password"[^>]*value="PublicDemo!234"/);
+  assert.doesNotMatch(html, /disabled=""|readOnly=""/);
+  assert.match(html, /type="submit"/);
+});
+
+test('ordinary login starts with blank credentials and no demo notice', () => {
+  const { LoginForm } = loadTs('src/features/auth/login-form.tsx', {
+    '@/app/(auth)/actions': { loginAction: async () => { throw new Error('Unexpected login during render'); } },
+    'next/navigation': { useRouter: () => ({ push() {}, replace() {} }) },
+  });
+  const html = renderToStaticMarkup(createElement(LoginForm));
+  assert.match(html, /name="email"[^>]*value=""/);
+  assert.match(html, /name="password"[^>]*value=""/);
+  assert.doesNotMatch(html, /데모 계정으로 로그인하고 쇼핑몰을 둘러보세요/);
+});
+
+test('the login page supplies demo defaults only when auth features are restricted', async () => {
+  try {
+    for (const value of ['true', 'false', undefined]) {
+      if (value === undefined) delete process.env.AUTH_FEATURES_ENABLED;
+      else process.env.AUTH_FEATURES_ENABLED = value;
+      const LoginPage = loadLoginPage({ status: 'unauthenticated' });
+      const html = renderToStaticMarkup(await LoginPage());
+      if (value === 'true') {
+        assert.match(html, /name="email"[^>]*value=""/);
+        assert.match(html, /name="password"[^>]*value=""/);
+        assert.doesNotMatch(html, /데모 계정으로 로그인하고 쇼핑몰을 둘러보세요/);
+      } else {
+        assert.match(html, /name="email"[^>]*value="demo@example.com"/);
+        assert.match(html, /name="password"[^>]*value="[^"]+"/);
+        assert.match(html, /데모 계정으로 로그인하고 쇼핑몰을 둘러보세요/);
+      }
+    }
+  } finally {
+    process.env.AUTH_FEATURES_ENABLED = 'true';
+  }
+});
 
 for (const status of ['missing', 'unavailable']) {
   test(`${status} member gets a logout form instead of login and recovery controls`, async () => {
