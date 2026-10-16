@@ -4,7 +4,9 @@ import {
   createCategoryGroups,
   toCategoryGroupViewModels,
 } from '@/domains/category';
-import { currentUserRepository } from '@/domains/member';
+import { logoutAction } from '@/app/(auth)/actions';
+import { getCurrentMemberAccess } from '@/domains/auth/member-access.server';
+import { LogoutButton } from '@/features/auth/logout-button';
 import { CartAwareHeader } from '@/features/cart/cart-header';
 import { StorefrontMobileHeader } from '@/features/storefront/storefront-mobile-header';
 import { SiteLayout } from '@/shared/components/layout/site-layout';
@@ -16,10 +18,14 @@ interface StorefrontRouteLayoutProps {
 }
 
 async function StorefrontRouteLayout({ children, search, category }: StorefrontRouteLayoutProps) {
-  const [user, categories] = await Promise.all([
-    currentUserRepository.findCurrent(),
+  const [access, categories] = await Promise.all([
+    getCurrentMemberAccess(),
     categoryRepository.findMany(),
   ]);
+  if (access.status === 'error') {
+    throw new Error('회원 정보를 확인하지 못했습니다. 다시 시도해주세요.');
+  }
+  const isLoggedIn = access.status === 'active';
   const categoryGroupViewModels = toCategoryGroupViewModels(
     createCategoryGroups(categories),
   );
@@ -28,7 +34,7 @@ async function StorefrontRouteLayout({ children, search, category }: StorefrontR
     <SiteLayout
       search={search}
       categoryOverlay={category}
-      isLoggedIn={user !== null}
+      isLoggedIn={isLoggedIn}
       headerContent={
         <CartAwareHeader
           mobileContent={
@@ -40,6 +46,15 @@ async function StorefrontRouteLayout({ children, search, category }: StorefrontR
               />
             </Suspense>
           }
+          isLoggedIn={isLoggedIn}
+          logoutControl={isLoggedIn ? (
+            <LogoutButton
+              logoutAction={logoutAction}
+              variant="ghost"
+              size="sm"
+              className="px-2 text-sm text-gray-500 hover:text-black"
+            />
+          ) : null}
         />
       }
     >

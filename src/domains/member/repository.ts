@@ -1,4 +1,9 @@
-import type { UserAddressDTO, UserDTO } from './dto';
+import type {
+  UserAddressDTO,
+  UserDTO,
+  MemberAccessDTO,
+  MemberProfileDTO,
+} from './dto';
 
 export interface CurrentUserRepository {
   findCurrent(): Promise<UserDTO | null>;
@@ -13,4 +18,12 @@ export interface UserAddressRepository {
     userId: string,
   ): Promise<UserAddressDTO | null>;
   findDefaultByUserId(userId: string): Promise<UserAddressDTO | null>;
+}
+
+export interface MemberAccessRepository {
+  findById(userId: string): Promise<MemberAccessDTO | null>;
+}
+
+export interface MemberProfileRepository {
+  findById(userId: string): Promise<MemberProfileDTO | null>;
 }

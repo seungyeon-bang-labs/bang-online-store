@@ -1,0 +1,212 @@
+import { z } from 'zod';
+import { isValidPhoneNumber } from 'libphonenumber-js/min';
+import type { Enums } from '@/shared/types/supabase';
+
+export type AuthFeatureRestriction = {
+  reason: 'feature_disabled';
+  message: string;
+};
+
+export interface SignupValidationTerm {
+  code: string;
+  label: string;
+  required: boolean;
+  kind: Enums<'term_kind'>;
+}
+
+export interface SignupRequestTerm extends SignupValidationTerm {
+  termId: string;
+}
+
+export const passwordSchema = z
+  .string()
+  .min(1, '비밀번호를 입력해주세요.')
+  .pipe(
+    z.string().superRefine((value, ctx) => {
+      const reject = (message: string) =>
+        ctx.addIssue({ code: 'custom', message });
+      if (value.length < 8 || value.length > 20) {
+        reject('비밀번호는 8자 이상, 최대 20자 이하여야 합니다.');
+        return;
+      }
+      if (/\s/.test(value)) {
+        reject('비밀번호에 공백을 포함할 수 없습니다.');
+        return;
+      }
+      if (!/^[\x21-\x7E]+$/.test(value)) {
+        reject(
+          '비밀번호는 영문, 숫자, ASCII 특수문자만 사용할 수 있습니다.',
+        );
+        return;
+      }
+      const kinds = [
+        /[A-Za-z]/.test(value),
+        /[0-9]/.test(value),
+        /[^A-Za-z0-9]/.test(value),
+      ];
+      if (kinds.filter(Boolean).length < 2) {
+        reject(
+          '비밀번호는 영문, 숫자, 특수문자 중 2가지 이상 포함해야 합니다.',
+        );
+      }
+    }),
+  );
+
+export const loginFormSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .min(1, '이메일을 입력해주세요.')
+    .pipe(z.email('유효한 이메일 주소를 입력해주세요.')),
+  password: z.string().min(1, '비밀번호를 입력해주세요.'),
+});
+
+export const findPasswordFormSchema = loginFormSchema.pick({ email: true });
+
+export const SIGNUP_OTP_LENGTH = 6;
+export const SIGNUP_OTP_DURATION_SECONDS = 300;
+
+export const signupOtpSchema = z.object({
+  email: z.string().trim().pipe(z.email()),
+  token: z
+    .string()
+    .regex(
+      new RegExp(`^\\d{${SIGNUP_OTP_LENGTH}}$`),
+      `인증번호 ${SIGNUP_OTP_LENGTH}자리를 입력해주세요.`,
+    ),
+});
+
+export const signupOtpFormSchema = signupOtpSchema.pick({ token: true });
+export type SignupOtpFormValues = z.infer<typeof signupOtpFormSchema>;
+
+export function createSignupFormSchema(terms: readonly SignupValidationTerm[]) {
+  const knownCodes = new Set(terms.map(term => term.code));
+
+  return z
+    .object({
+      name: z
+        .string()
+        .trim()
+        .min(1, '이름을 입력해주세요.')
+        .pipe(z.string().max(50, '이름은 50자 이하로 입력해주세요.')),
+      phone_number: z
+        .string()
+        .trim()
+        .min(1, '휴대폰 번호를 입력해주세요.')
+        .pipe(
+          z
+            .string()
+            .refine(
+              value =>
+                /^01[016789]/.test(value.replace(/[\s-]/g, '')) &&
+                isValidPhoneNumber(value, 'KR'),
+              { message: '유효한 휴대폰 번호를 입력해주세요.' },
+            ),
+        ),
+      password: passwordSchema,
+      confirmPassword: z.string().min(1, '비밀번호를 확인해주세요.'),
+      email: z
+        .string()
+        .trim()
+        .min(1, '이메일을 입력해주세요.')
+        .pipe(z.email('유효한 이메일 주소를 입력해주세요.')),
+      agreements: z
+        .record(z.string(), z.boolean())
+        .superRefine((values, ctx) => {
+          for (const code of Object.keys(values)) {
+            if (!knownCodes.has(code)) {
+              ctx.addIssue({
+                code: 'custom',
+                message:
+                  '약관 정보를 확인할 수 없습니다. 페이지를 새로고침한 후 다시 시도해주세요.',
+              });
+            }
+          }
+          for (const term of terms) {
+            if (term.required && values[term.code] !== true) {
+              const message =
+                term.kind === 'confirmation'
+                  ? term.code === 'age_over_14'
+                    ? '만 14세 이상인지 확인해주세요.'
+                    : `'${term.label}' 항목을 확인해주세요.`
+                  : `'${term.label}'에 동의해주세요.`;
+              ctx.addIssue({ code: 'custom', path: [term.code], message });
+            }
+          }
+        }),
+    })
+    .refine(
+      data =>
+        !data.password ||
+        !data.confirmPassword ||
+        data.password === data.confirmPassword,
+      {
+        message: '비밀번호가 일치하지 않습니다.',
+        path: ['confirmPassword'],
+      },
+    );
+}
+
+export function createSignupRequestSchema(terms: readonly SignupRequestTerm[]) {
+  const currentIds = new Set(terms.map(term => term.termId));
+  const distinctCodes = new Set(terms.map(term => term.code));
+
+  return createSignupFormSchema(terms).safeExtend({
+    displayed_term_ids: z
+      .array(z.uuid())
+      .max(100)
+      .refine(
+        ids =>
+          terms.length > 0 &&
+          currentIds.size === terms.length &&
+          distinctCodes.size === terms.length &&
+          ids.length === currentIds.size &&
+          new Set(ids).size === ids.length &&
+          ids.every(id => currentIds.has(id)),
+        '약관이 변경되었거나 올바르지 않습니다. 페이지를 새로고침해주세요.',
+      ),
+  });
+}
+
+export type LoginFormInput = z.infer<typeof loginFormSchema>;
+export type FindPasswordInput = z.infer<typeof findPasswordFormSchema>;
+export type SignupFormValues = z.infer<
+  ReturnType<typeof createSignupFormSchema>
+>;
+
+export const PASSWORD_RECOVERY_OTP_LENGTH = 6;
+export const PASSWORD_RECOVERY_DURATION_SECONDS = 300;
+
+export const passwordRecoveryOtpSchema = findPasswordFormSchema.extend({
+  token: z.string().regex(/^\d{6}$/, '인증번호 6자리를 입력해주세요.'),
+});
+export const passwordRecoveryOtpFormSchema = passwordRecoveryOtpSchema.pick({ token: true });
+export const resetPasswordFormSchema = z.object({
+  password: passwordSchema,
+  confirmPassword: z.string().min(1, '비밀번호를 확인해주세요.'),
+}).refine(data => data.password === data.confirmPassword, {
+  path: ['confirmPassword'], message: '비밀번호가 일치하지 않습니다.',
+});
+export type PasswordRecoveryOtpFormValues = z.infer<typeof passwordRecoveryOtpFormSchema>;
+export type ResetPasswordFormValues = z.infer<typeof resetPasswordFormSchema>;
+
+export type PasswordRecoveryGrant = {
+  purpose: 'password-recovery';
+  userId: string;
+  email: string;
+  refreshToken: string;
+  expiresAt: number;
+};
+export type PasswordRecoveryRequestResult =
+  | { status: 'sent'; otpExpiresAt: number }
+  | { status: 'error'; message: string; reason?: AuthFeatureRestriction['reason'] };
+export type PasswordRecoveryVerificationResult =
+  | { status: 'verified'; recoveryExpiresAt: number }
+  | { status: 'error'; message: string; reason?: AuthFeatureRestriction['reason'] }
+  | { status: 'restart'; message: string };
+export type PasswordResetResult =
+  | { status: 'success' }
+  | { status: 'error'; message: string; reason?: AuthFeatureRestriction['reason'] }
+  | { status: 'restart'; message: string }
+  | { status: 'partial_success'; message: string }
+  | { status: 'unknown'; message: string };

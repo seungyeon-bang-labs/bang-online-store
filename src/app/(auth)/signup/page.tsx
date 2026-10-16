@@ -1,17 +1,31 @@
 import { Separator } from '@/shared/components/ui/separator';
 import { ButtonLink } from '@/shared/components/ui/button';
-import { SignupForm } from '@/features/auth/signup-form';
+import { SignupFlow } from '@/features/auth/signup-flow';
 import { termRepository, toSignupTerms } from '@/domains/terms';
+import { getCurrentMemberAccess } from '@/domains/auth/member-access.server';
+import { getAuthFeatureRestriction } from '@/domains/auth/feature-policy.server';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
-async function Page() {
-  const terms = await termRepository.findEffective();
+async function SignupPage() {
+  const [access, terms] = await Promise.all([
+    getCurrentMemberAccess(),
+    termRepository.findEffective(),
+  ]);
+
+  if (access.status === 'active') {
+    redirect('/');
+  }
+
   const termsViewModel = toSignupTerms(terms);
 
   return (
     <div className="flex flex-col gap-8">
-      <SignupForm termsViewModel={termsViewModel} />
+      <SignupFlow
+        termsViewModel={termsViewModel}
+        restriction={getAuthFeatureRestriction('signup')}
+      />
 
       <div className="hidden flex-col gap-8 md:flex">
         <Separator label="또는" />
@@ -26,4 +40,4 @@ async function Page() {
   );
 }
 
-export default Page;
+export default SignupPage;

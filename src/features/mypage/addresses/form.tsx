@@ -257,7 +257,7 @@ export function MypageAddressForm({
               value={values.deliveryNote}
               onChange={event => updateValue('deliveryNote', event.target.value)}
               placeholder="배송 시 요청사항을 입력해 주세요"
-              className={`min-h-24 ${MYPAGE_TEXTAREA_CLASS_NAME} !text-xs md:!text-sm`}
+              className={`min-h-24 ${MYPAGE_TEXTAREA_CLASS_NAME} text-xs! md:text-sm!`}
             />
           </MypageFormField>
 

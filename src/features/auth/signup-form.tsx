@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+import { signupAction } from '@/app/(auth)/actions';
 import { FormSubmitButton } from '@/shared/components/ui/button';
 import { Mail, Phone, User } from 'lucide-react';
 import { IconInput } from '@/shared/components/common/icon-input';
@@ -9,16 +11,26 @@ import { useForm } from 'react-hook-form';
 import {
   createSignupFormSchema,
   type SignupFormValues,
-} from './signup-form-schema';
+  type AuthFeatureRestriction,
+} from '@/domains/auth/schema';
 import { InputError } from '@/shared/components/ui/input';
 import { TermsAgreement } from '@/features/auth/terms-agreement';
 import type { SignupTermViewModel } from '@/domains/terms/view-model';
 
 interface SignupFormProps {
+  restriction?: AuthFeatureRestriction | null;
   termsViewModel: SignupTermViewModel[];
+  onSuccess: (email: string) => void;
 }
 
-export function SignupForm({ termsViewModel }: SignupFormProps) {
+export function SignupForm({
+  restriction,
+  termsViewModel,
+  onSuccess,
+}: SignupFormProps) {
+  const [serverRestriction, setServerRestriction] =
+    useState<AuthFeatureRestriction | null>(null);
+  const activeRestriction = restriction ?? serverRestriction;
   const termsDefaults = Object.fromEntries(
     termsViewModel.map(item => [item.code, false]),
   ) as Record<string, boolean>;
@@ -28,7 +40,9 @@ export function SignupForm({ termsViewModel }: SignupFormProps) {
     control,
     setValue,
     trigger,
-    formState: { errors },
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
   } = useForm<SignupFormValues>({
     resolver: zodResolver(createSignupFormSchema(termsViewModel)),
     mode: 'onBlur',
@@ -43,22 +57,54 @@ export function SignupForm({ termsViewModel }: SignupFormProps) {
     },
   });
 
+  const onSubmit = handleSubmit(async values => {
+    if (activeRestriction) return;
+
+    try {
+      const result = await signupAction({
+        ...values,
+        displayed_term_ids: termsViewModel.map(term => term.termId),
+      });
+
+      if (!result.ok) {
+        if (result.reason === 'feature_disabled') {
+          setServerRestriction({ reason: result.reason, message: result.message });
+          return;
+        }
+        setError('root', { message: result.message });
+        return;
+      }
+    } catch {
+      setError('root', {
+        message:
+          '회원가입 결과를 확인하지 못했습니다. 이메일을 확인하거나 로그인 화면에서 인증을 이어가주세요.',
+      });
+      return;
+    }
+
+    onSuccess(values.email);
+  });
+
   const agreementsErrorMessage = errors.agreements?.message;
-  const termsErrorMessage = typeof agreementsErrorMessage === 'string'
-    ? agreementsErrorMessage
-    : termsViewModel
-    .filter(item => item.required)
-    .map(item => errors.agreements?.[item.code]?.message)
-    .find(Boolean);
+  const termsErrorMessage =
+    typeof agreementsErrorMessage === 'string'
+      ? agreementsErrorMessage
+      : termsViewModel
+          .filter(item => item.required)
+          .map(item => errors.agreements?.[item.code]?.message)
+          .find(Boolean);
 
   return (
-    <form
-      onSubmit={event => event.preventDefault()}
-      className="flex flex-col gap-5"
-    >
-      <p className="text-sm leading-5 text-zinc-600">
-        현재 포트폴리오 데모에서는 신규 회원가입을 제공하지 않습니다.
-      </p>
+    <form onSubmit={onSubmit} className="flex flex-col gap-5">
+      {activeRestriction && (
+        <div
+          role="status"
+          className="rounded-md border bg-muted px-4 py-3 text-sm leading-6 text-foreground"
+        >
+          <p className="font-semibold">데모 안내</p>
+          <p>{activeRestriction.message}</p>
+        </div>
+      )}
       <div>
         <IconInput
           id="signup-email"
@@ -157,7 +203,10 @@ export function SignupForm({ termsViewModel }: SignupFormProps) {
         </div>
       )}
 
-      <FormSubmitButton disabled>회원가입은 준비 중입니다</FormSubmitButton>
+      <InputError message={activeRestriction ? undefined : errors.root?.message} />
+      <FormSubmitButton isPending={isSubmitting} disabled={!!activeRestriction}>
+        회원가입
+      </FormSubmitButton>
     </form>
   );
 }

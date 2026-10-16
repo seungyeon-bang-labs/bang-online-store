@@ -1,4 +1,6 @@
 import { UserRound } from 'lucide-react';
+import { logoutAction } from '@/app/(auth)/actions';
+import { LogoutButton } from '@/features/auth/logout-button';
 import { getMypageHomeViewModel } from '@/domains/mypage';
 import { currentUserRepository } from '@/domains/member';
 import {
@@ -40,6 +42,10 @@ async function MyPageHome() {
       <MypageHomeOrders statuses={orderStatuses} orders={recentOrders} />
       <MypageHomeRecentProducts items={recentProducts} />
       <MypageHomeWishlist items={wishlistProducts} />
+
+      <div className="md:hidden">
+        <LogoutButton logoutAction={logoutAction} />
+      </div>
     </MypagePageLayout>
   );
 }

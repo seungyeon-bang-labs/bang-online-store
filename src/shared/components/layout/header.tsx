@@ -17,10 +17,11 @@ import { CartItemCountBadge, getCartAriaLabel } from './cart-item-count-badge';
 interface HeaderProps {
   mobileContent?: ReactNode;
   cartItemCount?: number;
+  isLoggedIn?: boolean;
+  logoutControl?: ReactNode;
 }
 
-export function Header({ mobileContent, cartItemCount = 0 }: HeaderProps) {
-  const isLoggedIn = true;
+export function Header({ mobileContent, cartItemCount = 0, isLoggedIn = false, logoutControl }: HeaderProps) {
   const closeOverlayRoute = useCloseOverlayRoute();
   const { activeOverlayRoute } = useOverlayRoute();
   const isOverlayOpen = activeOverlayRoute !== null;
@@ -56,6 +57,7 @@ export function Header({ mobileContent, cartItemCount = 0 }: HeaderProps) {
                   ) : null}
                 </ButtonLink>
               ))}
+              {isLoggedIn && logoutControl}
             </div>
             <div className="flex items-center justify-center w-full">
               <nav className="flex items-center gap-2">

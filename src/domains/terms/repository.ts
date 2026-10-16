@@ -7,7 +7,8 @@ export interface TermRepository {
 }
 
 const termSelect = '*, term_codes!inner(code, title, kind, is_active)' as const;
-const termSummarySelect = 'id, title, is_required, term_codes!inner(code, kind)' as const;
+const termSummarySelect =
+  'id, title, is_required, term_codes!inner(code, kind)' as const;
 
 export const termRepository: TermRepository = {
   async findEffective() {

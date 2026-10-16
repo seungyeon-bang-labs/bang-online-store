@@ -7,7 +7,7 @@ import {
 } from '@/shared/components/ui/input-group';
 import type { LucideIcon } from 'lucide-react';
 import type { UseFormRegisterReturn } from 'react-hook-form';
-import type { InputHTMLAttributes } from 'react';
+import type { InputHTMLAttributes, ReactNode } from 'react';
 import { cn } from '@/shared/lib/utils';
 
 type BaseInputProps = Omit<
@@ -27,6 +27,7 @@ interface IconInputProps extends InputProps, BaseInputProps {
   type?: 'text' | 'email';
   size?: 'lg' | 'xl';
   className?: string;
+  rightAddon?: ReactNode;
 }
 
 function IconInput({
@@ -38,6 +39,7 @@ function IconInput({
   register,
   size = 'xl',
   className,
+  rightAddon,
   ...rest
 }: IconInputProps) {
   const sizeClasses = {
@@ -59,10 +61,16 @@ function IconInput({
         {...(register || {})}
         disabled={disabled}
         aria-invalid={ariaInvalid}
+        className="min-w-0"
       />
       <InputGroupAddon>
         <Icon className={iconSizeClasses[size]} />
       </InputGroupAddon>
+      {rightAddon != null && (
+        <InputGroupAddon align="inline-end" className="shrink-0">
+          {rightAddon}
+        </InputGroupAddon>
+      )}
     </InputGroup>
   );
 }
