@@ -13,6 +13,7 @@ interface LogoutButtonProps
 export function LogoutButton({
   logoutAction,
   size = 'xl',
+  variant = 'default',
   className,
 }: LogoutButtonProps) {
   const [state, formAction, isPending] = useActionState(logoutAction, null);
@@ -20,7 +21,7 @@ export function LogoutButton({
   return (
     <form action={formAction} className="flex flex-col gap-2">
       <FormSubmitButton
-        variant="default"
+        variant={variant}
         size={size}
         className={className}
         isPending={isPending}
