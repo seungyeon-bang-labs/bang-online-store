@@ -22,7 +22,7 @@ import { Container } from '@/shared/components/layout/container';
 import { Button } from '@/shared/components/ui/button';
 
 type CartProduct = CartItem & {
-  id: string;
+  id: number;
   name: string;
   option: string;
   price: number;
@@ -39,7 +39,7 @@ const getCartProducts = (
   response: CartProductResponse | null,
 ) => {
   if (!response) return [];
-  const cartItemsByVariantId = new Map<string, ProductCartItemViewModel>(
+  const cartItemsByVariantId = new Map<number, ProductCartItemViewModel>(
     response.cartItems.map(item => [item.variantId, item]),
   );
   return cartItems
@@ -109,7 +109,7 @@ export function CartPageClient() {
   );
 
   const validSelectedIds = useMemo(() => {
-    if (selectedIds.length === 0) return new Set<string>();
+    if (selectedIds.length === 0) return new Set<number>();
     return new Set(selectedIds.filter(id => currentIds.has(id)));
   }, [selectedIds, currentIds]);
 
@@ -132,7 +132,7 @@ export function CartPageClient() {
     selectAll(cartProducts.map(item => item.id));
   };
 
-  const handleToggleItem = (variantId: string, checked: boolean) => {
+  const handleToggleItem = (variantId: number, checked: boolean) => {
     toggleSelected(variantId, checked);
   };
 
@@ -148,11 +148,11 @@ export function CartPageClient() {
     setSelectedIds([]);
   };
 
-  const handleDeleteItem = (variantId: string) => {
+  const handleDeleteItem = (variantId: number) => {
     removeFromCart(variantId);
   };
 
-  const handleUpdateCount = (variantId: string, delta: number) => {
+  const handleUpdateCount = (variantId: number, delta: number) => {
     const targetItem = cartProducts.find(item => item.id === variantId);
     if (!targetItem) return;
 

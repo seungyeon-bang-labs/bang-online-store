@@ -52,7 +52,7 @@ export interface OrderItemBaseViewModel {
   actions: OrderItemActionsViewModel | null;
   repurchaseItem: {
     productId: number;
-    variantId: string;
+    variantId: number;
     quantity: number;
   } | null;
 }

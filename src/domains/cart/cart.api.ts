@@ -5,7 +5,7 @@ import type {
 
 export type CartProductRequestItem = {
   productId: number;
-  variantId: string;
+  variantId: number;
 };
 
 export type CartProductResponse = {

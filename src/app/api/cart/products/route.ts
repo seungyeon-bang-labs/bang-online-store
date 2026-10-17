@@ -15,8 +15,8 @@ const isRequestItem = (value: unknown): value is CartProductRequestItem =>
   value !== null &&
   Number.isSafeInteger((value as CartProductRequestItem).productId) &&
   (value as CartProductRequestItem).productId > 0 &&
-  typeof (value as CartProductRequestItem).variantId === 'string' &&
-  (value as CartProductRequestItem).variantId.trim().length > 0;
+  Number.isSafeInteger((value as CartProductRequestItem).variantId) &&
+  (value as CartProductRequestItem).variantId > 0;
 
 export async function POST(request: Request) {
   let items: unknown;

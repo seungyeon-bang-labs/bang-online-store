@@ -229,7 +229,7 @@ function toOrderClaimExchangeDetailProductViewModel({
   item: OrderItemDTO;
   orderedItem: OrderClaimProductViewModel;
   exchangeProduct: ProductModel | null;
-  exchangeVariantId: string | null;
+  exchangeVariantId: number | null;
 }): OrderClaimDetailExchangeProductViewModel {
   if (!exchangeProduct || !exchangeVariantId) {
     throw new Error('Exchange claims require a target product and option.');
@@ -303,7 +303,7 @@ function toOrderClaimProductViewModel(
 function toOrderClaimExchangeProductViewModel(
   item: OrderItemDTO,
   product: ProductModel,
-  variantId: string,
+  variantId: number,
 ): OrderClaimProductViewModel {
   const variant = product.variants.find(current => current.id === variantId);
   const color = toProductColorViewModels([product])[0];

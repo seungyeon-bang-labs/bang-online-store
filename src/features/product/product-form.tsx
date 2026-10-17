@@ -28,7 +28,7 @@ type ProductFormProps = {
 };
 
 type SelectedItem = {
-  id: string;
+  id: number;
   size: string;
   count: number;
   stock: number;
@@ -46,7 +46,7 @@ export function ProductForm({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
-  const [selectedSizeId, setSelectedSizeId] = useState('');
+  const [selectedSizeId, setSelectedSizeId] = useState<number | null>(null);
   const { addToCart } = useCartStore();
   const isAllSoldOut = variants.every(variant => variant.stock <= 0);
   const hasDiscount = discount > 0;
@@ -56,7 +56,7 @@ export function ProductForm({
 
   // 1. 사이즈 선택 시 항목 추가
   const handleSizeSelect = (value: string) => {
-    const variant = variants.find(v => v.id === value);
+    const variant = variants.find(v => String(v.id) === value);
     if (!variant) return;
 
     setSelectedItems(prev => {
@@ -82,11 +82,11 @@ export function ProductForm({
       ];
     });
 
-    setSelectedSizeId('');
+    setSelectedSizeId(null);
   };
 
   // 2. 수량 변경 로직
-  const updateCount = (id: string, delta: number) => {
+  const updateCount = (id: number, delta: number) => {
     setSelectedItems(prev =>
       prev.map(item => {
         if (item.id === id) {
@@ -101,7 +101,7 @@ export function ProductForm({
   };
 
   // 3. 항목 삭제 로직
-  const removeItem = (id: string) => {
+  const removeItem = (id: number) => {
     setSelectedItems(prev => prev.filter(item => item.id !== id));
   };
 
@@ -159,12 +159,9 @@ export function ProductForm({
       <div className="space-y-3">
         <h4 className="font-black text-base mb-2 flex items-center">사이즈</h4>
         <Select
-          value={selectedSizeId}
+          value={selectedSizeId === null ? '' : String(selectedSizeId)}
           disabled={isAllSoldOut}
-          onValueChange={value => {
-            setSelectedSizeId(value);
-            handleSizeSelect(value);
-          }}
+          onValueChange={handleSizeSelect}
         >
           <SelectTrigger
             className={cn('w-full h-12 border-gray-200 focus:ring-black')}
@@ -178,7 +175,7 @@ export function ProductForm({
             {variants.map(variant => (
               <SelectItem
                 key={variant.id}
-                value={variant.id}
+                value={String(variant.id)}
                 disabled={variant.stock <= 0}
               >
                 <div className="flex w-full items-center gap-4">

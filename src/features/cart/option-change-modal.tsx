@@ -33,7 +33,7 @@ import type { ProductOptionViewModel } from '@/domains/product';
 
 interface OptionChangeModalProps {
   currentProductId: number;
-  currentVariantId: string;
+  currentVariantId: number;
   productOptionViewModels: readonly ProductOptionViewModel[];
 }
 
@@ -54,14 +54,14 @@ export function OptionChangeModal({
       { id: number; label: string; hex: string }
     >();
     productOptionViewModels.forEach(product => {
-        if (!options.has(product.color.id)) {
-          options.set(product.color.id, {
-            id: product.color.id,
-            label: product.color.label,
-            hex: product.color.hex,
-          });
-        }
-      });
+      if (!options.has(product.color.id)) {
+        options.set(product.color.id, {
+          id: product.color.id,
+          label: product.color.label,
+          hex: product.color.hex,
+        });
+      }
+    });
     return Array.from(options.values());
   }, [productOptionViewModels]);
 
@@ -69,7 +69,9 @@ export function OptionChangeModal({
   const [selectedColorId, setSelectedColorId] = React.useState<number | null>(
     null,
   );
-  const [selectedSizeId, setSelectedSizeId] = React.useState<string>('');
+  const [selectedSizeId, setSelectedSizeId] = React.useState<number | null>(
+    null,
+  );
 
   // 3. 선택된 컬러에 따른 실시간 사이즈 옵션 목록 계산
   const sizeOptions = React.useMemo(() => {
@@ -86,10 +88,16 @@ export function OptionChangeModal({
       const currentColorId = productOptionViewModels.find(
         product => product.productId === currentProductId,
       )?.color.id;
-      setSelectedColorId(currentColorId ?? groupColors[0]?.id);
+      setSelectedColorId(currentColorId ?? groupColors[0]?.id ?? null);
       setSelectedSizeId(currentVariantId);
     }
-  }, [open, currentProductId, currentVariantId, groupColors, productOptionViewModels]);
+  }, [
+    open,
+    currentProductId,
+    currentVariantId,
+    groupColors,
+    productOptionViewModels,
+  ]);
 
   // 컬러 변경 시 처리 로직
   const handleColorChange = (colorId: number) => {
@@ -112,8 +120,8 @@ export function OptionChangeModal({
       v => v.size === currentSelectedSizeName && v.stock > 0,
     );
 
-    // 5. 매칭 성공하면 해당 ID로 변경, 실패하면 빈 값('')으로 두어 사용자 선택 유도
-    setSelectedSizeId(matchedVariant?.id ?? '');
+    // 5. 매칭 성공하면 해당 ID로 변경, 실패하면 미선택 상태로 두어 사용자 선택 유도
+    setSelectedSizeId(matchedVariant?.id ?? null);
   };
 
   const handleApply = () => {
@@ -160,10 +168,13 @@ export function OptionChangeModal({
       <section className="space-y-3">
         <h4 className="font-black text-base mb-2 flex items-center">사이즈</h4>
         <Select
-          value={selectedSizeId}
+          value={selectedSizeId === null ? '' : String(selectedSizeId)}
           disabled={isAllSoldOut}
           onValueChange={value => {
-            setSelectedSizeId(value);
+            const variant = sizeOptions.find(
+              option => String(option.id) === value,
+            );
+            if (variant) setSelectedSizeId(variant.id);
           }}
         >
           <SelectTrigger
@@ -178,7 +189,7 @@ export function OptionChangeModal({
             {sizeOptions.map(variant => (
               <SelectItem
                 key={variant.id}
-                value={variant.id}
+                value={String(variant.id)}
                 disabled={variant.stock <= 0}
               >
                 <div className="flex w-full items-center gap-4">
@@ -243,11 +254,7 @@ export function OptionChangeModal({
             >
               취소
             </Button>
-            <Button
-              onClick={handleApply}
-              size="lg"
-              className="flex-1"
-            >
+            <Button onClick={handleApply} size="lg" className="flex-1">
               변경 적용
             </Button>
           </div>
@@ -286,7 +293,7 @@ export function OptionChangeModal({
           </DrawerClose>
           <Button
             onClick={handleApply}
-            className="flex-[2] h-14 rounded-2xl bg-black text-white font-bold"
+            className="flex-2 h-14 rounded-2xl bg-black text-white font-bold"
           >
             변경 내용 저장
           </Button>

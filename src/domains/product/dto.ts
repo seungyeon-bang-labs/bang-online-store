@@ -33,7 +33,8 @@ export type ProductStyleDTO = {
 };
 
 export type ProductVariantDTO = {
-  id: string;
+  id: number;
+  sku: string;
   product_id: number;
   size: ProductSizeOptionDTO;
   stock: number;
@@ -49,7 +50,7 @@ export type ProductStatsDTO = {
 };
 
 export type ProductImageDTO = {
-  id: string;
+  id: number;
   product_id: number;
   image_url: string;
   image_type: ProductImageTypeDTO;

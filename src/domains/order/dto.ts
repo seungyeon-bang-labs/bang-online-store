@@ -48,7 +48,7 @@ export interface OrderItemDTO {
   id: string;
   order_id: string;
   product_id: number;
-  variant_id: string;
+  variant_id: number;
   product_name: string;
   option_label: string;
   quantity: number;

@@ -2,24 +2,24 @@ import { create } from 'zustand';
 
 export interface CartItem {
   productId: number;
-  variantId: string;
+  variantId: number;
   quantity: number;
 }
 
 interface CartState {
   items: CartItem[];
-  selectedIds: string[];
-  addToCart: (productId: number, variantId: string, quantity?: number) => void;
-  updateQuantity: (variantId: string, quantity: number) => void;
+  selectedIds: number[];
+  addToCart: (productId: number, variantId: number, quantity?: number) => void;
+  updateQuantity: (variantId: number, quantity: number) => void;
   updateOption: (
-    currentVariantId: string,
+    currentVariantId: number,
     nextProductId: number,
-    nextVariantId: string,
+    nextVariantId: number,
   ) => void;
-  setSelectedIds: (variantIds: string[]) => void;
-  toggleSelected: (variantId: string, selected: boolean) => void;
-  selectAll: (variantIds: string[]) => void;
-  removeFromCart: (variantId: string) => void;
+  setSelectedIds: (variantIds: number[]) => void;
+  toggleSelected: (variantId: number, selected: boolean) => void;
+  selectAll: (variantIds: number[]) => void;
+  removeFromCart: (variantId: number) => void;
   clearCart: () => void;
 }
 

@@ -33,7 +33,7 @@ export interface MypageHomeOrderCommandAction
   type: 'repurchase';
   cartItem: {
     productId: number;
-    variantId: string;
+    variantId: number;
     quantity: number;
   };
 }

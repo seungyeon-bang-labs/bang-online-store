@@ -22,7 +22,7 @@ export function useClaimRequestForm(
   const [exchangeProductId, setExchangeProductId] = useState<number | null>(
     null,
   );
-  const [exchangeOptionId, setExchangeOptionId] = useState('');
+  const [exchangeOptionId, setExchangeOptionId] = useState<number | null>(null);
   const [hasChangedExchangeOption, setHasChangedExchangeOption] =
     useState(false);
   const [agreed, setAgreed] = useState(false);
@@ -36,7 +36,7 @@ export function useClaimRequestForm(
       nextType === 'exchange' ? claimRequest.currentProductId : null,
     );
     setExchangeOptionId(
-      nextType === 'exchange' ? claimRequest.currentVariantId : '',
+      nextType === 'exchange' ? claimRequest.currentVariantId : null,
     );
     setHasChangedExchangeOption(false);
     setErrors(current => ({ ...current, type: undefined }));
@@ -52,12 +52,13 @@ export function useClaimRequestForm(
     setErrors(current => ({ ...current, description: undefined }));
   }
 
-  function selectExchangeOption(productId: number, variantId: string) {
+  function selectExchangeOption(productId: number, variantId: number | null) {
     setExchangeProductId(productId);
     setExchangeOptionId(variantId);
     setHasChangedExchangeOption(
-      productId !== claimRequest.currentProductId ||
-        variantId !== claimRequest.currentVariantId,
+      variantId !== null &&
+        (productId !== claimRequest.currentProductId ||
+          variantId !== claimRequest.currentVariantId),
     );
     setErrors(current => ({ ...current, exchangeOption: undefined }));
   }
