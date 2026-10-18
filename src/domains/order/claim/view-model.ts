@@ -109,7 +109,7 @@ export interface OrderClaimDetailViewModel {
 }
 
 export interface OrderClaimRequestVariantOptionViewModel {
-  id: string;
+  id: number;
   label: string;
   isAvailable: boolean;
   isExchangeable: boolean;
@@ -138,7 +138,7 @@ export interface OrderClaimRequestViewModel {
   isEligible: boolean;
   unavailableReason: OrderClaimRequestUnavailableReason | null;
   currentProductId: number;
-  currentVariantId: string;
+  currentVariantId: number;
   currentVariantLabel: string;
   exchangeColorOptions: OrderClaimRequestColorOptionViewModel[];
 }

@@ -1,25 +1,30 @@
 import { create } from 'zustand';
+import type { CartProductRequestItem } from './cart.api';
 
 export interface CartItem {
   productId: number;
-  variantId: string;
+  variantId: number;
   quantity: number;
 }
 
 interface CartState {
   items: CartItem[];
-  selectedIds: string[];
-  addToCart: (productId: number, variantId: string, quantity?: number) => void;
-  updateQuantity: (variantId: string, quantity: number) => void;
+  selectedIds: number[];
+  addToCart: (productId: number, variantId: number, quantity?: number) => void;
+  updateQuantity: (variantId: number, quantity: number) => void;
   updateOption: (
-    currentVariantId: string,
+    currentVariantId: number,
     nextProductId: number,
-    nextVariantId: string,
+    nextVariantId: number,
   ) => void;
-  setSelectedIds: (variantIds: string[]) => void;
-  toggleSelected: (variantId: string, selected: boolean) => void;
-  selectAll: (variantIds: string[]) => void;
-  removeFromCart: (variantId: string) => void;
+  setSelectedIds: (variantIds: number[]) => void;
+  toggleSelected: (variantId: number, selected: boolean) => void;
+  selectAll: (variantIds: number[]) => void;
+  removeFromCart: (variantId: number) => void;
+  reconcileItems: (
+    requestedItems: readonly CartItem[],
+    availableItems: readonly CartProductRequestItem[],
+  ) => number;
   clearCart: () => void;
 }
 
@@ -130,5 +135,29 @@ export const useCartStore = create<CartState>(set => ({
       items: state.items.filter(item => item.variantId !== variantId),
       selectedIds: state.selectedIds.filter(id => id !== variantId),
     })),
+  reconcileItems: (requestedItems, availableItems) => {
+    let removedCount = 0;
+
+    set(state => {
+      if (state.items !== requestedItems) return state;
+
+      const availablePairs = new Set(
+        availableItems.map(item => `${item.productId}:${item.variantId}`),
+      );
+      const items = state.items.filter(item =>
+        availablePairs.has(`${item.productId}:${item.variantId}`),
+      );
+      removedCount = state.items.length - items.length;
+      if (removedCount === 0) return state;
+
+      const remainingIds = new Set(items.map(item => item.variantId));
+      return {
+        items,
+        selectedIds: state.selectedIds.filter(id => remainingIds.has(id)),
+      };
+    });
+
+    return removedCount;
+  },
   clearCart: () => set({ items: [], selectedIds: [] }),
 }));

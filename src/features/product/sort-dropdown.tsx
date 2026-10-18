@@ -13,7 +13,7 @@ import { useSearchParams } from 'next/navigation';
 import {
   PRODUCT_SORT_OPTIONS,
   type ProductSortOption,
-} from '@/domains/product';
+} from '@/domains/product/filter';
 
 type SortDropdownProps = {
   currentSortValue: ProductSortOption;

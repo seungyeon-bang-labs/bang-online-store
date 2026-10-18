@@ -460,945 +460,1080 @@ export const PRODUCT_FIXTURE = [
 
 export const PRODUCT_VARIANT_FIXTURE = [
   {
-    "id": "1-GY-S",
+    "id": 1,
+    "sku": "1-GY-S",
     "product_id": 1,
     "size": "S",
     "stock": 12,
     "price_offset": 0
   },
   {
-    "id": "1-GY-M",
+    "id": 2,
+    "sku": "1-GY-M",
     "product_id": 1,
     "size": "M",
     "stock": 18,
     "price_offset": 0
   },
   {
-    "id": "1-GY-L",
+    "id": 3,
+    "sku": "1-GY-L",
     "product_id": 1,
     "size": "L",
     "stock": 5,
     "price_offset": 0
   },
   {
-    "id": "1-GY-XL",
+    "id": 4,
+    "sku": "1-GY-XL",
     "product_id": 1,
     "size": "XL",
     "stock": 3,
     "price_offset": 5000
   },
   {
-    "id": "1-GY-2XL",
+    "id": 5,
+    "sku": "1-GY-2XL",
     "product_id": 1,
     "size": "2XL",
     "stock": 0,
     "price_offset": 10000
   },
   {
-    "id": "1-DK-S",
+    "id": 6,
+    "sku": "1-DK-S",
     "product_id": 2,
     "size": "S",
     "stock": 8,
     "price_offset": 0
   },
   {
-    "id": "1-DK-M",
+    "id": 7,
+    "sku": "1-DK-M",
     "product_id": 2,
     "size": "M",
     "stock": 10,
     "price_offset": 0
   },
   {
-    "id": "1-DK-L",
+    "id": 8,
+    "sku": "1-DK-L",
     "product_id": 2,
     "size": "L",
     "stock": 15,
     "price_offset": 0
   },
   {
-    "id": "1-DK-XL",
+    "id": 9,
+    "sku": "1-DK-XL",
     "product_id": 2,
     "size": "XL",
     "stock": 2,
     "price_offset": 5000
   },
   {
-    "id": "1-DK-2XL",
+    "id": 10,
+    "sku": "1-DK-2XL",
     "product_id": 2,
     "size": "2XL",
     "stock": 4,
     "price_offset": 10000
   },
   {
-    "id": "1-CM-S",
+    "id": 11,
+    "sku": "1-CM-S",
     "product_id": 3,
     "size": "S",
     "stock": 20,
     "price_offset": 0
   },
   {
-    "id": "1-CM-M",
+    "id": 12,
+    "sku": "1-CM-M",
     "product_id": 3,
     "size": "M",
     "stock": 12,
     "price_offset": 0
   },
   {
-    "id": "1-CM-L",
+    "id": 13,
+    "sku": "1-CM-L",
     "product_id": 3,
     "size": "L",
     "stock": 7,
     "price_offset": 0
   },
   {
-    "id": "1-CM-XL",
+    "id": 14,
+    "sku": "1-CM-XL",
     "product_id": 3,
     "size": "XL",
     "stock": 0,
     "price_offset": 5000
   },
   {
-    "id": "1-CM-2XL",
+    "id": 15,
+    "sku": "1-CM-2XL",
     "product_id": 3,
     "size": "2XL",
     "stock": 1,
     "price_offset": 10000
   },
   {
-    "id": "2-CM-S",
+    "id": 16,
+    "sku": "2-CM-S",
     "product_id": 4,
     "size": "S",
     "stock": 5,
     "price_offset": 0
   },
   {
-    "id": "2-CM-M",
+    "id": 17,
+    "sku": "2-CM-M",
     "product_id": 4,
     "size": "M",
     "stock": 3,
     "price_offset": 0
   },
   {
-    "id": "2-CM-L",
+    "id": 18,
+    "sku": "2-CM-L",
     "product_id": 4,
     "size": "L",
     "stock": 10,
     "price_offset": 0
   },
   {
-    "id": "2-CM-XL",
+    "id": 19,
+    "sku": "2-CM-XL",
     "product_id": 4,
     "size": "XL",
     "stock": 4,
     "price_offset": 7000
   },
   {
-    "id": "2-CM-2XL",
+    "id": 20,
+    "sku": "2-CM-2XL",
     "product_id": 4,
     "size": "2XL",
     "stock": 2,
     "price_offset": 14000
   },
   {
-    "id": "3-NV-S",
+    "id": 21,
+    "sku": "3-NV-S",
     "product_id": 5,
     "size": "S",
     "stock": 10,
     "price_offset": 0
   },
   {
-    "id": "3-NV-M",
+    "id": 22,
+    "sku": "3-NV-M",
     "product_id": 5,
     "size": "M",
     "stock": 8,
     "price_offset": 0
   },
   {
-    "id": "3-NV-L",
+    "id": 23,
+    "sku": "3-NV-L",
     "product_id": 5,
     "size": "L",
     "stock": 6,
     "price_offset": 0
   },
   {
-    "id": "3-NV-XL",
+    "id": 24,
+    "sku": "3-NV-XL",
     "product_id": 5,
     "size": "XL",
     "stock": 4,
     "price_offset": 5000
   },
   {
-    "id": "3-NV-2XL",
+    "id": 25,
+    "sku": "3-NV-2XL",
     "product_id": 5,
     "size": "2XL",
     "stock": 2,
     "price_offset": 10000
   },
   {
-    "id": "4-DGY-S",
+    "id": 26,
+    "sku": "4-DGY-S",
     "product_id": 6,
     "size": "S",
     "stock": 0,
     "price_offset": 0
   },
   {
-    "id": "4-DGY-M",
+    "id": 27,
+    "sku": "4-DGY-M",
     "product_id": 6,
     "size": "M",
     "stock": 0,
     "price_offset": 0
   },
   {
-    "id": "4-DGY-L",
+    "id": 28,
+    "sku": "4-DGY-L",
     "product_id": 6,
     "size": "L",
     "stock": 0,
     "price_offset": 0
   },
   {
-    "id": "4-DGY-XL",
+    "id": 29,
+    "sku": "4-DGY-XL",
     "product_id": 6,
     "size": "XL",
     "stock": 0,
     "price_offset": 5000
   },
   {
-    "id": "4-DGY-2XL",
+    "id": 30,
+    "sku": "4-DGY-2XL",
     "product_id": 6,
     "size": "2XL",
     "stock": 0,
     "price_offset": 10000
   },
   {
-    "id": "5-KGY-S",
+    "id": 31,
+    "sku": "5-KGY-S",
     "product_id": 7,
     "size": "S",
     "stock": 10,
     "price_offset": 0
   },
   {
-    "id": "5-KGY-M",
+    "id": 32,
+    "sku": "5-KGY-M",
     "product_id": 7,
     "size": "M",
     "stock": 15,
     "price_offset": 0
   },
   {
-    "id": "5-KGY-L",
+    "id": 33,
+    "sku": "5-KGY-L",
     "product_id": 7,
     "size": "L",
     "stock": 12,
     "price_offset": 0
   },
   {
-    "id": "5-KGY-XL",
+    "id": 34,
+    "sku": "5-KGY-XL",
     "product_id": 7,
     "size": "XL",
     "stock": 8,
     "price_offset": 3000
   },
   {
-    "id": "5-KGY-2XL",
+    "id": 35,
+    "sku": "5-KGY-2XL",
     "product_id": 7,
     "size": "2XL",
     "stock": 4,
     "price_offset": 6000
   },
   {
-    "id": "6-NV-S",
+    "id": 36,
+    "sku": "6-NV-S",
     "product_id": 8,
     "size": "S",
     "stock": 7,
     "price_offset": 0
   },
   {
-    "id": "6-NV-M",
+    "id": 37,
+    "sku": "6-NV-M",
     "product_id": 8,
     "size": "M",
     "stock": 9,
     "price_offset": 0
   },
   {
-    "id": "6-NV-L",
+    "id": 38,
+    "sku": "6-NV-L",
     "product_id": 8,
     "size": "L",
     "stock": 14,
     "price_offset": 0
   },
   {
-    "id": "6-NV-XL",
+    "id": 39,
+    "sku": "6-NV-XL",
     "product_id": 8,
     "size": "XL",
     "stock": 5,
     "price_offset": 4000
   },
   {
-    "id": "6-NV-2XL",
+    "id": 40,
+    "sku": "6-NV-2XL",
     "product_id": 8,
     "size": "2XL",
     "stock": 0,
     "price_offset": 8000
   },
   {
-    "id": "7-GN-S",
+    "id": 41,
+    "sku": "7-GN-S",
     "product_id": 9,
     "size": "S",
     "stock": 20,
     "price_offset": 0
   },
   {
-    "id": "7-GN-M",
+    "id": 42,
+    "sku": "7-GN-M",
     "product_id": 9,
     "size": "M",
     "stock": 18,
     "price_offset": 0
   },
   {
-    "id": "7-GN-L",
+    "id": 43,
+    "sku": "7-GN-L",
     "product_id": 9,
     "size": "L",
     "stock": 15,
     "price_offset": 0
   },
   {
-    "id": "7-GN-XL",
+    "id": 44,
+    "sku": "7-GN-XL",
     "product_id": 9,
     "size": "XL",
     "stock": 10,
     "price_offset": 2000
   },
   {
-    "id": "7-GN-2XL",
+    "id": 45,
+    "sku": "7-GN-2XL",
     "product_id": 9,
     "size": "2XL",
     "stock": 5,
     "price_offset": 4000
   },
   {
-    "id": "8-GY-S",
+    "id": 46,
+    "sku": "8-GY-S",
     "product_id": 10,
     "size": "S",
     "stock": 5,
     "price_offset": 0
   },
   {
-    "id": "8-GY-M",
+    "id": 47,
+    "sku": "8-GY-M",
     "product_id": 10,
     "size": "M",
     "stock": 8,
     "price_offset": 0
   },
   {
-    "id": "8-GY-L",
+    "id": 48,
+    "sku": "8-GY-L",
     "product_id": 10,
     "size": "L",
     "stock": 10,
     "price_offset": 0
   },
   {
-    "id": "8-GY-XL",
+    "id": 49,
+    "sku": "8-GY-XL",
     "product_id": 10,
     "size": "XL",
     "stock": 3,
     "price_offset": 5000
   },
   {
-    "id": "8-GY-2XL",
+    "id": 50,
+    "sku": "8-GY-2XL",
     "product_id": 10,
     "size": "2XL",
     "stock": 1,
     "price_offset": 10000
   },
   {
-    "id": "9-GN-S",
+    "id": 51,
+    "sku": "9-GN-S",
     "product_id": 11,
     "size": "S",
     "stock": 0,
     "price_offset": 0
   },
   {
-    "id": "9-GN-M",
+    "id": 52,
+    "sku": "9-GN-M",
     "product_id": 11,
     "size": "M",
     "stock": 0,
     "price_offset": 0
   },
   {
-    "id": "9-GN-L",
+    "id": 53,
+    "sku": "9-GN-L",
     "product_id": 11,
     "size": "L",
     "stock": 0,
     "price_offset": 0
   },
   {
-    "id": "9-GN-XL",
+    "id": 54,
+    "sku": "9-GN-XL",
     "product_id": 11,
     "size": "XL",
     "stock": 0,
     "price_offset": 2000
   },
   {
-    "id": "9-GN-2XL",
+    "id": 55,
+    "sku": "9-GN-2XL",
     "product_id": 11,
     "size": "2XL",
     "stock": 0,
     "price_offset": 4000
   },
   {
-    "id": "10-RD-S",
+    "id": 56,
+    "sku": "10-RD-S",
     "product_id": 12,
     "size": "S",
     "stock": 15,
     "price_offset": 0
   },
   {
-    "id": "10-RD-M",
+    "id": 57,
+    "sku": "10-RD-M",
     "product_id": 12,
     "size": "M",
     "stock": 11,
     "price_offset": 0
   },
   {
-    "id": "10-RD-L",
+    "id": 58,
+    "sku": "10-RD-L",
     "product_id": 12,
     "size": "L",
     "stock": 9,
     "price_offset": 0
   },
   {
-    "id": "10-RD-XL",
+    "id": 59,
+    "sku": "10-RD-XL",
     "product_id": 12,
     "size": "XL",
     "stock": 6,
     "price_offset": 3000
   },
   {
-    "id": "10-RD-2XL",
+    "id": 60,
+    "sku": "10-RD-2XL",
     "product_id": 12,
     "size": "2XL",
     "stock": 3,
     "price_offset": 6000
   },
   {
-    "id": "11-MBE-S",
+    "id": 61,
+    "sku": "11-MBE-S",
     "product_id": 13,
     "size": "S",
     "stock": 4,
     "price_offset": 0
   },
   {
-    "id": "11-MBE-M",
+    "id": 62,
+    "sku": "11-MBE-M",
     "product_id": 13,
     "size": "M",
     "stock": 7,
     "price_offset": 0
   },
   {
-    "id": "11-MBE-L",
+    "id": 63,
+    "sku": "11-MBE-L",
     "product_id": 13,
     "size": "L",
     "stock": 10,
     "price_offset": 0
   },
   {
-    "id": "11-MBE-XL",
+    "id": 64,
+    "sku": "11-MBE-XL",
     "product_id": 13,
     "size": "XL",
     "stock": 2,
     "price_offset": 4000
   },
   {
-    "id": "11-MBE-2XL",
+    "id": 65,
+    "sku": "11-MBE-2XL",
     "product_id": 13,
     "size": "2XL",
     "stock": 0,
     "price_offset": 8000
   },
   {
-    "id": "12-DGN-S",
+    "id": 66,
+    "sku": "12-DGN-S",
     "product_id": 14,
     "size": "S",
     "stock": 11,
     "price_offset": 0
   },
   {
-    "id": "12-DGN-M",
+    "id": 67,
+    "sku": "12-DGN-M",
     "product_id": 14,
     "size": "M",
     "stock": 14,
     "price_offset": 0
   },
   {
-    "id": "12-DGN-L",
+    "id": 68,
+    "sku": "12-DGN-L",
     "product_id": 14,
     "size": "L",
     "stock": 9,
     "price_offset": 0
   },
   {
-    "id": "12-DGN-XL",
+    "id": 69,
+    "sku": "12-DGN-XL",
     "product_id": 14,
     "size": "XL",
     "stock": 5,
     "price_offset": 2000
   },
   {
-    "id": "12-DGN-2XL",
+    "id": 70,
+    "sku": "12-DGN-2XL",
     "product_id": 14,
     "size": "2XL",
     "stock": 3,
     "price_offset": 4000
   },
   {
-    "id": "13-MGY-S",
+    "id": 71,
+    "sku": "13-MGY-S",
     "product_id": 15,
     "size": "S",
     "stock": 6,
     "price_offset": 0
   },
   {
-    "id": "13-MGY-M",
+    "id": 72,
+    "sku": "13-MGY-M",
     "product_id": 15,
     "size": "M",
     "stock": 8,
     "price_offset": 0
   },
   {
-    "id": "13-MGY-L",
+    "id": 73,
+    "sku": "13-MGY-L",
     "product_id": 15,
     "size": "L",
     "stock": 12,
     "price_offset": 0
   },
   {
-    "id": "13-MGY-XL",
+    "id": 74,
+    "sku": "13-MGY-XL",
     "product_id": 15,
     "size": "XL",
     "stock": 4,
     "price_offset": 3000
   },
   {
-    "id": "13-MGY-2XL",
+    "id": 75,
+    "sku": "13-MGY-2XL",
     "product_id": 15,
     "size": "2XL",
     "stock": 1,
     "price_offset": 6000
   },
   {
-    "id": "14-OBR-S",
+    "id": 76,
+    "sku": "14-OBR-S",
     "product_id": 16,
     "size": "S",
     "stock": 0,
     "price_offset": 0
   },
   {
-    "id": "14-OBR-M",
+    "id": 77,
+    "sku": "14-OBR-M",
     "product_id": 16,
     "size": "M",
     "stock": 0,
     "price_offset": 0
   },
   {
-    "id": "14-OBR-L",
+    "id": 78,
+    "sku": "14-OBR-L",
     "product_id": 16,
     "size": "L",
     "stock": 0,
     "price_offset": 0
   },
   {
-    "id": "14-OBR-XL",
+    "id": 79,
+    "sku": "14-OBR-XL",
     "product_id": 16,
     "size": "XL",
     "stock": 0,
     "price_offset": 3000
   },
   {
-    "id": "14-OBR-2XL",
+    "id": 80,
+    "sku": "14-OBR-2XL",
     "product_id": 16,
     "size": "2XL",
     "stock": 0,
     "price_offset": 6000
   },
   {
-    "id": "15-NV-S",
+    "id": 81,
+    "sku": "15-NV-S",
     "product_id": 17,
     "size": "S",
     "stock": 18,
     "price_offset": 0
   },
   {
-    "id": "15-NV-M",
+    "id": 82,
+    "sku": "15-NV-M",
     "product_id": 17,
     "size": "M",
     "stock": 13,
     "price_offset": 0
   },
   {
-    "id": "15-NV-L",
+    "id": 83,
+    "sku": "15-NV-L",
     "product_id": 17,
     "size": "L",
     "stock": 7,
     "price_offset": 0
   },
   {
-    "id": "15-NV-XL",
+    "id": 84,
+    "sku": "15-NV-XL",
     "product_id": 17,
     "size": "XL",
     "stock": 4,
     "price_offset": 2500
   },
   {
-    "id": "15-NV-2XL",
+    "id": 85,
+    "sku": "15-NV-2XL",
     "product_id": 17,
     "size": "2XL",
     "stock": 0,
     "price_offset": 5000
   },
   {
-    "id": "16-IV-S",
+    "id": 86,
+    "sku": "16-IV-S",
     "product_id": 18,
     "size": "S",
     "stock": 10,
     "price_offset": 0
   },
   {
-    "id": "16-IV-M",
+    "id": 87,
+    "sku": "16-IV-M",
     "product_id": 18,
     "size": "M",
     "stock": 12,
     "price_offset": 0
   },
   {
-    "id": "16-IV-L",
+    "id": 88,
+    "sku": "16-IV-L",
     "product_id": 18,
     "size": "L",
     "stock": 8,
     "price_offset": 0
   },
   {
-    "id": "16-IV-XL",
+    "id": 89,
+    "sku": "16-IV-XL",
     "product_id": 18,
     "size": "XL",
     "stock": 5,
     "price_offset": 2500
   },
   {
-    "id": "16-IV-2XL",
+    "id": 90,
+    "sku": "16-IV-2XL",
     "product_id": 18,
     "size": "2XL",
     "stock": 3,
     "price_offset": 5000
   },
   {
-    "id": "17-BK-S",
+    "id": 91,
+    "sku": "17-BK-S",
     "product_id": 19,
     "size": "S",
     "stock": 0,
     "price_offset": 0
   },
   {
-    "id": "17-BK-M",
+    "id": 92,
+    "sku": "17-BK-M",
     "product_id": 19,
     "size": "M",
     "stock": 0,
     "price_offset": 0
   },
   {
-    "id": "17-BK-L",
+    "id": 93,
+    "sku": "17-BK-L",
     "product_id": 19,
     "size": "L",
     "stock": 0,
     "price_offset": 0
   },
   {
-    "id": "17-BK-XL",
+    "id": 94,
+    "sku": "17-BK-XL",
     "product_id": 19,
     "size": "XL",
     "stock": 0,
     "price_offset": 8000
   },
   {
-    "id": "17-BK-2XL",
+    "id": 95,
+    "sku": "17-BK-2XL",
     "product_id": 19,
     "size": "2XL",
     "stock": 0,
     "price_offset": 15000
   },
   {
-    "id": "18-NV-S",
+    "id": 96,
+    "sku": "18-NV-S",
     "product_id": 20,
     "size": "S",
     "stock": 12,
     "price_offset": 0
   },
   {
-    "id": "18-NV-M",
+    "id": 97,
+    "sku": "18-NV-M",
     "product_id": 20,
     "size": "M",
     "stock": 18,
     "price_offset": 0
   },
   {
-    "id": "18-NV-L",
+    "id": 98,
+    "sku": "18-NV-L",
     "product_id": 20,
     "size": "L",
     "stock": 14,
     "price_offset": 0
   },
   {
-    "id": "18-NV-XL",
+    "id": 99,
+    "sku": "18-NV-XL",
     "product_id": 20,
     "size": "XL",
     "stock": 9,
     "price_offset": 3000
   },
   {
-    "id": "18-NV-2XL",
+    "id": 100,
+    "sku": "18-NV-2XL",
     "product_id": 20,
     "size": "2XL",
     "stock": 5,
     "price_offset": 6000
   },
   {
-    "id": "19-MGY-S",
+    "id": 101,
+    "sku": "19-MGY-S",
     "product_id": 21,
     "size": "S",
     "stock": 5,
     "price_offset": 0
   },
   {
-    "id": "19-MGY-M",
+    "id": 102,
+    "sku": "19-MGY-M",
     "product_id": 21,
     "size": "M",
     "stock": 8,
     "price_offset": 0
   },
   {
-    "id": "19-MGY-L",
+    "id": 103,
+    "sku": "19-MGY-L",
     "product_id": 21,
     "size": "L",
     "stock": 10,
     "price_offset": 0
   },
   {
-    "id": "19-MGY-XL",
+    "id": 104,
+    "sku": "19-MGY-XL",
     "product_id": 21,
     "size": "XL",
     "stock": 4,
     "price_offset": 7000
   },
   {
-    "id": "19-MGY-2XL",
+    "id": 105,
+    "sku": "19-MGY-2XL",
     "product_id": 21,
     "size": "2XL",
     "stock": 0,
     "price_offset": 14000
   },
   {
-    "id": "20-MBE-S",
+    "id": 106,
+    "sku": "20-MBE-S",
     "product_id": 22,
     "size": "S",
     "stock": 8,
     "price_offset": 0
   },
   {
-    "id": "20-MBE-M",
+    "id": 107,
+    "sku": "20-MBE-M",
     "product_id": 22,
     "size": "M",
     "stock": 12,
     "price_offset": 0
   },
   {
-    "id": "20-MBE-L",
+    "id": 108,
+    "sku": "20-MBE-L",
     "product_id": 22,
     "size": "L",
     "stock": 15,
     "price_offset": 0
   },
   {
-    "id": "20-MBE-XL",
+    "id": 109,
+    "sku": "20-MBE-XL",
     "product_id": 22,
     "size": "XL",
     "stock": 7,
     "price_offset": 7000
   },
   {
-    "id": "20-MBE-2XL",
+    "id": 110,
+    "sku": "20-MBE-2XL",
     "product_id": 22,
     "size": "2XL",
     "stock": 3,
     "price_offset": 14000
   },
   {
-    "id": "21-KH-S",
+    "id": 111,
+    "sku": "21-KH-S",
     "product_id": 23,
     "size": "S",
     "stock": 4,
     "price_offset": 0
   },
   {
-    "id": "21-KH-M",
+    "id": 112,
+    "sku": "21-KH-M",
     "product_id": 23,
     "size": "M",
     "stock": 9,
     "price_offset": 0
   },
   {
-    "id": "21-KH-L",
+    "id": 113,
+    "sku": "21-KH-L",
     "product_id": 23,
     "size": "L",
     "stock": 11,
     "price_offset": 0
   },
   {
-    "id": "21-KH-XL",
+    "id": 114,
+    "sku": "21-KH-XL",
     "product_id": 23,
     "size": "XL",
     "stock": 5,
     "price_offset": 8000
   },
   {
-    "id": "21-KH-2XL",
+    "id": 115,
+    "sku": "21-KH-2XL",
     "product_id": 23,
     "size": "2XL",
     "stock": 2,
     "price_offset": 16000
   },
   {
-    "id": "22-CH-S",
+    "id": 116,
+    "sku": "22-CH-S",
     "product_id": 24,
     "size": "S",
     "stock": 15,
     "price_offset": 0
   },
   {
-    "id": "22-CH-M",
+    "id": 117,
+    "sku": "22-CH-M",
     "product_id": 24,
     "size": "M",
     "stock": 12,
     "price_offset": 0
   },
   {
-    "id": "22-CH-L",
+    "id": 118,
+    "sku": "22-CH-L",
     "product_id": 24,
     "size": "L",
     "stock": 10,
     "price_offset": 0
   },
   {
-    "id": "22-CH-XL",
+    "id": 119,
+    "sku": "22-CH-XL",
     "product_id": 24,
     "size": "XL",
     "stock": 6,
     "price_offset": 4000
   },
   {
-    "id": "22-CH-2XL",
+    "id": 120,
+    "sku": "22-CH-2XL",
     "product_id": 24,
     "size": "2XL",
     "stock": 3,
     "price_offset": 8000
   },
   {
-    "id": "23-DBR-S",
+    "id": 121,
+    "sku": "23-DBR-S",
     "product_id": 25,
     "size": "S",
     "stock": 0,
     "price_offset": 0
   },
   {
-    "id": "23-DBR-M",
+    "id": 122,
+    "sku": "23-DBR-M",
     "product_id": 25,
     "size": "M",
     "stock": 0,
     "price_offset": 0
   },
   {
-    "id": "23-DBR-L",
+    "id": 123,
+    "sku": "23-DBR-L",
     "product_id": 25,
     "size": "L",
     "stock": 0,
     "price_offset": 0
   },
   {
-    "id": "23-DBR-XL",
+    "id": 124,
+    "sku": "23-DBR-XL",
     "product_id": 25,
     "size": "XL",
     "stock": 0,
     "price_offset": 12000
   },
   {
-    "id": "23-DBR-2XL",
+    "id": 125,
+    "sku": "23-DBR-2XL",
     "product_id": 25,
     "size": "2XL",
     "stock": 0,
     "price_offset": 24000
   },
   {
-    "id": "24-MBE-S",
+    "id": 126,
+    "sku": "24-MBE-S",
     "product_id": 26,
     "size": "S",
     "stock": 14,
     "price_offset": 0
   },
   {
-    "id": "24-MBE-M",
+    "id": 127,
+    "sku": "24-MBE-M",
     "product_id": 26,
     "size": "M",
     "stock": 10,
     "price_offset": 0
   },
   {
-    "id": "24-MBE-L",
+    "id": 128,
+    "sku": "24-MBE-L",
     "product_id": 26,
     "size": "L",
     "stock": 8,
     "price_offset": 0
   },
   {
-    "id": "24-MBE-XL",
+    "id": 129,
+    "sku": "24-MBE-XL",
     "product_id": 26,
     "size": "XL",
     "stock": 5,
     "price_offset": 6000
   },
   {
-    "id": "24-MBE-2XL",
+    "id": 130,
+    "sku": "24-MBE-2XL",
     "product_id": 26,
     "size": "2XL",
     "stock": 2,
     "price_offset": 12000
   },
   {
-    "id": "25-GMX-S",
+    "id": 131,
+    "sku": "25-GMX-S",
     "product_id": 27,
     "size": "S",
     "stock": 6,
     "price_offset": 0
   },
   {
-    "id": "25-GMX-M",
+    "id": 132,
+    "sku": "25-GMX-M",
     "product_id": 27,
     "size": "M",
     "stock": 9,
     "price_offset": 0
   },
   {
-    "id": "25-GMX-L",
+    "id": 133,
+    "sku": "25-GMX-L",
     "product_id": 27,
     "size": "L",
     "stock": 12,
     "price_offset": 0
   },
   {
-    "id": "25-GMX-XL",
+    "id": 134,
+    "sku": "25-GMX-XL",
     "product_id": 27,
     "size": "XL",
     "stock": 4,
     "price_offset": 3000
   },
   {
-    "id": "25-GMX-2XL",
+    "id": 135,
+    "sku": "25-GMX-2XL",
     "product_id": 27,
     "size": "2XL",
     "stock": 2,
@@ -1600,210 +1735,210 @@ export const PRODUCT_STATS_FIXTURE = [
 
 export const PRODUCT_IMAGE_FIXTURE = [
   {
-    "id": "1-1",
+    "id": 1,
     "product_id": 1,
     "image_url": "Coat-1.png",
     "image_type": "thumbnail",
     "display_order": 1
   },
   {
-    "id": "1-2",
+    "id": 2,
     "product_id": 1,
     "image_url": "coat-1-1.png",
     "image_type": "detail",
     "display_order": 2
   },
   {
-    "id": "2-1",
+    "id": 3,
     "product_id": 2,
     "image_url": "coat-1-2.png",
     "image_type": "thumbnail",
     "display_order": 1
   },
   {
-    "id": "2-2",
+    "id": 4,
     "product_id": 2,
     "image_url": "coat-1-3.png",
     "image_type": "detail",
     "display_order": 2
   },
   {
-    "id": "3-1",
+    "id": 5,
     "product_id": 3,
     "image_url": "coat-1-4.png",
     "image_type": "thumbnail",
     "display_order": 1
   },
   {
-    "id": "3-2",
+    "id": 6,
     "product_id": 3,
     "image_url": "coat-1-5.png",
     "image_type": "detail",
     "display_order": 2
   },
   {
-    "id": "4-1",
+    "id": 7,
     "product_id": 4,
     "image_url": "Coat-2.png",
     "image_type": "thumbnail",
     "display_order": 1
   },
   {
-    "id": "5-1",
+    "id": 8,
     "product_id": 5,
     "image_url": "Coat-3.png",
     "image_type": "thumbnail",
     "display_order": 1
   },
   {
-    "id": "6-1",
+    "id": 9,
     "product_id": 6,
     "image_url": "Coat-4.png",
     "image_type": "thumbnail",
     "display_order": 1
   },
   {
-    "id": "7-1",
+    "id": 10,
     "product_id": 7,
     "image_url": "jacket-1.png",
     "image_type": "thumbnail",
     "display_order": 1
   },
   {
-    "id": "8-1",
+    "id": 11,
     "product_id": 8,
     "image_url": "jacket-2.png",
     "image_type": "thumbnail",
     "display_order": 1
   },
   {
-    "id": "9-1",
+    "id": 12,
     "product_id": 9,
     "image_url": "jacket-3.png",
     "image_type": "thumbnail",
     "display_order": 1
   },
   {
-    "id": "10-1",
+    "id": 13,
     "product_id": 10,
     "image_url": "jacket-4.png",
     "image_type": "thumbnail",
     "display_order": 1
   },
   {
-    "id": "11-1",
+    "id": 14,
     "product_id": 11,
     "image_url": "jacket-5.png",
     "image_type": "thumbnail",
     "display_order": 1
   },
   {
-    "id": "12-1",
+    "id": 15,
     "product_id": 12,
     "image_url": "jacket-6.png",
     "image_type": "thumbnail",
     "display_order": 1
   },
   {
-    "id": "13-1",
+    "id": 16,
     "product_id": 13,
     "image_url": "jacket-7.png",
     "image_type": "thumbnail",
     "display_order": 1
   },
   {
-    "id": "14-1",
+    "id": 17,
     "product_id": 14,
     "image_url": "cardigan-1.png",
     "image_type": "thumbnail",
     "display_order": 1
   },
   {
-    "id": "15-1",
+    "id": 18,
     "product_id": 15,
     "image_url": "cardigan-2.png",
     "image_type": "thumbnail",
     "display_order": 1
   },
   {
-    "id": "16-1",
+    "id": 19,
     "product_id": 16,
     "image_url": "cardigan-3.png",
     "image_type": "thumbnail",
     "display_order": 1
   },
   {
-    "id": "17-1",
+    "id": 20,
     "product_id": 17,
     "image_url": "cardigan-4.png",
     "image_type": "thumbnail",
     "display_order": 1
   },
   {
-    "id": "18-1",
+    "id": 21,
     "product_id": 18,
     "image_url": "cardigan-5.png",
     "image_type": "thumbnail",
     "display_order": 1
   },
   {
-    "id": "19-1",
+    "id": 22,
     "product_id": 19,
     "image_url": "padding-1.png",
     "image_type": "thumbnail",
     "display_order": 1
   },
   {
-    "id": "20-1",
+    "id": 23,
     "product_id": 20,
     "image_url": "padding-2.png",
     "image_type": "thumbnail",
     "display_order": 1
   },
   {
-    "id": "21-1",
+    "id": 24,
     "product_id": 21,
     "image_url": "padding-3.png",
     "image_type": "thumbnail",
     "display_order": 1
   },
   {
-    "id": "22-1",
+    "id": 25,
     "product_id": 22,
     "image_url": "padding-4.png",
     "image_type": "thumbnail",
     "display_order": 1
   },
   {
-    "id": "23-1",
+    "id": 26,
     "product_id": 23,
     "image_url": "padding-5.png",
     "image_type": "thumbnail",
     "display_order": 1
   },
   {
-    "id": "24-1",
+    "id": 27,
     "product_id": 24,
     "image_url": "padding-6.png",
     "image_type": "thumbnail",
     "display_order": 1
   },
   {
-    "id": "25-1",
+    "id": 28,
     "product_id": 25,
     "image_url": "padding-7.png",
     "image_type": "thumbnail",
     "display_order": 1
   },
   {
-    "id": "26-1",
+    "id": 29,
     "product_id": 26,
     "image_url": "padding-8.png",
     "image_type": "thumbnail",
     "display_order": 1
   },
   {
-    "id": "27-1",
+    "id": 30,
     "product_id": 27,
     "image_url": "cardigan-6.png",
     "image_type": "thumbnail",

@@ -12,7 +12,7 @@ import type {
 
 export interface DemoOrderCartItem {
   productId: number;
-  variantId: string;
+  variantId: number;
   quantity: number;
 }
 
@@ -51,7 +51,7 @@ function getOrderNumber(now: Date): string {
 function toOrderItem(
   orderId: string,
   product: ProductModel,
-  variantId: string,
+  variantId: number,
   quantity: number,
   now: string,
   index: number,

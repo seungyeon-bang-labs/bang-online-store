@@ -14,7 +14,11 @@ import type {
   ProductStyleModel,
   ProductVariantModel,
 } from './model';
-import { getProductDiscountRate, getProductSalePrice, isProductSoldOut } from './domain';
+import {
+  getProductDiscountRate,
+  getProductSalePrice,
+  isProductSoldOut,
+} from './domain';
 import type {
   ProductCardViewModel,
   ProductCartItemViewModel,
@@ -45,12 +49,34 @@ export function toProductModel({
     createdAt: new Date(style.created_at),
     updatedAt: new Date(style.updated_at),
   };
-  const colorModel: ProductColorModel = { id: color.id, name: color.name, hexCode: color.hex_code, code: color.code };
-  const variantModels: ProductVariantModel[] = variants.map(variant => ({ id: variant.id, productId: variant.product_id, size: variant.size, stock: variant.stock, priceOffset: variant.price_offset }));
+  const colorModel: ProductColorModel = {
+    id: color.id,
+    name: color.name,
+    hexCode: color.hex_code,
+    code: color.code,
+  };
+  const variantModels: ProductVariantModel[] = variants.map(variant => ({
+    id: variant.id,
+    sku: variant.sku,
+    productId: variant.product_id,
+    size: variant.size,
+    stock: variant.stock,
+    priceOffset: variant.price_offset,
+  }));
   const imageModels: ProductImageModel[] = [...images]
     .sort((a, b) => a.display_order - b.display_order)
-    .map(image => ({ id: image.id, url: image.image_url, type: image.image_type, displayOrder: image.display_order }));
-  const statsModel: ProductStatsModel | null = stats && { totalSales: stats.total_sales, todaySales: stats.today_sales, weeklySales: stats.weekly_sales, monthlySales: stats.monthly_sales };
+    .map(image => ({
+      id: image.id,
+      url: image.image_url,
+      type: image.image_type,
+      displayOrder: image.display_order,
+    }));
+  const statsModel: ProductStatsModel | null = stats && {
+    totalSales: stats.total_sales,
+    todaySales: stats.today_sales,
+    weeklySales: stats.weekly_sales,
+    monthlySales: stats.monthly_sales,
+  };
 
   return {
     id: product.id,
@@ -70,25 +96,34 @@ export function toProductModel({
   };
 }
 
-export const toProductCardViewModel = (product: ProductModel): ProductCardViewModel => ({
+export const toProductCardViewModel = (
+  product: ProductModel,
+): ProductCardViewModel => ({
   id: product.id,
   name: product.name,
   href: `/product/${product.id}`,
   thumbnailUrl: product.images.find(image => image.type === 'thumbnail')?.url
-    ? `/images/${product.images.find(image => image.type === 'thumbnail')?.url}`
-    : product.images[0]?.url
-      ? `/images/${product.images[0].url}`
-      : '/file.svg',
+    ?? product.images[0]?.url
+    ?? '/file.svg',
   price: product.price,
   discountRate: getProductDiscountRate(product.id),
   discountedPrice: getProductSalePrice(product),
   isSoldOut: isProductSoldOut(product.variants),
 });
 
-export const toProductColorViewModels = (products: readonly ProductModel[]): ProductColorViewModel[] =>
-  products.map(product => ({ id: product.id, label: product.color.name, hex: product.color.hexCode }));
+export const toProductColorViewModels = (
+  products: readonly ProductModel[],
+): ProductColorViewModel[] =>
+  products.map(product => ({
+    id: product.id,
+    label: product.color.name,
+    hex: product.color.hexCode,
+  }));
 
-export const toProductDetailViewModel = (product: ProductModel, styleProducts: readonly ProductModel[]): ProductDetailViewModel => ({
+export const toProductDetailViewModel = (
+  product: ProductModel,
+  styleProducts: readonly ProductModel[],
+): ProductDetailViewModel => ({
   id: product.id,
   name: product.name,
   price: product.price,
@@ -103,7 +138,7 @@ export const toProductDetailViewModel = (product: ProductModel, styleProducts: r
 
 export function toProductCartItemViewModel(
   product: ProductModel,
-  variantId: string,
+  variantId: number,
 ): ProductCartItemViewModel | null {
   const variant = product.variants.find(item => item.id === variantId);
   if (!variant) return null;

@@ -1,32 +1,29 @@
-// app/(shop)/products/[id]/page.tsx
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { ProductImages } from '@/features/product/product-images';
 import { ProductInfo } from '@/features/product/product-info';
 import { ProductForm } from '@/features/product/product-form';
-import {
-  productService,
-  toProductDetailViewModel,
-} from '@/domains/product';
+import { productService, toProductDetailViewModel } from '@/domains/product';
 import { Container } from '@/shared/components/layout/container';
 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ id: number }>;
+  params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const product = await productService.findById(Number(id));
+  const productId = Number(id);
+  if (!Number.isSafeInteger(productId) || productId <= 0) notFound();
+  const product = await productService.findById(productId);
   return { title: product ? `${product.name} | MyStore` : '상품 없음' };
 }
 
-async function ProductPage({
-  params,
-}: {
-  params: Promise<{ id: number }>;
-}) {
+async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const product = await productService.findById(Number(id));
+  const productId = Number(id);
+  if (!Number.isSafeInteger(productId) || productId <= 0) notFound();
+
+  const product = await productService.findById(productId);
   if (!product) notFound();
 
   const styleProducts = await productService.findByStyleId(product.styleId);
@@ -35,12 +32,10 @@ async function ProductPage({
   return (
     <Container className="mb-20 pb-6 pt-2 md:py-10 md:pt-10">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_360px] md:gap-10 lg:grid-cols-[1fr_450px] xl:gap-16 items-start">
-        {/* 왼쪽 섹션: 이미지 (PC에서 남은 공간 전부 차지) */}
         <div className="w-full">
           <ProductImages images={productView.detailImages} />
         </div>
 
-        {/* 오른쪽 섹션: 정보 및 구매 (PC에서 400px 고정 및 스크롤 시 고정) */}
         <div className="flex flex-col gap-8 md:sticky md:top-30 border-2 border-gray-100 p-6 rounded-lg">
           <ProductInfo
             name={productView.name}

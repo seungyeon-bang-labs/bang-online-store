@@ -21,10 +21,9 @@ import {
   INQUIRY_TYPE_FILTER_LABELS,
   INQUIRY_TYPES,
   resolveInquiryWriteContext,
-  type InquiryType,
-  type InquiryWriteViewModel,
   validateInquiryTextInput,
-} from '@/domains/inquiry';
+} from '@/domains/inquiry/domain';
+import type { InquiryType, InquiryWriteViewModel } from '@/domains/inquiry';
 import { MypageTextareaCharacterCount } from '@/features/mypage/common';
 import { MypageFormFooter, MypageFormLabel } from '@/features/mypage/common/form';
 import {

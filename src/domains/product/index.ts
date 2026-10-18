@@ -11,7 +11,10 @@ export type {
   ProductStatsModel,
   ProductVariantModel,
 } from './model';
-export { productService } from './service';
+import { createProductService } from './service';
+import { productRepository } from './repository';
+
+export const productService = createProductService(productRepository);
 export {
   filterProducts,
   parseProductFilterCriteria,

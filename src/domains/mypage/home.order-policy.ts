@@ -22,7 +22,7 @@ type MypageHomeOrderActionTarget = string | null;
 
 interface RepurchaseItem {
   productId: number;
-  variantId: string;
+  variantId: number;
   quantity: number;
 }
 

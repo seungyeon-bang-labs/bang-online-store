@@ -4,7 +4,7 @@ import {
   orderItemRepository,
   orderRepository,
 } from '@/domains/order';
-import { productService } from '@/domains/product';
+import { fixtureProductService } from '@/domains/product/fixture-service';
 import {
   fixtureRecentProductViewRepository,
   fixtureReviewRepository,
@@ -33,12 +33,12 @@ export const reviewRepository = fixtureReviewRepository;
 const activityService = createActivityService({
   recentProductViewRepository,
   wishlistItemRepository,
-  productRepository: productService,
+  productRepository: fixtureProductService,
 });
 
 const reviewServiceDependencies = {
   reviewRepository,
-  productRepository: productService,
+  productRepository: fixtureProductService,
   orderRepository,
   orderItemRepository,
   orderClaimRepository,

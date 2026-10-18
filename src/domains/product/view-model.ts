@@ -30,7 +30,7 @@ export type ProductDetailViewModel = {
 export type ProductCartItemViewModel = {
   productId: number;
   styleId: number;
-  variantId: string;
+  variantId: number;
   name: string;
   color: string;
   thumbnailUrl: string;
@@ -46,7 +46,7 @@ export type ProductOptionViewModel = {
   styleId: number;
   color: ProductColorViewModel;
   variants: readonly {
-    id: string;
+    id: number;
     size: string;
     stock: number;
     priceOffset: number;

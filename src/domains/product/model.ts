@@ -1,7 +1,8 @@
 import type { ProductSizeOptionDTO, ProductStateDTO } from './dto';
 
 export type ProductVariantModel = {
-  id: string;
+  id: number;
+  sku: string;
   productId: number;
   size: ProductSizeOptionDTO;
   stock: number;
@@ -16,7 +17,7 @@ export type ProductStatsModel = {
 };
 
 export type ProductImageModel = {
-  id: string;
+  id: number;
   url: string;
   type: 'thumbnail' | 'detail';
   displayOrder: number;

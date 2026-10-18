@@ -1,4 +1,5 @@
 import { productService } from '@/domains/product';
+import { fixtureProductService } from '@/domains/product/fixture-service';
 import {
   fixtureOrderItemCancellationRepository,
   fixtureOrderItemRepository,
@@ -52,7 +53,7 @@ export const orderStatusHistoryRepository =
 
 const orderItemRelationsService = createOrderItemRelationsService({
   orderItemRepository,
-  productRepository: productService,
+  productRepository: fixtureProductService,
 });
 
 const orderListService = createOrderListService({
@@ -77,7 +78,7 @@ const orderCancellationPreviewService = createOrderCancellationPreviewService({
   orderRepository,
   orderItemRepository,
   orderItemCancellationRepository,
-  productRepository: productService,
+  productRepository: fixtureProductService,
 });
 const orderCancellationSubmitService = createOrderCancellationSubmitService({
   orderRepository,
@@ -100,7 +101,7 @@ const claimDetailService = createClaimDetailService({
   orderClaimHistoryRepository,
   orderClaimSettlementRepository,
   orderItemRelationsService,
-  productRepository: productService,
+  productRepository: fixtureProductService,
 });
 
 const claimRequestService = createClaimRequestService({
@@ -108,7 +109,10 @@ const claimRequestService = createClaimRequestService({
   orderItemRepository,
   orderClaimRepository,
   orderItemCancellationRepository,
-  productRepository: productService,
+  productRepository: {
+    findByIds: fixtureProductService.findByIds,
+    findByStyleId: productService.findByStyleId,
+  },
 });
 
 const claimCancelService = createClaimCancelService({

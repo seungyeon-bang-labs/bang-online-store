@@ -10,10 +10,237 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.1"
   }
   public: {
     Tables: {
+      categories: {
+        Row: {
+          alt_text: string | null
+          created_at: string
+          display_order: number
+          id: string
+          image_path: string | null
+          name: string
+          parent_id: string | null
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          alt_text?: string | null
+          created_at?: string
+          display_order?: number
+          id: string
+          image_path?: string | null
+          name: string
+          parent_id?: string | null
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          alt_text?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          image_path?: string | null
+          name?: string
+          parent_id?: string | null
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      colors: {
+        Row: {
+          code: string
+          hex_code: string
+          id: number
+          label: string
+        }
+        Insert: {
+          code: string
+          hex_code: string
+          id: number
+          label: string
+        }
+        Update: {
+          code?: string
+          hex_code?: string
+          id?: number
+          label?: string
+        }
+        Relationships: []
+      }
+      product_images: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: number
+          image_path: string
+          image_type: string
+          product_id: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id: number
+          image_path: string
+          image_type: string
+          product_id: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: number
+          image_path?: string
+          image_type?: string
+          product_id?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_images_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_styles: {
+        Row: {
+          category_id: string
+          created_at: string
+          id: number
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          id: number
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          id?: number
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_styles_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_variants: {
+        Row: {
+          created_at: string
+          id: number
+          price_offset: number
+          product_id: number
+          size: string
+          sku: string
+          stock: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id: number
+          price_offset?: number
+          product_id: number
+          size: string
+          sku: string
+          stock?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          price_offset?: number
+          product_id?: number
+          size?: string
+          sku?: string
+          stock?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          color_id: number
+          created_at: string
+          display_name: string | null
+          id: number
+          price: number
+          restocked_at: string | null
+          state: string
+          style_id: number
+          updated_at: string
+        }
+        Insert: {
+          color_id: number
+          created_at?: string
+          display_name?: string | null
+          id: number
+          price: number
+          restocked_at?: string | null
+          state?: string
+          style_id: number
+          updated_at?: string
+        }
+        Update: {
+          color_id?: number
+          created_at?: string
+          display_name?: string | null
+          id?: number
+          price?: number
+          restocked_at?: string | null
+          state?: string
+          style_id?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_color_id_fkey"
+            columns: ["color_id"]
+            isOneToOne: false
+            referencedRelation: "colors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_style_id_fkey"
+            columns: ["style_id"]
+            isOneToOne: false
+            referencedRelation: "product_styles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       term_codes: {
         Row: {
           code: string

@@ -20,7 +20,7 @@ import {
   type ProductFilterCriteria,
   type ProductFilterId,
   type ProductFilterViewModel,
-} from '@/domains/product';
+} from '@/domains/product/filter';
 
 type SelectedFilters = Record<ProductFilterId, string[]>;
 

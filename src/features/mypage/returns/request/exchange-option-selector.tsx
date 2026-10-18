@@ -16,18 +16,18 @@ import { MYPAGE_INPUT_CLASS_NAME } from '@/features/mypage/common/styles';
 interface MypageClaimExchangeOptionSelectorProps {
   colorOptions: readonly OrderClaimRequestColorOptionViewModel[];
   currentProductId: number;
-  currentVariantId: string;
+  currentVariantId: number;
   currentVariantLabel: string;
   selectedProductId: number;
-  selectedVariantId: string;
+  selectedVariantId: number | null;
   errorMessage?: string;
   errorMessageId?: string;
-  onSelectionChange: (productId: number, variantId: string) => void;
+  onSelectionChange: (productId: number, variantId: number | null) => void;
 }
 
 function getVariantLabelById(
   colorOptions: readonly OrderClaimRequestColorOptionViewModel[],
-  variantId: string,
+  variantId: number | null,
 ): string | null {
   return (
     colorOptions
@@ -67,7 +67,7 @@ export function MypageClaimExchangeOptionSelector({
         variant.isExchangeable,
     )?.id;
 
-    onSelectionChange(productId, nextVariantId ?? '');
+    onSelectionChange(productId, nextVariantId ?? null);
   }
 
   return (
@@ -99,10 +99,15 @@ export function MypageClaimExchangeOptionSelector({
             사이즈
           </h3>
           <Select
-            value={selectedVariantId}
-            onValueChange={variantId =>
-              onSelectionChange(selectedColorOption.productId, variantId)
-            }
+            value={selectedVariantId === null ? '' : String(selectedVariantId)}
+            onValueChange={value => {
+              const variant = selectedColorOption.variants.find(
+                option => String(option.id) === value,
+              );
+              if (variant) {
+                onSelectionChange(selectedColorOption.productId, variant.id);
+              }
+            }}
           >
             <SelectTrigger
               id="exchange-option"
@@ -120,7 +125,7 @@ export function MypageClaimExchangeOptionSelector({
                 return (
                   <SelectItem
                     key={variant.id}
-                    value={variant.id}
+                    value={String(variant.id)}
                     disabled={
                       !variant.isAvailable ||
                       !variant.isExchangeable ||

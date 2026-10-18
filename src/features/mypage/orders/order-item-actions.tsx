@@ -39,7 +39,7 @@ interface MypageOrderItemActionsProps {
   orderItemId: string;
   repurchaseItem: {
     productId: number;
-    variantId: string;
+    variantId: number;
     quantity: number;
   } | null;
 }

@@ -1,26 +1,6 @@
 'use server';
 
-import { requireActiveMember } from '@/app/(auth)/require-active-member';
-
-import { userAddressRepository } from '@/domains/member';
-import { createDemoOrder, type DemoOrderCartItem } from '@/domains/order';
-
-export async function createDemoOrderFromCart(
-  items: DemoOrderCartItem[],
-): Promise<string> {
-  const user = await requireActiveMember();
-
-  const address = await userAddressRepository.findDefaultByUserId(user.id);
-  if (!address) throw new Error('기본 배송지를 확인할 수 없습니다.');
-
-  return createDemoOrder({
-    userId: user.id,
-    recipientName: address.recipient_name,
-    recipientPhone: address.phone_number,
-    postalCode: address.postal_code,
-    shippingAddressText: [address.address_line_1, address.address_line_2]
-      .filter(Boolean)
-      .join(' '),
-    items,
-  });
+export async function createDemoOrderFromCart(): Promise<never> {
+  // 주문 DB 전환 전에는 카탈로그와 데모 주문의 상품 소스가 다릅니다.
+  throw new Error('주문 기능은 준비 중입니다.');
 }

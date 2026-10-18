@@ -7,7 +7,7 @@ import { reviewRepository } from '@/domains/activity';
 import type { UserDTO } from '@/domains/member';
 import { orderItemRepository } from '@/domains/order';
 import type { OrderItemDTO } from '@/domains/order';
-import { productService } from '@/domains/product';
+import { fixtureProductService } from '@/domains/product/fixture-service';
 
 export async function getMypagePointPageViewModel(
   user: UserDTO,
@@ -32,7 +32,7 @@ export async function getMypagePointPageViewModel(
   const [orderItems, reviewOrderItems, products] = await Promise.all([
     orderItemRepository.findByOrderIds(orderIds),
     orderItemRepository.findByIds(reviewOrderItemIds),
-    productService.findByIdsIncludingInactive(
+    fixtureProductService.findByIdsIncludingInactive(
       Array.from(new Set(reviews.map(review => review.product_id))),
     ),
   ]);

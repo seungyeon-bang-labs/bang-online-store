@@ -1,74 +1,77 @@
-import {
-  PRODUCT_COLOR_FIXTURE,
-  PRODUCT_FIXTURE,
-  PRODUCT_IMAGE_FIXTURE,
-  PRODUCT_STATS_FIXTURE,
-  PRODUCT_STYLE_FIXTURE,
-  PRODUCT_VARIANT_FIXTURE,
-} from './fixture';
+import 'server-only';
+
+import { supabase } from '@/shared/lib/supabase/server';
+import { PRODUCT_STATS_FIXTURE } from './fixture';
 import type {
-  ProductColorDTO,
-  ProductDTO,
-  ProductImageDTO,
-  ProductStatsDTO,
-  ProductStyleDTO,
-  ProductVariantDTO,
+  ProductAggregateDTO,
+  ProductImageTypeDTO,
+  ProductQuery,
+  ProductSizeOptionDTO,
+  ProductStateDTO,
 } from './dto';
 
-type ProductAggregateDTO = {
-  product: ProductDTO;
-  style: ProductStyleDTO;
-  color: ProductColorDTO;
-  variants: readonly ProductVariantDTO[];
-  stats: ProductStatsDTO | null;
-  images: readonly ProductImageDTO[];
-};
-
 export const productRepository = {
-  async findManyWithRelations(): Promise<readonly ProductAggregateDTO[]> {
-    const stylesById = new Map(
-      PRODUCT_STYLE_FIXTURE.map(style => [style.id, style]),
-    );
-    const colorsById = new Map(
-      PRODUCT_COLOR_FIXTURE.map(color => [color.id, color]),
-    );
-    const statsByProductId = new Map(
-      PRODUCT_STATS_FIXTURE.map(stats => [stats.product_id, stats]),
-    );
-    const variantsByProductId = new Map<number, ProductVariantDTO[]>();
-    const imagesByProductId = new Map<number, ProductImageDTO[]>();
+  async findManyWithRelations(
+    query?: ProductQuery,
+  ): Promise<readonly ProductAggregateDTO[]> {
+    if (query?.ids?.length === 0 || query?.categoryIds?.length === 0) return [];
 
-    for (const variant of PRODUCT_VARIANT_FIXTURE) {
-      variantsByProductId.set(variant.product_id, [
-        ...(variantsByProductId.get(variant.product_id) ?? []),
-        variant,
-      ]);
-    }
+    let request = supabase
+      .from('products')
+      .select(
+        `
+      id, style_id, color_id, display_name, price, state, created_at, restocked_at,
+      style:product_styles!inner(id, name, category_id, created_at, updated_at),
+      color:colors(id, label, code, hex_code),
+      variants:product_variants(id, sku, product_id, size, stock, price_offset),
+      images:product_images(id, product_id, image_path, image_type, display_order)
+    `,
+      )
+      .eq('state', 'active')
+      .order('id');
 
-    for (const image of PRODUCT_IMAGE_FIXTURE) {
-      imagesByProductId.set(image.product_id, [
-        ...(imagesByProductId.get(image.product_id) ?? []),
-        image,
-      ]);
-    }
+    if (query?.ids) request = request.in('id', [...query.ids]);
+    if (query?.categoryIds)
+      request = request.in('style.category_id', [...query.categoryIds]);
+    if (query?.styleId !== undefined)
+      request = request.eq('style_id', query.styleId);
 
-    return PRODUCT_FIXTURE.map(product => {
-      const style = stylesById.get(product.style_id);
-      const color = colorsById.get(product.color_id);
+    const { data, error } = await request;
+    if (error || !data) throw new Error('상품 정보를 불러오지 못했습니다.');
 
-      if (!style || !color) {
-        throw new Error(
-          `Product relation is missing for products.id=${product.id}`,
-        );
-      }
+    return data.map(({ style, color, variants, images, ...product }) => {
+      if (!style || !color)
+        throw new Error('상품의 필수 관계 정보가 없습니다.');
 
       return {
-        product,
+        product: { ...product, state: product.state as ProductStateDTO },
         style,
-        color,
-        variants: variantsByProductId.get(product.id) ?? [],
-        stats: statsByProductId.get(product.id) ?? null,
-        images: imagesByProductId.get(product.id) ?? [],
+        color: {
+          id: color.id,
+          name: color.label,
+          code: color.code,
+          hex_code: color.hex_code,
+        },
+        // Values are constrained by the catalog migration's CHECK constraints.
+        variants: [...variants]
+          .sort((a, b) => a.id - b.id)
+          .map(variant => ({
+            ...variant,
+            size: variant.size as ProductSizeOptionDTO,
+          })),
+        images: images.map(image => ({
+          id: image.id,
+          product_id: image.product_id,
+          image_type: image.image_type as ProductImageTypeDTO,
+          display_order: image.display_order,
+          image_url: supabase.storage
+            .from('product-images')
+            .getPublicUrl(image.image_path).data.publicUrl,
+        })),
+        stats:
+          PRODUCT_STATS_FIXTURE.find(
+            stats => stats.product_id === product.id,
+          ) ?? null,
       };
     });
   },

@@ -24,10 +24,7 @@ export type OrderClaimHistoryEvent =
   | 'rejected'
   | 'cancelled';
 
-export type OrderClaimSettlementType =
-  | 'additional_payment'
-  | 'refund'
-  | 'none';
+export type OrderClaimSettlementType = 'additional_payment' | 'refund' | 'none';
 
 export type OrderClaimSettlementStatus =
   | 'pending'
@@ -46,7 +43,7 @@ export interface OrderClaimDTO {
   description: string | null;
   rejection_reason: string | null;
   exchange_product_id: number | null;
-  exchange_variant_id: string | null;
+  exchange_variant_id: number | null;
   requested_at: string;
   completed_at: string | null;
   cancelled_at: string | null;

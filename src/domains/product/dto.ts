@@ -33,7 +33,8 @@ export type ProductStyleDTO = {
 };
 
 export type ProductVariantDTO = {
-  id: string;
+  id: number;
+  sku: string;
   product_id: number;
   size: ProductSizeOptionDTO;
   stock: number;
@@ -49,7 +50,7 @@ export type ProductStatsDTO = {
 };
 
 export type ProductImageDTO = {
-  id: string;
+  id: number;
   product_id: number;
   image_url: string;
   image_type: ProductImageTypeDTO;
@@ -61,4 +62,19 @@ export type ProductColorDTO = {
   name: string;
   hex_code: string;
   code: string;
+};
+
+export type ProductQuery = {
+  ids?: readonly number[];
+  categoryIds?: readonly string[];
+  styleId?: number;
+};
+
+export type ProductAggregateDTO = {
+  product: ProductDTO;
+  style: ProductStyleDTO;
+  color: ProductColorDTO;
+  variants: readonly ProductVariantDTO[];
+  stats: ProductStatsDTO | null;
+  images: readonly ProductImageDTO[];
 };

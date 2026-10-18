@@ -36,6 +36,7 @@ yarn-error.log*
 
 # local agent/tool state
 /.superpowers/
+/supabase/.temp/
 
 # local project documentation
 /docs/db/

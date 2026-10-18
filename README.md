@@ -2,15 +2,17 @@
 
 남성 패션 쇼핑몰의 상품 탐색부터 주문 후 관리까지의 사용자 경험을 구현하는 개인 포트폴리오 프로젝트입니다.
 
-단순한 상품 목록 UI를 넘어 상품 옵션·재고·할인, 장바구니, 주문, 쿠폰, 회원 등급, 리뷰, 교환·반품처럼 쇼핑몰에서 자주 만나는 업무 흐름을 화면과 도메인 로직으로 나누어 설계하는 데 초점을 맞췄습니다.
+상품 옵션·재고·할인, 장바구니, 주문, 쿠폰, 회원 등급, 리뷰, 교환·반품처럼 쇼핑몰에서 자주 만나는 업무 흐름을 화면과 도메인 로직으로 나누어 설계하는 데 초점을 맞췄습니다.
 
-> 현재는 UI·사용자 흐름 완성 단계입니다. 주요 데이터는 fixture repository로 제공하며, 이후 Supabase와 인증을 단계적으로 연결할 계획입니다.
+> 현재 Supabase Auth 기반 회원 인증과 상품·카테고리의 실제 DB 조회를 구현했습니다. 상품 이미지는 Supabase Storage에서 제공합니다.
+>
+> 기존 주문·리뷰·문의·혜택 등 쇼핑몰 데모 내역과 상품 집계·할인·홈 진열 설정은 fixture를 유지하며 단계적으로 DB로 전환하고 있습니다. 실제 결제와 주문·재고의 DB 트랜잭션은 구현 범위에 포함되지 않습니다.
 
 ## 프로젝트 목표
 
 - Next.js App Router로 반응형 쇼핑 경험을 구현한다.
-- 복잡해지기 쉬운 주문·혜택·반품 업무를 도메인 단위로 분리한다.
-- 화면 구현 단계에서는 fixture로 빠르게 UX를 검증하고, 이후 실제 데이터 소스로 교체할 수 있는 구조를 만든다.
+- 주문·혜택·반품 업무를 도메인 단위로 분리한다.
+- fixture로 사용자 흐름을 검증하고, Repository를 통해 실제 데이터 소스로 점진적으로 전환한다.
 - 모바일과 데스크톱에서 일관된 탐색·구매·마이페이지 경험을 제공한다.
 
 ## 구현 범위
@@ -20,15 +22,27 @@
 - 메인 상품 슬라이더, 신상품·세일·베스트 상품
 - 카테고리 및 세부 카테고리 탐색
 - 상품 상세, 색상·사이즈 옵션, 재고·품절 상태, 수량 선택
-- 장바구니 추가, 옵션 변경, 선택 상품 관리, 주문 데모 흐름
+- 장바구니 추가, 옵션 변경, 선택 상품 관리
+- 신규 주문은 DB 전환 전까지 준비 중으로 안내하며, 서버 액션에서도 생성을 차단
 - 검색 오버레이와 인기·최근 검색어 UI
 
-### 회원과 마이페이지
+### 회원 인증
 
-- 로그인, 회원가입, 계정 찾기, 이메일 인증 화면
-- 주문 목록·상세·영수증, 주문 취소와 교환·반품 요청
+- 이메일·비밀번호 로그인 및 로그아웃
+- 회원가입과 이메일 OTP 인증
+- 미인증 사용자의 이메일 인증 재개
+- 인증번호 기반 비밀번호 재설정
+- 회원 상태에 따른 보호 페이지 접근 제어
+- 서버 환경변수에 따른 배포 데모 인증 기능 제한
+
+### 마이페이지와 데모 내역
+
+- 실제 로그인 회원의 이름과 회원 정보 조회
+- 기존 데모 주문 목록·상세·영수증, 주문 취소와 교환·반품 요청
 - 배송지, 쿠폰, 포인트, 회원 등급, 최근 본 상품, 위시리스트
 - 리뷰 작성·수정·삭제 및 1:1 문의 관리
+
+쇼핑몰 내역의 DB 영속화는 후속 작업입니다. 실제 회원 정보와 기존 쇼핑몰 데모 내역의 데이터 출처를 구분해 사용합니다.
 
 ### 기타
 
@@ -44,8 +58,8 @@
 | Styling | Tailwind CSS 4, Radix UI, shadcn/ui 기반 컴포넌트 |
 | Form & Validation | React Hook Form, Zod |
 | Client State | Zustand |
-| Authentication | Supabase Auth 연동 준비 중 |
-| Data | Fixture repository, Supabase 연동 준비 중 |
+| Authentication | Supabase Auth, `@supabase/ssr` |
+| Data | Supabase PostgreSQL·Storage, 도메인별 Fixture Repository |
 | UI Utilities | Embla Carousel, Sonner, Lucide Icons |
 
 ## 아키텍처
@@ -66,24 +80,31 @@ app → domains
 features → shared
 ```
 
-- `app`: `(main)`, `(auth)`, `(mypage)` Route Group으로 화면 맥락을 분리합니다. 검색과 카테고리는 Parallel Route와 Intercepting Route를 이용해 오버레이 경험으로 제공합니다.
+- `app`: `(storefront)`, `(auth)`, `(mypage)` Route Group으로 화면 맥락을 분리합니다. 검색과 카테고리는 Parallel Route와 Intercepting Route로 오버레이를 제공합니다.
 - `features`: 상품, 장바구니, 인증, 이벤트, 마이페이지처럼 사용자에게 보이는 기능 단위 UI를 관리합니다.
-- `domains`: 상품·주문·회원·혜택 등 업무 개념별 DTO, repository, service, mapper, view model을 관리합니다.
-- `shared`: 공통 UI, 사이트 레이아웃, 포맷터, 폼 스키마, 경로 유틸리티, 공통 타입을 관리합니다.
+- `domains`: 상품·주문·회원·혜택 등 업무 개념별 DTO, Repository, Service, Mapper, ViewModel과 입력 검증 스키마를 관리합니다.
+- `shared`: 공통 UI, 사이트 레이아웃, 포맷터, 경로 유틸리티, 공통 타입을 관리합니다.
 
-자세한 설계 원칙과 폴더별 책임은 [아키텍처 문서](./docs/architecture.md)에서 확인할 수 있습니다.
+Repository는 데이터 조회와 관계 조립을, Service는 업무 흐름을, Mapper는 DTO·Model·ViewModel 사이의 변환을 담당합니다. 인증처럼 서버에서만 실행할 코드는 클라이언트가 사용하는 순수 함수·타입과 구분합니다.
 
-## 데이터 전략과 개발 단계
+## 데이터 전략과 현재 상태
 
-현재는 화면 구현과 사용자 흐름 검증에 집중하기 위해 fixture repository를 사용합니다. repository 인터페이스를 유지하므로, 화면 코드를 크게 바꾸지 않고 실제 데이터 소스로 전환할 수 있습니다.
+| 영역 | 현재 데이터 출처 |
+| --- | --- |
+| 회원·약관 | Supabase DB |
+| 로그인·회원가입·이메일 인증·비밀번호 재설정 | Supabase Auth |
+| 상품·스타일·색상·옵션·카테고리 | Supabase DB |
+| 상품·카테고리 이미지 | Supabase Storage |
+| 상품 집계·할인·홈 진열 설정 | Fixture |
+| 기존 주문·리뷰·문의·혜택·마이페이지 데모 내역 | Fixture |
+| 장바구니 항목·선택 상태 | Zustand 클라이언트 상태 |
+| 장바구니 상품의 가격·재고·옵션 조회 | Supabase DB |
 
-```text
-1. UI·사용자 흐름 완성         ← 현재 단계
-2. 핵심 도메인 규칙과 테스트 보강
-3. Supabase repository 연결
-4. 실제 사용자 인증 연결
-5. 서버 장바구니·주문 검증 및 배포
-```
+실제 카탈로그 조회와 기존 데모 내역 조회는 의존성을 구성할 때 명시적으로 구분합니다. DB 조회 실패 시 fixture로 자동 대체하지 않습니다.
+
+신규 주문은 상품과 주문 조회의 데이터 소스가 다른 전환 중간 상태이므로 생성을 제한합니다. 주문 DB 전환 시 생성·조회 소스를 연결하고, DB 전용 신규 상품의 주문 목록·상세 조회와 판매 중지 후 과거 주문 표시를 검증합니다.
+
+현재 상품·카테고리 연결과 실제 값 변경·복구 검증을 마쳤습니다. 데이터 이전에 사용한 일회성 스크립트는 정리했으며, 적용·검증 기록과 DB SQL은 [Supabase 문서](./supabase/README.md)에 남겨 두었습니다.
 
 ## 시작하기
 
@@ -91,6 +112,7 @@ features → shared
 
 - Node.js 24.12.0 (`.nvmrc` 참고)
 - npm
+- 프로젝트의 DB 구조·권한·Storage와 Auth 설정이 준비된 Supabase 프로젝트
 
 ### 설치 및 실행
 
@@ -99,39 +121,54 @@ nvm use
 npm ci
 cp .env.example .env.local
 chmod 600 .env.local
+```
+
+`.env.local`에 아래 환경변수를 설정한 뒤 실행합니다. 현재 앱은 실제 DB를 조회하므로 환경변수 복사만으로는 실행 준비가 끝나지 않습니다.
+
+```bash
 npm run dev
 ```
 
 개발 서버를 실행한 뒤 [http://localhost:3000](http://localhost:3000)에서 확인할 수 있습니다.
 
-## 환경 변수
+다른 Supabase 프로젝트를 사용한다면 DB 구조·권한·Storage를 준비하고 `next.config.ts`의 이미지 허용 호스트도 맞춰야 합니다. DB 적용 조건은 [Supabase 문서](./supabase/README.md)에서 확인합니다.
+
+## 환경변수와 데모 모드
 
 `.env.example`을 복사한 후 로컬 값만 `.env.local`에 입력합니다. `.env.local`과 실제 인증 정보는 커밋하지 않습니다.
 
-| 변수 | 용도 | 현재 필요 여부 |
+| 변수 | 용도 | 설정 조건 |
 | --- | --- | --- |
-| `SUPABASE_URL` | Supabase 프로젝트 URL | 약관 API 및 DB 연동 시 필요 |
-| `SUPABASE_ANON_KEY` | Supabase anonymous key | 약관 API 및 DB 연동 시 필요 |
+| `SUPABASE_URL` | Supabase 프로젝트 URL | 앱 실행 시 필수 |
+| `SUPABASE_ANON_KEY` | 공개 조회·인증용 키 | 앱 실행 시 필수 |
+| `PASSWORD_RECOVERY_SECRET` | 비밀번호 복구 임시 인증 쿠키 암호화 | 비밀번호 재설정 기능 사용 시 필요 |
+| `AUTH_FEATURES_ENABLED` | 회원가입·이메일 인증·비밀번호 찾기 허용 여부 | 정확히 `true`일 때 허용, 기본값은 제한 |
 
-`SUPABASE_ANON_KEY`에는 서버 전용 권한을 가진 service-role 키를 사용하지 않습니다.
+`PASSWORD_RECOVERY_SECRET`은 무작위 32바이트를 Base64로 인코딩한 값을 사용합니다. 앱의 일반 환경변수에 관리자용 service-role 키를 사용하지 않습니다.
 
-## 명령어
+로컬에서 인증 기능을 검증하려면 `AUTH_FEATURES_ENABLED=true`로 설정합니다. 배포 데모에서는 `false`로 제한하며 로그인·로그아웃은 계속 사용할 수 있습니다. 제한 모드에서는 로그인 폼에 데모 계정이 미리 입력됩니다. 이 환경변수는 사이트 화면과 Server Action을 제어하며 Supabase 프로젝트 자체의 Auth 설정을 바꾸지 않습니다.
+
+## 명령어와 검증
 
 ```bash
-npm run dev        # 개발 서버 실행
-npm run lint       # ESLint 검사
-npm run typecheck  # TypeScript 검사
-npm run build      # 프로덕션 빌드
-npm run start      # 빌드 결과 실행
+npm run dev                    # 개발 서버 실행
+node --test tests/*.test.mjs    # Node 테스트 실행
+npm run lint                   # ESLint 검사
+npm run typecheck              # TypeScript 검사
+npm run build                  # 프로덕션 빌드
+npm run start                  # 빌드 결과 실행
 ```
+
+일반 테스트는 실제 DB를 변경하지 않습니다. DB 통합 테스트는 별도로 준비한 격리 PostgreSQL 컨테이너에서만 실행하며, 해당 환경이 없으면 건너뜁니다. 실행 조건과 적용 기록은 [Supabase 문서](./supabase/README.md)에서 확인할 수 있습니다.
+
+프로덕션 빌드에서 사용하는 Google Fonts를 다운로드할 수 있는 네트워크 환경이 필요합니다.
 
 ## 문서
 
-- [아키텍처](./docs/architecture.md): 계층별 책임, 의존성 규칙, 데이터 전환 전략
+- [Supabase DB 적용·검증 기록](./supabase/README.md): 적용 조건, SQL, 격리 DB 테스트, 데이터 이전·복구 검증과 정리 기록
 
 ## 향후 계획
 
-- fixture repository를 Supabase repository로 점진적으로 교체
-- Supabase Auth 기반 실제 회원 인증 연결
-- 장바구니와 주문 생성의 서버 검증·영속화
-- 주문, 취소, 교환·반품, 쿠폰 규칙에 대한 핵심 단위 테스트 추가
+- 상품 집계·할인·홈 진열 정보의 DB 전환
+- 주문·배송지·혜택·리뷰·문의 등 남은 도메인의 DB 전환
+- 장바구니·주문 영속화와 주문·재고 트랜잭션 구현
