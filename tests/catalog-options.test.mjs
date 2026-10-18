@@ -68,6 +68,28 @@ test('cart API rejects invalid IDs before reading product data', async () => {
   assert.equal(reads, 0);
 });
 
+test('cart API omits inactive products but keeps active sold-out options', async () => {
+  const { fixtureProductRepository } = loadTs('src/domains/product/fixture-repository.ts');
+  const { createProductService } = loadTs('src/domains/product/service.ts');
+  const mapping = loadTs('src/domains/product/mapper.ts');
+  const productService = createProductService({
+    async findManyWithRelations(query) {
+      return (await fixtureProductRepository.findManyWithRelations(query)).map(row => ({
+        ...row,
+        product: { ...row.product, state: row.product.id === 1 ? 'inactive' : 'active' },
+        variants: row.variants.map(variant => ({ ...variant, stock: 0 })),
+      }));
+    },
+  });
+  const { POST } = loadTs('src/app/api/cart/products/route.ts', {
+    '@/domains/product': { ...mapping, productService },
+  });
+  const result = await POST(request([{ productId: 1, variantId: 2 }, { productId: 2, variantId: 7 }]));
+  assert.equal(result.status, 200);
+  const data = await result.json();
+  assert.deepEqual(data.cartItems.map(item => [item.productId, item.variantId, item.stock]), [[2, 7, 0]]);
+});
+
 test('demo order saves numeric options and rejects mismatched product-option pairs', async () => {
   const { fixtureProductService: productService } = loadTs('src/domains/product/fixture-service.ts');
   const { createOrderCommandService } = loadTs('src/domains/order/order-command.service.ts', {
