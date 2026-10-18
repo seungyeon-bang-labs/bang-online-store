@@ -63,3 +63,18 @@ export type ProductColorDTO = {
   hex_code: string;
   code: string;
 };
+
+export type ProductQuery = {
+  ids?: readonly number[];
+  categoryIds?: readonly string[];
+  styleId?: number;
+};
+
+export type ProductAggregateDTO = {
+  product: ProductDTO;
+  style: ProductStyleDTO;
+  color: ProductColorDTO;
+  variants: readonly ProductVariantDTO[];
+  stats: ProductStatsDTO | null;
+  images: readonly ProductImageDTO[];
+};

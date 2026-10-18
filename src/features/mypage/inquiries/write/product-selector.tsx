@@ -9,8 +9,8 @@ import {
   INQUIRY_PRODUCT_CATEGORY_FILTER_LABELS,
   INQUIRY_PRODUCT_CATEGORY_FILTERS,
   type InquiryProductCategoryFilter,
-  type InquiryWriteProductOptionViewModel,
-} from '@/domains/inquiry';
+} from '@/domains/inquiry/domain';
+import type { InquiryWriteProductOptionViewModel } from '@/domains/inquiry';
 import { MypageFormLabel } from '@/features/mypage/common/form';
 import { MYPAGE_SELECTOR_TRIGGER_CLASS_NAME } from '@/features/mypage/common/styles';
 import { formatKoreanMoney } from '@/shared/lib/format';

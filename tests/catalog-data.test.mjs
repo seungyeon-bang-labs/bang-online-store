@@ -51,7 +51,7 @@ test('all 38 order/exchange references use numeric options owned by their produc
 test('corrected demo snapshots keep their amounts and quantities', async () => {
   const coat = ORDER_ITEMS.find(item => item.id.endsWith('000015'));
   const blazer = ORDER_ITEMS.find(item => item.id.endsWith('000016'));
-  const { productService } = loadTs('src/domains/product/service.ts');
+  const { fixtureProductService: productService } = loadTs('src/domains/product/fixture-service.ts');
   assert.equal(coat.variant_id, 17);
   assert.equal(coat.product_id, 4);
   assert.equal(blazer.variant_id, 47);

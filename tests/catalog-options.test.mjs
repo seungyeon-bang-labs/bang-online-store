@@ -3,7 +3,8 @@ import { test } from 'node:test';
 import { loadTs } from './helpers/load-ts.mjs';
 
 test('product mapping preserves SKU while cart and option views use numeric IDs', async () => {
-  const { productService, toProductCartItemViewModel, toProductOptionViewModel } = loadTs('src/domains/product/index.ts');
+  const { fixtureProductService: productService } = loadTs('src/domains/product/fixture-service.ts');
+  const { toProductCartItemViewModel, toProductOptionViewModel } = loadTs('src/domains/product/mapper.ts');
   const product = await productService.findById(1);
   assert.equal(product.variants[1].id, 2);
   assert.equal(product.variants[1].sku, '1-GY-M');
@@ -38,7 +39,11 @@ function request(items) {
 }
 
 test('cart API accepts numeric IDs and never returns an option from another product', async () => {
-  const { POST } = loadTs('src/app/api/cart/products/route.ts');
+  const { fixtureProductService } = loadTs('src/domains/product/fixture-service.ts');
+  const mapping = loadTs('src/domains/product/mapper.ts');
+  const { POST } = loadTs('src/app/api/cart/products/route.ts', {
+    '@/domains/product': { ...mapping, productService: fixtureProductService },
+  });
   const response = await POST(request([{ productId: 1, variantId: 2 }]));
   assert.equal(response.status, 200);
   const data = await response.json();
@@ -53,7 +58,7 @@ test('cart API accepts numeric IDs and never returns an option from another prod
 test('cart API rejects invalid IDs before reading product data', async () => {
   let reads = 0;
   const { POST } = loadTs('src/app/api/cart/products/route.ts', {
-    '@/domains/product': { productService: { findByIdsIncludingInactive: async () => { reads++; return []; } } },
+    '@/domains/product': { productService: { findByIds: async () => { reads++; return []; } } },
   });
   for (const invalid of ['2', '1-GY-M', 0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1, null, Infinity, NaN]) {
     for (const item of [{ productId: 1, variantId: invalid }, { productId: invalid, variantId: 2 }]) {
@@ -64,8 +69,10 @@ test('cart API rejects invalid IDs before reading product data', async () => {
 });
 
 test('demo order saves numeric options and rejects mismatched product-option pairs', async () => {
-  const { productService } = loadTs('src/domains/product/service.ts');
-  const { createOrderCommandService } = loadTs('src/domains/order/order-command.service.ts');
+  const { fixtureProductService: productService } = loadTs('src/domains/product/fixture-service.ts');
+  const { createOrderCommandService } = loadTs('src/domains/order/order-command.service.ts', {
+    '@/domains/product': loadTs('src/domains/product/domain.ts'),
+  });
   const saved = { items: [] };
   const service = createOrderCommandService({
     productRepository: productService,

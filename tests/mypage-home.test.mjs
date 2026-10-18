@@ -61,6 +61,7 @@ function createHomeRequest(initialMember, options = {}) {
   });
   const { getMypageHomeViewModel } = loadTs('src/domains/mypage/home.service.ts', {
     '@/shared/lib/supabase/auth-server': { createAuthClient: async () => client },
+    '@/shared/lib/supabase/server': { supabase: {} },
   });
   return {
     getHome: () => getMypageHomeViewModel(CURRENT_USER),

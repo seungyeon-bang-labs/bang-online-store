@@ -24,17 +24,23 @@ export async function POST(request: Request) {
   try {
     items = await request.json();
   } catch {
-    return NextResponse.json({ message: '잘못된 요청입니다.' }, { status: 400 });
+    return NextResponse.json(
+      { message: '잘못된 요청입니다.' },
+      { status: 400 },
+    );
   }
 
   if (!Array.isArray(items) || !items.every(isRequestItem)) {
-    return NextResponse.json({ message: '잘못된 요청입니다.' }, { status: 400 });
+    return NextResponse.json(
+      { message: '잘못된 요청입니다.' },
+      { status: 400 },
+    );
   }
 
   try {
-    const cartProducts = await productService.findByIdsIncludingInactive(
-      [...new Set(items.map(item => item.productId))],
-    );
+    const cartProducts = await productService.findByIds([
+      ...new Set(items.map(item => item.productId)),
+    ]);
     const styleProducts = await Promise.all(
       [...new Set(cartProducts.map(product => product.styleId))].map(styleId =>
         productService.findByStyleId(styleId),
@@ -51,13 +57,12 @@ export async function POST(request: Request) {
         : null;
       return viewModel ? [viewModel] : [];
     });
-    const optionGroups = products.reduce<Record<number, ProductOptionViewModel[]>>(
-      (groups, product) => {
-        (groups[product.styleId] ??= []).push(toProductOptionViewModel(product));
-        return groups;
-      },
-      {},
-    );
+    const optionGroups = products.reduce<
+      Record<number, ProductOptionViewModel[]>
+    >((groups, product) => {
+      (groups[product.styleId] ??= []).push(toProductOptionViewModel(product));
+      return groups;
+    }, {});
 
     const response: CartProductResponse = { cartItems, optionGroups };
     return NextResponse.json(response);

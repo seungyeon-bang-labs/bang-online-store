@@ -103,10 +103,8 @@ export const toProductCardViewModel = (
   name: product.name,
   href: `/product/${product.id}`,
   thumbnailUrl: product.images.find(image => image.type === 'thumbnail')?.url
-    ? `/images/${product.images.find(image => image.type === 'thumbnail')?.url}`
-    : product.images[0]?.url
-      ? `/images/${product.images[0].url}`
-      : '/file.svg',
+    ?? product.images[0]?.url
+    ?? '/file.svg',
   price: product.price,
   discountRate: getProductDiscountRate(product.id),
   discountedPrice: getProductSalePrice(product),
