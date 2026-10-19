@@ -17,6 +17,13 @@ export type ProductCardViewModel = {
   isSoldOut: boolean;
 };
 
+export type ProductSaleSectionViewModel = {
+  id: number;
+  title: string;
+  remainingLabel: string;
+  productCardViewModels: readonly ProductCardViewModel[];
+};
+
 export type ProductDetailViewModel = {
   id: number;
   name: string;

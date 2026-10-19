@@ -79,6 +79,72 @@ export type Database = {
         }
         Relationships: []
       }
+      discount_items: {
+        Row: {
+          discount_id: number
+          discount_rate: number
+          product_id: number
+        }
+        Insert: {
+          discount_id: number
+          discount_rate: number
+          product_id: number
+        }
+        Update: {
+          discount_id?: number
+          discount_rate?: number
+          product_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discount_items_discount_id_fkey"
+            columns: ["discount_id"]
+            isOneToOne: false
+            referencedRelation: "discounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discount_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discounts: {
+        Row: {
+          created_at: string
+          ends_at: string
+          id: number
+          is_active: boolean
+          priority: number
+          starts_at: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          ends_at: string
+          id: number
+          is_active?: boolean
+          priority?: number
+          starts_at: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          ends_at?: string
+          id?: number
+          is_active?: boolean
+          priority?: number
+          starts_at?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       product_images: {
         Row: {
           created_at: string
@@ -112,6 +178,104 @@ export type Database = {
             foreignKeyName: "product_images_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_section_items: {
+        Row: {
+          display_order: number
+          product_id: number
+          section_id: number
+        }
+        Insert: {
+          display_order: number
+          product_id: number
+          section_id: number
+        }
+        Update: {
+          display_order?: number
+          product_id?: number
+          section_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_section_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_section_items_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "product_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_sections: {
+        Row: {
+          created_at: string
+          desktop_rows: number
+          display_order: number
+          id: number
+          is_active: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          desktop_rows: number
+          display_order?: number
+          id: number
+          is_active?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          desktop_rows?: number
+          display_order?: number
+          id?: number
+          is_active?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      product_stats: {
+        Row: {
+          monthly_sales: number
+          product_id: number
+          today_sales: number
+          total_sales: number
+          updated_at: string
+          weekly_sales: number
+        }
+        Insert: {
+          monthly_sales?: number
+          product_id: number
+          today_sales?: number
+          total_sales?: number
+          updated_at?: string
+          weekly_sales?: number
+        }
+        Update: {
+          monthly_sales?: number
+          product_id?: number
+          today_sales?: number
+          total_sales?: number
+          updated_at?: string
+          weekly_sales?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_stats_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
             referencedRelation: "products"
             referencedColumns: ["id"]
           },

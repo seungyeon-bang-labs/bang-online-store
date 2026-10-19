@@ -23,10 +23,14 @@ async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
   const productId = Number(id);
   if (!Number.isSafeInteger(productId) || productId <= 0) notFound();
 
-  const product = await productService.findById(productId);
+  const options = { now: new Date() };
+  const product = await productService.findById(productId, options);
   if (!product) notFound();
 
-  const styleProducts = await productService.findByStyleId(product.styleId);
+  const styleProducts = await productService.findByStyleId(
+    product.styleId,
+    options,
+  );
   const productView = toProductDetailViewModel(product, styleProducts);
 
   return (

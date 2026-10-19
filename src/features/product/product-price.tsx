@@ -1,4 +1,5 @@
 import { cn } from '@/shared/lib/utils';
+import { getProductLinePrice } from '@/domains/product/domain';
 
 interface ProductPriceProps {
   price: number;
@@ -49,13 +50,11 @@ export function ProductPrice({
   className,
 }: ProductPriceProps) {
   const hasDiscount = discount > 0;
-  const discountedPrice = hasDiscount
-    ? Math.floor(price * (1 - discount / 100))
-    : price;
+  const { total: totalPrice, originalTotal } = getProductLinePrice(
+    price, discount, priceOffset, quantity,
+  );
 
   const styles = sizeStyles[size];
-
-  const totalPrice = discountedPrice * quantity + priceOffset * quantity;
 
   if (variant === 'product-card') {
     return (
@@ -81,7 +80,7 @@ export function ProductPrice({
     <div className={cn('flex flex-col', className)}>
       {hasDiscount && (
         <span className={cn('text-gray-400 line-through', styles.original)}>
-          {(price * quantity).toLocaleString()}원
+          {originalTotal.toLocaleString()}원
         </span>
       )}
 

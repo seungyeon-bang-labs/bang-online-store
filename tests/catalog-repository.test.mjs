@@ -8,6 +8,7 @@ const product=fixtures.PRODUCT_FIXTURE[0];
 const style=fixtures.PRODUCT_STYLE_FIXTURE.find(row=>row.id===product.style_id);
 const color=fixtures.PRODUCT_COLOR_FIXTURE.find(row=>row.id===product.color_id);
 const joined={...product,style,color:{...color,label:color.name},
+  stats:null,
   variants:fixtures.PRODUCT_VARIANT_FIXTURE.filter(row=>row.product_id===1),
   images:[{id:1,product_id:1,image_path:'products/1/thumbnail.png',image_type:'thumbnail',display_order:0}]};
 function catalogRequest({rows=[joined],error=false}={}){
@@ -16,8 +17,12 @@ function catalogRequest({rows=[joined],error=false}={}){
   auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},
   global:{fetch:async input=>{
    const url=new URL(String(input)); requests.push(url);
-   return new Response(JSON.stringify(error?{code:'42501',message:'PRIVATE_DB_DETAIL'}:rows),
-    {status:error?403:200,headers:{'content-type':'application/json'}});
+   const data=url.pathname.endsWith('/product_images')?rows.flatMap(row=>row.images??[]):
+    url.pathname.endsWith('/products')?rows.map(row=>Object.fromEntries(
+      Object.entries(row).filter(([key])=>key!=='images'))):rows;
+   return new Response(JSON.stringify(error?{code:'42501',message:'PRIVATE_DB_DETAIL'}:data),
+    {status:error?403:200,headers:{'content-type':'application/json',
+      'content-range':`${data.length?`0-${data.length-1}`:'*'}/${data.length}`}});
   }},
  });
  const mocks={'@/shared/lib/supabase/server':{supabase:client}};
@@ -27,16 +32,18 @@ function catalogRequest({rows=[joined],error=false}={}){
 test('repository narrows IDs, category and style together and maps public image URLs',async()=>{
  const {repository,requests}=catalogRequest();
  const rows=await repository.findManyWithRelations({ids:[1],categoryIds:['coat'],styleId:1});
- assert.equal(requests.length,1);
+ assert.equal(requests.length,2);
  assert.equal(requests[0].pathname,'/rest/v1/products');
  assert.equal(requests[0].searchParams.get('id'),'in.(1)');
  assert.equal(requests[0].searchParams.get('state'),'eq.active');
  assert.equal(requests[0].searchParams.get('style.category_id'),'in.(coat)');
  assert.equal(requests[0].searchParams.get('style_id'),'eq.1');
+ assert.equal(requests[1].pathname,'/rest/v1/product_images');
+ assert.equal(requests[1].searchParams.get('product_id'),'in.(1)');
  assert.equal(rows[0].color.name,'그레이');
  assert.equal(rows[0].images[0].image_url,'https://catalog-test.supabase.co/storage/v1/object/public/product-images/products/1/thumbnail.png');
  const {toProductModel,toProductCardViewModel}=loadTs('src/domains/product/mapper.ts');
- assert.equal(toProductCardViewModel(toProductModel(rows[0])).thumbnailUrl,rows[0].images[0].image_url);
+ assert.equal(toProductCardViewModel(toProductModel(rows[0],{discountRate:0,appliedDiscountId:null})).thumbnailUrl,rows[0].images[0].image_url);
 });
 
 test('empty criteria perform no requests and normal empty database results stay empty',async()=>{
@@ -69,7 +76,7 @@ test('service forwards selectors and exposes only active products',async()=>{
  const aggregate={product,style,color,variants:[],images:[],stats:null};
  const service=createProductService({findManyWithRelations:async query=>{
   queries.push(query);return [aggregate,{...aggregate,product:{...product,id:999,state:'inactive'}}];
- }});
+ }},{findByProductIds:async()=>[]});
  assert.deepEqual((await service.findMany()).map(row=>row.id),[1]);
  assert.equal((await service.findById(1)).id,1);
  await service.findByIds([1,2]);

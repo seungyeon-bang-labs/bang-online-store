@@ -45,6 +45,8 @@ export type ProductModel = {
   name: string;
   categoryId: string;
   price: number;
+  discountRate: number;
+  appliedDiscountId: number | null;
   state: ProductStateDTO;
   createdAt: Date;
   restockedAt: Date | null;
@@ -53,4 +55,12 @@ export type ProductModel = {
   images: readonly ProductImageModel[];
   color: ProductColorModel;
   style: ProductStyleModel;
+};
+
+export type ProductSaleSectionModel = {
+  id: number;
+  title: string;
+  priority: number;
+  endsAt: string;
+  products: readonly ProductModel[];
 };

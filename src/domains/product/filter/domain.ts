@@ -4,7 +4,6 @@ import {
   PRODUCT_SIZE_ORDER,
 } from './config';
 import {
-  getProductDiscountRate,
   getProductSalePrice,
 } from '../domain';
 import type { ProductModel } from '../model';
@@ -89,7 +88,7 @@ export function filterProducts(
 
     if (
       selectedDiscountOption &&
-      getProductDiscountRate(product.id) < selectedDiscountOption.minRate
+      product.discountRate < selectedDiscountOption.minRate
     ) {
       return false;
     }
@@ -106,7 +105,7 @@ export function filterProducts(
       case 'price_desc':
         return getProductSalePrice(right) - getProductSalePrice(left);
       case 'discount':
-        return getProductDiscountRate(right.id) - getProductDiscountRate(left.id);
+        return right.discountRate - left.discountRate;
       case 'popular':
         return (right.stats?.totalSales ?? 0) - (left.stats?.totalSales ?? 0);
     }

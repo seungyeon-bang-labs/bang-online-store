@@ -2,6 +2,7 @@ import { Button } from '@/shared/components/ui/button';
 import { useMemo } from 'react';
 import { CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
+import { getProductLinePrice } from '@/domains/product/domain';
 
 interface SelectedProduct {
   id: number;
@@ -27,11 +28,8 @@ export function CartSummary({ selectedProducts }: CartSummaryProps) {
       (total, item) => total + item.price * item.quantity,
       0,
     );
-    const discountAmount = selectedProducts.reduce((total, item) => {
-      if (item.discount <= 0) return total;
-      const discountPerItem = Math.round(item.price * (item.discount / 100));
-      return total + discountPerItem * item.quantity;
-    }, 0);
+    const discountAmount = selectedProducts.reduce((total, item) => total
+      + getProductLinePrice(item.price, item.discount, item.priceOffset, item.quantity).discountAmount, 0);
     const shippingFee = 0;
     const optionsTotal = selectedProducts.reduce(
       (total, item) => total + item.priceOffset * item.quantity,

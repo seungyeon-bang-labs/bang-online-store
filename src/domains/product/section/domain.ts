@@ -9,7 +9,7 @@ export function createProductSections(
   items: readonly ProductSectionItemDTO[],
 ): ProductSection[] {
   return [...sections]
-    .sort((a, b) => a.display_order - b.display_order)
+    .sort((a, b) => a.display_order - b.display_order || a.id - b.id)
     .map(section => ({
       ...section,
       items: items
