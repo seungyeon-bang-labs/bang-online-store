@@ -80,7 +80,7 @@ test('cart API omits inactive products but keeps active sold-out options', async
         variants: row.variants.map(variant => ({ ...variant, stock: 0 })),
       }));
     },
-  });
+  }, { findByProductIds: async () => [] });
   const { POST } = loadTs('src/app/api/cart/products/route.ts', {
     '@/domains/product': { ...mapping, productService },
   });

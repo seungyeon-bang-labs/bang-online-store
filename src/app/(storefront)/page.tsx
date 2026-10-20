@@ -10,7 +10,6 @@ import { Container } from '@/shared/components/layout/container';
 import { HomeProductSlider } from '@/features/product/home-product-slider';
 import {
   getNewProducts,
-  getProductDiscountRate,
   productService,
   toProductCardViewModel,
   createProductSections,
@@ -19,10 +18,11 @@ import {
 } from '@/domains/product';
 
 async function HomePage() {
+  const now = new Date();
   const [events, categories, products, activeProductSectionData] = await Promise.all([
     eventRepository.findMany(),
     categoryRepository.findMany(),
-    productService.findMany(),
+    productService.findMany({ now }),
     productSectionRepository.findActiveWithItems(),
   ]);
   const categoryGroupViewModels = toCategoryGroupViewModels(
@@ -30,11 +30,10 @@ async function HomePage() {
   );
   const eventBannerViewModels = toEventBannerViewModels(events);
   const productCardViewModels = products.map(toProductCardViewModel);
-  const now = new Date();
   const newProductCardViewModels = getNewProducts(products, now)
     .map(toProductCardViewModel);
   const saleProductCardViewModels = products
-    .filter(product => getProductDiscountRate(product.id) > 0)
+    .filter(product => product.discountRate > 0)
     .map(toProductCardViewModel);
   const productSectionViewModels = toProductSectionViewModels(
     createProductSections(

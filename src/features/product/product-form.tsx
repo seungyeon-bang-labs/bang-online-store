@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { QuantitySelector } from '@/features/product/quantity-selector';
 import { ColorChip } from '@/shared/components/ui/color-chip';
 import { getCartHref } from '@/shared/lib/cart-routes';
+import { getDiscountedPrice } from '@/domains/product/domain';
 
 type ProductFormProps = {
   productId: number;
@@ -49,12 +50,8 @@ export function ProductForm({
   const [selectedSizeId, setSelectedSizeId] = useState<number | null>(null);
   const { addToCart } = useCartStore();
   const isAllSoldOut = variants.every(variant => variant.stock <= 0);
-  const hasDiscount = discount > 0;
-  const discountedPrice = hasDiscount
-    ? Math.floor(price * (1 - discount / 100))
-    : price;
+  const discountedPrice = getDiscountedPrice(price, discount);
 
-  // 1. 사이즈 선택 시 항목 추가
   const handleSizeSelect = (value: string) => {
     const variant = variants.find(v => String(v.id) === value);
     if (!variant) return;
@@ -62,14 +59,13 @@ export function ProductForm({
     setSelectedItems(prev => {
       const isExist = prev.find(item => item.id === variant.id);
       if (isExist) {
-        // 이미 있으면 수량만 증가 (재고 범위 내에서)
         return prev.map(item =>
           item.id === variant.id
             ? { ...item, count: Math.min(item.count + 1, item.stock) }
             : item,
         );
       }
-      // 없으면 새로 추가
+
       return [
         ...prev,
         {
@@ -85,7 +81,6 @@ export function ProductForm({
     setSelectedSizeId(null);
   };
 
-  // 2. 수량 변경 로직
   const updateCount = (id: number, delta: number) => {
     setSelectedItems(prev =>
       prev.map(item => {
@@ -100,12 +95,10 @@ export function ProductForm({
     );
   };
 
-  // 3. 항목 삭제 로직
   const removeItem = (id: number) => {
     setSelectedItems(prev => prev.filter(item => item.id !== id));
   };
 
-  // 4. 총 합계 금액 계산
   const totalPrice = selectedItems.reduce(
     (acc, item) => acc + (discountedPrice + item.priceOffset) * item.count,
     0,
@@ -131,31 +124,29 @@ export function ProductForm({
 
   return (
     <div className="space-y-6">
-      {/* 컬러 칩 섹션 (생략 없이 유지) */}
       {colors.length > 1 && (
-      <div className="space-y-3">
-        <h4 className="font-black text-base mb-2 flex items-center">색상</h4>
-        <div className="grid grid-cols-4 sm:grid-cols-5 gap-y-6 gap-x-2">
-          {colors.map(option => {
-            const isSelected = productId === option.id;
+        <div className="space-y-3">
+          <h4 className="font-black text-base mb-2 flex items-center">색상</h4>
+          <div className="grid grid-cols-4 sm:grid-cols-5 gap-y-6 gap-x-2">
+            {colors.map(option => {
+              const isSelected = productId === option.id;
 
-            return (
-              <ColorChip
-                key={option.id}
-                label={option.label}
-                hex={option.hex}
-                isSelected={isSelected}
-                onClick={() => {
-                  router.push(`/product/${option.id}`);
-                }}
-              />
-            );
-          })}
+              return (
+                <ColorChip
+                  key={option.id}
+                  label={option.label}
+                  hex={option.hex}
+                  isSelected={isSelected}
+                  onClick={() => {
+                    router.push(`/product/${option.id}`);
+                  }}
+                />
+              );
+            })}
+          </div>
         </div>
-      </div>
       )}
 
-      {/* 사이즈 선택 섹션 */}
       <div className="space-y-3">
         <h4 className="font-black text-base mb-2 flex items-center">사이즈</h4>
         <Select
@@ -209,7 +200,6 @@ export function ProductForm({
         </Select>
       </div>
 
-      {/* 💡 선택된 항목 리스트 (액션 버튼 위) */}
       {selectedItems.length > 0 && (
         <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
           {selectedItems.map(item => (
@@ -255,7 +245,6 @@ export function ProductForm({
             </div>
           ))}
 
-          {/* 총 합계 금액 */}
           <div className="flex justify-between items-center py-4 px-2 border-t border-gray-100">
             <span className="text-sm font-bold text-gray-500">
               총 주문 금액
@@ -267,7 +256,6 @@ export function ProductForm({
         </div>
       )}
 
-      {/* 액션 버튼 */}
       <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,1fr)] items-center gap-2 md:flex">
         <Button variant="ghost" size="icon-lg" className="hover:bg-white group">
           <Heart className="size-6 text-gray-400 group-hover:fill-red-500 group-hover:stroke-red-500" />

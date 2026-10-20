@@ -1,52 +1,19 @@
 import { PageTitle } from '@/shared/components/common/page-title';
 import { EventBanner } from '@/features/event/event-banner';
 import { eventRepository, toEventBannerViewModels } from '@/domains/event';
-import { DISCOUNTS } from '@/domains/discount';
-import { productService, toProductCardViewModel } from '@/domains/product';
+import { productService, toSaleSectionViewModels } from '@/domains/product';
 import { ProductsSection } from '@/features/product/products-section';
 import { Container } from '@/shared/components/layout/container';
 
-function getRemainingLabel(endDate: Date): string {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const end = new Date(
-    endDate.getFullYear(),
-    endDate.getMonth(),
-    endDate.getDate(),
-  );
-
-  const diffDays = Math.floor((end.getTime() - today.getTime()) / 86400000);
-
-  if (diffDays < 0) return '종료';
-  if (diffDays === 0) return '오늘 종료';
-  return `D-${diffDays}`;
-}
-
 async function SalePage() {
-  const events = await eventRepository.findMany();
-  const products = await productService.findMany();
+  const now = new Date();
+  const [events, sections] = await Promise.all([
+    eventRepository.findMany(),
+    productService.findSaleSections({ now }),
+  ]);
   const saleEvents = events.filter(event => event.kind === 'sale');
   const eventBannerViewModels = toEventBannerViewModels(saleEvents);
-  const activeDiscounts = DISCOUNTS.filter(discount => discount.isActive).sort(
-    (a, b) => a.priority - b.priority,
-  );
-
-  const saleSections = activeDiscounts
-    .map(discount => {
-      const productIds = new Set(
-        discount.items.flatMap(item => item.productIds.map(id => Number(id))),
-      );
-
-      const items = products.filter(product => productIds.has(product.id));
-
-      return {
-        id: discount.id,
-        title: discount.title,
-        remainingLabel: getRemainingLabel(discount.endDate),
-        items,
-      };
-    })
-    .filter(section => section.items.length > 0);
+  const saleSections = toSaleSectionViewModels(sections, now);
 
   return (
     <div className="bg-gray-50 w-full flex justify-center">
@@ -70,7 +37,7 @@ async function SalePage() {
                   </span>
                 </span>
               }
-              productCardViewModels={section.items.map(toProductCardViewModel)}
+              productCardViewModels={section.productCardViewModels}
             />
           ))}
         </div>

@@ -38,12 +38,13 @@ export async function POST(request: Request) {
   }
 
   try {
+    const options = { now: new Date() };
     const cartProducts = await productService.findByIds([
       ...new Set(items.map(item => item.productId)),
-    ]);
+    ], options);
     const styleProducts = await Promise.all(
       [...new Set(cartProducts.map(product => product.styleId))].map(styleId =>
-        productService.findByStyleId(styleId),
+        productService.findByStyleId(styleId, options),
       ),
     );
     const products = styleProducts.flat();

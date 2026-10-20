@@ -1,11 +1,5 @@
-import type {
-  ProductColorDTO,
-  ProductDTO,
-  ProductImageDTO,
-  ProductStatsDTO,
-  ProductStyleDTO,
-  ProductVariantDTO,
-} from './dto';
+import type { AppliedProductDiscount } from '@/domains/discount/discount.dto';
+import type { ProductAggregateDTO } from './dto';
 import type {
   ProductColorModel,
   ProductImageModel,
@@ -14,11 +8,7 @@ import type {
   ProductStyleModel,
   ProductVariantModel,
 } from './model';
-import {
-  getProductDiscountRate,
-  getProductSalePrice,
-  isProductSoldOut,
-} from './domain';
+import { getProductSalePrice, isProductSoldOut } from './domain';
 import type {
   ProductCardViewModel,
   ProductCartItemViewModel,
@@ -34,14 +24,7 @@ export function toProductModel({
   variants,
   stats,
   images,
-}: {
-  product: ProductDTO;
-  style: ProductStyleDTO;
-  color: ProductColorDTO;
-  variants: readonly ProductVariantDTO[];
-  stats: ProductStatsDTO | null;
-  images: readonly ProductImageDTO[];
-}): ProductModel {
+}: ProductAggregateDTO, discount: AppliedProductDiscount): ProductModel {
   const styleModel: ProductStyleModel = {
     id: style.id,
     name: style.name,
@@ -85,6 +68,8 @@ export function toProductModel({
     name: product.display_name ?? `${color.name} ${style.name}`,
     categoryId: style.category_id,
     price: product.price,
+    discountRate: discount.discountRate,
+    appliedDiscountId: discount.appliedDiscountId,
     state: product.state,
     createdAt: new Date(product.created_at),
     restockedAt: product.restocked_at ? new Date(product.restocked_at) : null,
@@ -106,7 +91,7 @@ export const toProductCardViewModel = (
     ?? product.images[0]?.url
     ?? '/file.svg',
   price: product.price,
-  discountRate: getProductDiscountRate(product.id),
+  discountRate: product.discountRate,
   discountedPrice: getProductSalePrice(product),
   isSoldOut: isProductSoldOut(product.variants),
 });
@@ -127,7 +112,7 @@ export const toProductDetailViewModel = (
   id: product.id,
   name: product.name,
   price: product.price,
-  discountRate: getProductDiscountRate(product.id),
+  discountRate: product.discountRate,
   detailImages:
     product.images.length > 0
       ? product.images.map(image => image.url)
@@ -151,7 +136,7 @@ export function toProductCartItemViewModel(
     color: product.color.name,
     thumbnailUrl: toProductCardViewModel(product).thumbnailUrl,
     price: product.price,
-    discountRate: getProductDiscountRate(product.id),
+    discountRate: product.discountRate,
     stock: variant.stock,
     size: variant.size,
     priceOffset: variant.priceOffset,

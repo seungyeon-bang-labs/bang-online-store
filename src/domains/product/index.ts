@@ -1,4 +1,5 @@
-export { getNewProducts, getProductDiscountRate, getProductSalePrice } from './domain';
+export { getNewProducts, getProductSalePrice } from './domain';
+export { toSaleSectionViewModels } from './sale';
 export {
   toProductCardViewModel,
   toProductCartItemViewModel,
@@ -8,13 +9,15 @@ export {
 } from './mapper';
 export type {
   ProductModel,
+  ProductSaleSectionModel,
   ProductStatsModel,
   ProductVariantModel,
 } from './model';
 import { createProductService } from './service';
 import { productRepository } from './repository';
+import { discountRepository } from '@/domains/discount/discount.repository';
 
-export const productService = createProductService(productRepository);
+export const productService = createProductService(productRepository, discountRepository);
 export {
   filterProducts,
   parseProductFilterCriteria,
@@ -38,4 +41,5 @@ export type {
   ProductCardViewModel,
   ProductCartItemViewModel,
   ProductOptionViewModel,
+  ProductSaleSectionViewModel,
 } from './view-model';
