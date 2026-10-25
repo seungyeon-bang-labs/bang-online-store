@@ -1,7 +1,8 @@
 'use client';
 
 import { usePathname, useSearchParams } from 'next/navigation';
-import { getCartItemCount, useCartStore } from '@/domains/cart';
+import { useCartState } from '@/features/cart/use-cart';
+import { selectCartItemCount } from '@/features/cart/cart-count';
 import type { CategoryGroupViewModel } from '@/domains/category';
 import { MainMobileHeader } from '@/shared/components/layout/main-mobile-header';
 import { getCartHref } from '@/shared/lib/cart-routes';
@@ -16,7 +17,7 @@ export function StorefrontMobileHeader({
 }: StorefrontMobileHeaderProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const cartItemCount = useCartStore(state => getCartItemCount(state.items));
+  const cartItemCount = useCartState(selectCartItemCount);
   const search = searchParams.toString();
   const currentHref = search ? `${pathname}?${search}` : pathname;
   const config = getStorefrontMobileHeaderConfig(

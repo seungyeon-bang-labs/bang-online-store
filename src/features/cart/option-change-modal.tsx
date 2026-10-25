@@ -28,21 +28,27 @@ import {
   SelectValue,
 } from '@/shared/components/ui/select';
 import { cn } from '@/shared/lib/utils';
-import { useCartStore } from '@/domains/cart';
+import { useCartState, useCartCommands } from './use-cart';
+import { toast } from 'sonner';
 import type { ProductOptionViewModel } from '@/domains/product';
 
 interface OptionChangeModalProps {
+  itemId: string;
   currentProductId: number;
   currentVariantId: number;
   productOptionViewModels: readonly ProductOptionViewModel[];
 }
 
 export function OptionChangeModal({
+  itemId,
   currentProductId,
   currentVariantId,
   productOptionViewModels,
 }: OptionChangeModalProps) {
-  const updateOption = useCartStore(state => state.updateOption);
+  const { changeOption, retry } = useCartCommands();
+  const phase = useCartState(state => state.phase);
+  const message = useCartState(state => state.message);
+  const [pending, setPending] = React.useState(false);
   const [open, setOpen] = React.useState(false);
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const [mounted, setMounted] = React.useState(false);
@@ -101,6 +107,7 @@ export function OptionChangeModal({
 
   // 컬러 변경 시 처리 로직
   const handleColorChange = (colorId: number) => {
+    if (pending) return;
     // 1. 우선 클릭한 컬러로 상태 업데이트
     setSelectedColorId(colorId);
 
@@ -124,14 +131,20 @@ export function OptionChangeModal({
     setSelectedSizeId(matchedVariant?.id ?? null);
   };
 
-  const handleApply = () => {
-    if (!selectedColorId || !selectedSizeId) return;
+  const handleApply = async () => {
+    if (!selectedColorId || !selectedSizeId || pending || phase !== 'ready') return;
     const targetProduct = productOptionViewModels.find(
       product => product.color.id === selectedColorId,
     );
     if (targetProduct) {
-      updateOption(currentVariantId, targetProduct.productId, selectedSizeId);
-      setOpen(false);
+      setPending(true);
+      try {
+        const reply = await changeOption(itemId, targetProduct.productId, selectedSizeId);
+        if (reply.status !== 'ok') { toast.error('message' in reply ? reply.message : '장바구니 계정이 변경되었습니다.'); return; }
+        if (reply.cart.operation?.outcome === 'rejected') { if (!reply.cart.notices.length) toast.info('현재 선택한 옵션으로 변경할 수 없습니다.'); return; }
+        setOpen(false);
+      } catch { toast.error('옵션 변경을 확인하지 못했습니다. 다시 시도해주세요.'); }
+      finally { setPending(false); }
     }
   };
 
@@ -144,6 +157,7 @@ export function OptionChangeModal({
   // 공통 UI: 컬러칩과 사이즈 선택 영역
   const ModalInnerContent = (
     <div className="flex flex-col gap-8 py-4 px-4 sm:px-0">
+      {phase === 'retryable' && <div role="alert"><p>{message}</p><Button type="button" variant="outline" onClick={() => void retry()}>다시 시도</Button></div>}
       {/* 1. 컬러 선택 섹션 */}
       <section className="space-y-3">
         <h4 className="font-black text-base mb-2 flex items-center">색상</h4>
@@ -169,7 +183,7 @@ export function OptionChangeModal({
         <h4 className="font-black text-base mb-2 flex items-center">사이즈</h4>
         <Select
           value={selectedSizeId === null ? '' : String(selectedSizeId)}
-          disabled={isAllSoldOut}
+          disabled={isAllSoldOut || pending || phase !== 'ready'}
           onValueChange={value => {
             const variant = sizeOptions.find(
               option => String(option.id) === value,
@@ -179,7 +193,7 @@ export function OptionChangeModal({
         >
           <SelectTrigger
             className={cn('w-full h-12 border-gray-200 focus:ring-black')}
-            disabled={isAllSoldOut}
+            disabled={isAllSoldOut || pending || phase !== 'ready'}
           >
             <SelectValue
               placeholder={isAllSoldOut ? '전체 품절' : '사이즈를 선택해주세요'}
@@ -228,9 +242,10 @@ export function OptionChangeModal({
   // 데스크탑 버전 (Dialog)
   if (isDesktop) {
     return (
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={next => { if (!pending) setOpen(next); }}>
         <DialogTrigger asChild>
           <Button
+            disabled={pending || phase !== 'ready'}
             variant="outline"
             size="xs"
             className="font-bold rounded-sm tracking-widest"
@@ -249,12 +264,13 @@ export function OptionChangeModal({
             <Button
               variant="outline"
               size="lg"
+              disabled={pending}
               onClick={() => setOpen(false)}
               className="flex-1"
             >
               취소
             </Button>
-            <Button onClick={handleApply} size="lg" className="flex-1">
+            <Button disabled={pending || phase !== 'ready' || !selectedSizeId} onClick={handleApply} size="lg" className="flex-1">
               변경 적용
             </Button>
           </div>
@@ -265,9 +281,10 @@ export function OptionChangeModal({
 
   // 모바일 버전 (Drawer)
   return (
-    <Drawer open={open} onOpenChange={setOpen}>
+    <Drawer open={open} onOpenChange={next => { if (!pending) setOpen(next); }}>
       <DrawerTrigger asChild>
         <Button
+          disabled={pending || phase !== 'ready'}
           variant="outline"
           size="xs"
           className="font-bold rounded-sm tracking-widest"
@@ -285,6 +302,7 @@ export function OptionChangeModal({
         <DrawerFooter className="flex-row gap-2 p-4 pt-0">
           <DrawerClose asChild>
             <Button
+              disabled={pending}
               variant="outline"
               className="flex-1 h-14 rounded-2xl font-bold"
             >
@@ -292,6 +310,7 @@ export function OptionChangeModal({
             </Button>
           </DrawerClose>
           <Button
+            disabled={pending || phase !== 'ready' || !selectedSizeId}
             onClick={handleApply}
             className="flex-2 h-14 rounded-2xl bg-black text-white font-bold"
           >

@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createElement } from 'react';
-import { loadTs } from './helpers/load-ts.mjs';
+import { loadTs as baseLoadTs } from './helpers/load-ts.mjs';
+const loadTs = (file, mocks = {}) => baseLoadTs(file, { '@/features/cart/use-cart': { useCartCommands: () => ({ recheck: async () => {}, beginAuthTransition() {} }) }, ...mocks });
 
 process.env.AUTH_FEATURES_ENABLED = 'true';
 
@@ -19,7 +20,7 @@ test('restricted auth forms keep inputs available, show the restriction and disa
     ['reset-password-form', 'ResetPasswordForm', { resetAction: unexpected, onResult() {} }, recoveryRestriction],
   ]) {
     const Component = loadTs(`src/features/auth/${file}.tsx`, {
-      'next/navigation': { useRouter: () => ({ push() {}, replace() {} }) },
+      'next/navigation': { useRouter: () => ({ push() {}, replace() {}, refresh() {} }) },
       '@/shared/lib/supabase/server': { supabase: {} },
     })[name];
     const html = renderToStaticMarkup(createElement(Component, { ...props, restriction }));
@@ -48,7 +49,7 @@ test('restricted auth pages forward feature-specific restrictions while keeping 
       const Page = loadTs(`src/app/(auth)/${route}/page.tsx`, {
         '@/domains/auth/member-access.server': { getCurrentMemberAccess: async () => ({ status: 'unauthenticated' }) },
         '@/domains/terms': { termRepository: { findEffective: async () => [] }, toSignupTerms },
-        'next/navigation': { useRouter: () => ({ push() {}, replace() {} }), redirect: href => { throw new Error(`REDIRECT:${href}`); } },
+        'next/navigation': { useRouter: () => ({ push() {}, replace() {}, refresh() {} }), redirect: href => { throw new Error(`REDIRECT:${href}`); } },
       }).default;
       const html = renderToStaticMarkup(await Page(props));
       assert.ok(html.includes(message), route);
@@ -159,7 +160,7 @@ function loadLoginPage(access) {
     },
     'next/navigation': {
       redirect: href => { throw new Error(`REDIRECT:${href}`); },
-      useRouter: () => ({ push() {}, replace() {} }),
+      useRouter: () => ({ push() {}, replace() {}, refresh() {} }),
     },
   }).default;
 }
@@ -167,7 +168,7 @@ function loadLoginPage(access) {
 test('demo login defaults are real editable values and leave login enabled', () => {
   const { LoginForm } = loadTs('src/features/auth/login-form.tsx', {
     '@/app/(auth)/actions': { loginAction: async () => { throw new Error('Unexpected login during render'); } },
-    'next/navigation': { useRouter: () => ({ push() {}, replace() {} }) },
+    'next/navigation': { useRouter: () => ({ push() {}, replace() {}, refresh() {} }) },
   });
   const html = renderToStaticMarkup(createElement(LoginForm, {
     demoAccount: { email: 'demo@example.com', password: 'PublicDemo!234' },
@@ -182,7 +183,7 @@ test('demo login defaults are real editable values and leave login enabled', () 
 test('ordinary login starts with blank credentials and no demo notice', () => {
   const { LoginForm } = loadTs('src/features/auth/login-form.tsx', {
     '@/app/(auth)/actions': { loginAction: async () => { throw new Error('Unexpected login during render'); } },
-    'next/navigation': { useRouter: () => ({ push() {}, replace() {} }) },
+    'next/navigation': { useRouter: () => ({ push() {}, replace() {}, refresh() {} }) },
   });
   const html = renderToStaticMarkup(createElement(LoginForm));
   assert.match(html, /name="email"[^>]*value=""/);

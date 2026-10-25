@@ -1,3 +1,4 @@
+import { productResponse } from './helpers/cart-products.mjs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { loadTs } from './helpers/load-ts.mjs';
@@ -14,22 +15,27 @@ test('product mapping preserves SKU while cart and option views use numeric IDs'
   assert.ok(product.images.every(image => Number.isSafeInteger(image.id)));
 });
 
-test('cart merges, replaces and removes numeric option selections without duplicate quantities', () => {
-  const { useCartStore } = loadTs('src/domains/cart/cart.store.ts');
-  const cart = () => useCartStore.getState();
-  cart().addToCart(1, 2, 2);
-  cart().addToCart(1, 2, 1);
-  cart().addToCart(2, 7, 1);
-  assert.deepEqual(cart().selectedIds, [2, 7]);
-  cart().updateOption(2, 2, 7);
-  assert.deepEqual(cart().items, [{ productId: 2, variantId: 7, quantity: 4 }]);
-  assert.deepEqual(cart().selectedIds, [7]);
-  cart().updateOption(7, 4, 17);
-  assert.deepEqual(cart().items, [{ productId: 4, variantId: 17, quantity: 4 }]);
-  assert.deepEqual(cart().selectedIds, [17]);
-  cart().updateQuantity(17, 0);
-  assert.deepEqual(cart().items, []);
-  assert.deepEqual(cart().selectedIds, []);
+test('cart merges numeric option IDs and explicitly carries UUID selection across option replacements', async () => {
+  const store = loadTs('src/domains/cart/cart.store.ts').createCartStore();
+  let raw = null; let sequence = 0;
+  const newId = () => '40000000-0000-4000-8000-' + String(++sequence).padStart(12,'0');
+  const local = loadTs('src/domains/cart/cart.local.ts').createCartLocalAdapter({storage:{getItem:()=>raw,setItem:(_,value)=>{raw=value;}},locks:{request:async(_,work)=>work()},events:{subscribe:()=>()=>{}},newId});
+  const {createCartController} = loadTs('src/features/cart/cart-controller.ts');
+  const controller = createCartController({store,local,newId,actions:{resolveAccess:async()=>({status:'guest'})},loadProducts:async items=>productResponse(items.map(item=>({...item,styleId:1,name:'상품',color:'회색',thumbnailUrl:'/file.svg',price:10000,discountRate:0,priceOffset:0,stock:10,size:'M'})))});
+  await controller.start({status:'guest'});
+  await controller.addItems([{productId:1,variantId:2,quantity:2},{productId:1,variantId:2,quantity:1},{productId:2,variantId:7,quantity:1}]);
+  assert.deepEqual(store.getState().selectedIds,[]);
+  const source = store.getState().cart.items.find(item=>item.variantId===2).id;
+  store.getState().setSelected(source,true);
+  await controller.changeOption(source,2,7);
+  const target = store.getState().cart.items[0];
+  assert.equal(target.variantId,7); assert.equal(target.quantity,4); assert.deepEqual(store.getState().selectedIds,[target.id]);
+  await controller.changeOption(target.id,4,17);
+  const moved = store.getState().cart.items[0];
+  assert.equal(moved.variantId,17); assert.equal(moved.quantity,4); assert.deepEqual(store.getState().selectedIds,[moved.id]);
+  await controller.removeItems([moved.id]);
+  assert.deepEqual(store.getState().cart.items,[]); assert.deepEqual(store.getState().selectedIds,[]);
+  controller.dispose();
 });
 
 function request(items) {

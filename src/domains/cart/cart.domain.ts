@@ -1,5 +1,3 @@
-import type { CartItem } from './cart.store';
-
-export const getCartItemCount = (items: CartItem[]) =>
+export const getCartItemCount = (items: readonly { quantity: number }[]): number =>
   items.reduce((total, item) => total + item.quantity, 0);
 

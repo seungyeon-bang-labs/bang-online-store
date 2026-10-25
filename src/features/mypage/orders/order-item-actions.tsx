@@ -6,12 +6,12 @@ import {
 } from '../common/styles';
 
 import Link from 'next/link';
-import { Fragment } from 'react';
+import { Fragment, useRef } from 'react';
 import { MoreHorizontal } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/shared/components/ui/button';
-import { useCartStore } from '@/domains/cart';
+import { useCartState, useCartCommands } from '@/features/cart/use-cart';
 import type {
   OrderItemActionViewModel,
   OrderItemActionsViewModel,
@@ -51,28 +51,41 @@ export function MypageOrderItemActions({
   orderItemId,
   repurchaseItem,
 }: MypageOrderItemActionsProps) {
-  const addToCart = useCartStore(state => state.addToCart);
+  const { addItems } = useCartCommands();
+  const phase = useCartState(state => state.phase);
+  // A disabled button only applies after a re-render; two clicks in one tick must not add twice.
+  const inFlight = useRef(false);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const search = searchParams.toString();
   const returnTo = search ? `${pathname}?${search}` : pathname;
 
-  const runAction = (action: OrderItemActionViewModel) => {
+  const runAction = async (action: OrderItemActionViewModel) => {
     if (action.type === 'repurchase' && repurchaseItem) {
-      addToCart(
-        repurchaseItem.productId,
-        repurchaseItem.variantId,
-        repurchaseItem.quantity,
-      );
-      toast.success('상품을 장바구니에 다시 담았습니다.', {
-        position: 'bottom-center',
-        duration: 3000,
-        action: {
-          label: '보러가기',
-          onClick: () => router.push(getCartHref(returnTo)),
-        },
-      });
+      if (inFlight.current) return;
+      if (phase !== 'ready') { toast.info('장바구니를 먼저 확인해주세요.'); return; }
+      inFlight.current = true;
+      try {
+        const reply = await addItems([repurchaseItem]);
+        if (reply.status !== 'ok') {
+          toast.error('message' in reply ? reply.message : '장바구니 계정이 변경되었습니다.');
+          return;
+        }
+        if (reply.cart.operation?.outcome === 'rejected') {
+          if (!reply.cart.notices.length) toast.info('현재 이 상품을 다시 담을 수 없습니다.');
+          return;
+        }
+        toast.success('상품을 장바구니에 다시 담았습니다.', {
+          position: 'bottom-center',
+          duration: 3000,
+          action: {
+            label: '보러가기',
+            onClick: () => router.push(getCartHref(returnTo)),
+          },
+        });
+      } catch { toast.error('장바구니 요청을 확인하지 못했습니다. 다시 시도해주세요.'); }
+      finally { inFlight.current = false; }
       return;
     }
 
@@ -94,6 +107,7 @@ export function MypageOrderItemActions({
           orderId={orderId}
           orderItemId={orderItemId}
           returnTo={returnTo}
+          disabled={phase !== 'ready'}
           onAction={runAction}
         />
       ) : null}
@@ -103,6 +117,7 @@ export function MypageOrderItemActions({
           orderId={orderId}
           orderItemId={orderItemId}
           returnTo={returnTo}
+          disabled={phase !== 'ready'}
           onAction={runAction}
         />
       ) : null}
@@ -130,6 +145,7 @@ export function MypageOrderItemActions({
                   orderId={orderId}
                   orderItemId={orderItemId}
                   returnTo={returnTo}
+                  disabled={phase !== 'ready'}
                   onAction={runAction}
                 />
                 {index < actions.more.length - 1 && (
@@ -151,6 +167,7 @@ interface OrderItemActionProps {
   orderId: string;
   orderItemId: string;
   returnTo: string;
+  disabled?: boolean;
   onAction: (action: OrderItemActionViewModel) => void;
 }
 
@@ -184,6 +201,7 @@ function OrderItemActionButton({
   orderItemId,
   returnTo,
   onAction,
+  disabled,
 }: OrderItemActionProps) {
   const href = getOrderItemActionHref(orderId, orderItemId, returnTo, action);
   const className =
@@ -203,6 +221,7 @@ function OrderItemActionButton({
       variant="outline"
       size="sm"
       className={className}
+      disabled={disabled && action.type === 'repurchase'}
       onClick={() => onAction(action)}
     >
       {action.label}
@@ -216,6 +235,7 @@ function OrderItemMenuAction({
   orderItemId,
   returnTo,
   onAction,
+  disabled,
 }: OrderItemActionProps) {
   const href = getOrderItemActionHref(orderId, orderItemId, returnTo, action);
   const className = MYPAGE_ACTION_MENU_CLASS_NAME.item;
@@ -231,6 +251,7 @@ function OrderItemMenuAction({
   return (
     <DropdownMenuItem
       className={className}
+      disabled={disabled && action.type === 'repurchase'}
       onSelect={() => onAction(action)}
     >
       {action.label}

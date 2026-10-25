@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { unstable_rethrow } from 'next/navigation';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { REGEXP_ONLY_DIGITS } from 'input-otp';
@@ -42,7 +42,6 @@ export function SignupOtpForm({
   initialCodeRequested = false,
   initialMemberFailure,
 }: SignupOtpFormProps) {
-  const router = useRouter();
   const [serverRestriction, setServerRestriction] =
     useState<AuthFeatureRestriction | null>(null);
   const activeRestriction = restriction ?? serverRestriction;
@@ -120,9 +119,8 @@ export function SignupOtpForm({
         token: values.token,
       });
 
-      if (result.ok) {
-        router.replace('/');
-      } else if ('reason' in result && result.reason === 'feature_disabled') {
+      // An active member redirects on the server; only failures return here.
+      if ('reason' in result && result.reason === 'feature_disabled') {
         setServerRestriction({ reason: result.reason, message: result.message });
       } else if (result.stage === 'member') {
         setMemberFailure(result);
@@ -133,7 +131,8 @@ export function SignupOtpForm({
           { shouldFocus: true },
         );
       }
-    } catch {
+    } catch (error) {
+      unstable_rethrow(error);
       setMemberFailure({
         ok: false,
         stage: 'member',
@@ -148,14 +147,9 @@ export function SignupOtpForm({
     if (isBusy || !memberFailure?.retryable) return;
     setIsCheckingMember(true);
     try {
-      const result = await retrySignupMemberAction();
-
-      if (result.ok) {
-        router.replace('/');
-      } else {
-        setMemberFailure(result);
-      }
-    } catch {
+      setMemberFailure(await retrySignupMemberAction());
+    } catch (error) {
+      unstable_rethrow(error);
       setMemberFailure({
         ok: false,
         stage: 'member',

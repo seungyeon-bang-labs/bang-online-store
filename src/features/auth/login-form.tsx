@@ -9,14 +9,13 @@ import { FormSubmitButton } from '@/shared/components/ui/button';
 import { IconInput } from '@/shared/components/common/icon-input';
 import { PasswordInput } from '@/shared/components/common/password-input';
 import { loginAction } from '@/app/(auth)/actions';
-import { useRouter } from 'next/navigation';
+import { unstable_rethrow } from 'next/navigation';
 
 interface LoginFormProps {
   demoAccount?: LoginFormInput;
 }
 
 export function LoginForm({ demoAccount }: LoginFormProps) {
-  const router = useRouter();
   const defaultValues = demoAccount ?? { email: '', password: '' };
   const {
     register,
@@ -30,16 +29,11 @@ export function LoginForm({ demoAccount }: LoginFormProps) {
 
   const onSubmit = handleSubmit(async values => {
     try {
+      // Success redirects on the server, which also renders CartBoundary with the new session.
       const result = await loginAction(values);
-
-      if (result.status === 'error') {
-        setError('root', { message: result.message });
-      } else if (result.status === 'verification_required') {
-        router.push(`/verify-email?email=${encodeURIComponent(result.email)}`);
-      } else {
-        router.replace('/');
-      }
-    } catch {
+      setError('root', { message: result.message });
+    } catch (error) {
+      unstable_rethrow(error);
       setError('root', {
         message: '로그인 요청을 처리하지 못했습니다. 다시 시도해주세요.',
       });

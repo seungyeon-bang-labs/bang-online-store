@@ -1,208 +1,49 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect } from 'react';
 import { toast } from 'sonner';
 import Image from 'next/image';
+import Link from 'next/link';
+import { useCartState, useCartCommands } from './use-cart';
+import type { CartReply } from '@/domains/cart/cart.contract';
 import { PageTitle } from '@/shared/components/common/page-title';
-import {
-  useCartStore,
-  type CartItem,
-  type CartProductResponse,
-} from '@/domains/cart';
-import type { ProductCartItemViewModel } from '@/domains/product';
 import { Checkbox } from '@/shared/components/ui/checkbox';
 import { Label } from '@/shared/components/ui/label';
-import Link from 'next/link';
 import { QuantitySelector } from '@/features/product/quantity-selector';
 import { ProductPrice } from '@/features/product/product-price';
-import { DeleteConfirmModal } from '@/features/cart/delete-confirm-modal';
-import { OptionChangeModal } from '@/features/cart/option-change-modal';
-import { CartSummary } from '@/features/cart/cart-summary';
-import { EmptyCart } from '@/features/cart/empty-cart';
+import { DeleteConfirmModal } from './delete-confirm-modal';
+import { OptionChangeModal } from './option-change-modal';
+import { CartSummary } from './cart-summary';
+import { EmptyCart } from './empty-cart';
 import { Container } from '@/shared/components/layout/container';
 import { Button } from '@/shared/components/ui/button';
 
-type CartProduct = CartItem & {
-  id: number;
-  name: string;
-  option: string;
-  price: number;
-  imageUrl: string;
-  color: string;
-  discount: number;
-  priceOffset: number;
-  stock: number;
-  styleId: number;
-};
-
-const getCartProducts = (
-  cartItems: CartItem[],
-  response: CartProductResponse | null,
-) => {
-  if (!response) return [];
-  const cartItemsByVariantId = new Map<number, ProductCartItemViewModel>(
-    response.cartItems.map(item => [item.variantId, item]),
-  );
-  return cartItems
-    .map(item => {
-      const product = cartItemsByVariantId.get(item.variantId);
-      if (!product || product.productId !== item.productId) return null;
-      return {
-        ...item,
-        id: item.variantId,
-        name: product.name,
-        option: product.size,
-        stock: product.stock,
-        priceOffset: product.priceOffset,
-        price: product.price,
-        imageUrl: product.thumbnailUrl,
-        color: product.color,
-        discount: product.discountRate,
-        styleId: product.styleId,
-      };
-    })
-    .filter(Boolean) as CartProduct[];
-};
-
 export function CartPageClient() {
-  const [response, setResponse] = useState<CartProductResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
-  const {
-    items,
-    selectedIds,
-    removeFromCart,
-    clearCart,
-    updateQuantity,
-    setSelectedIds,
-    toggleSelected,
-    selectAll,
-    reconcileItems,
-  } = useCartStore();
-  useEffect(() => {
-    const controller = new AbortController();
-    let ignore = false;
-    const isCurrentRequest = () =>
-      !ignore && useCartStore.getState().items === items;
-
-    const loadCartProducts = async () => {
-      if (!isCurrentRequest()) return;
-      if (items.length === 0) {
-        setResponse(null);
-        setError(null);
-        setIsLoading(false);
-        return;
-      }
-
-      setIsLoading(true);
-      setError(null);
-      try {
-        const result = await fetch('/api/cart/products', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(
-            items.map(item => ({
-              productId: item.productId,
-              variantId: item.variantId,
-            })),
-          ),
-          signal: controller.signal,
-        });
-        if (!result.ok) throw new Error('load failed');
-        const data: CartProductResponse = await result.json();
-        if (!isCurrentRequest()) return;
-
-        const removedCount = reconcileItems(items, data.cartItems);
-        setResponse(data);
-        if (removedCount > 0) {
-          toast.info('현재 이용할 수 없는 상품을 장바구니에서 제외했습니다.', {
-            position: 'bottom-center',
-          });
-        }
-      } catch {
-        if (isCurrentRequest()) {
-          setError('장바구니 상품을 불러오지 못했습니다.');
-        }
-      } finally {
-        if (isCurrentRequest()) setIsLoading(false);
-      }
-    };
-
-    void loadCartProducts();
-    return () => {
-      ignore = true;
-      controller.abort();
-    };
-  }, [items, retryCount, reconcileItems]);
-  const cartProducts = useMemo(
-    () => getCartProducts(items, response),
-    [items, response],
-  );
-  const currentIds = useMemo(
-    () => new Set(cartProducts.map(item => item.id)),
-    [cartProducts],
-  );
-
-  const validSelectedIds = useMemo(() => {
-    if (selectedIds.length === 0) return new Set<number>();
-    return new Set(selectedIds.filter(id => currentIds.has(id)));
-  }, [selectedIds, currentIds]);
-
-  const selectedProducts = useMemo(() => {
-    if (validSelectedIds.size === 0) return [] as CartProduct[];
-    return cartProducts.filter(item => validSelectedIds.has(item.id));
-  }, [cartProducts, validSelectedIds]);
-
-  const allSelected =
-    cartProducts.length > 0 && validSelectedIds.size === cartProducts.length;
+  const { phase, cart, selectedIds, message } = useCartState(state => state);
+  const { enterCart, retry, selectAll, setSelected, removeItems, adjustQuantity } = useCartCommands();
+  useEffect(() => { void enterCart(); }, [enterCart]);
+  const ready = phase === 'ready';
+  const error = phase === 'retryable' ? message ?? '장바구니를 확인하지 못했습니다.' : phase === 'restricted' ? '이메일 인증과 회원 상태를 확인해주세요.' : null;
+  const cartProducts = cart?.items ?? [];
+  const purchasable = cartProducts.filter(item => item.canSelect);
+  const validSelectedIds = new Set(selectedIds.filter(id => purchasable.some(item => item.id === id)));
+  const selectedProducts = ready ? purchasable.filter(item => validSelectedIds.has(item.id)) : [];
+  const allSelected = purchasable.length > 0 && validSelectedIds.size === purchasable.length;
   const isIndeterminate = validSelectedIds.size > 0 && !allSelected;
-  const isInitialLoading = isLoading && response === null && items.length > 0;
-
-  const handleToggleSelectAll = (checked: boolean) => {
-    if (!checked) {
-      setSelectedIds([]);
-      return;
-    }
-
-    selectAll(cartProducts.map(item => item.id));
-  };
-
-  const handleToggleItem = (variantId: number, checked: boolean) => {
-    toggleSelected(variantId, checked);
-  };
-
-  const handleDeleteSelected = () => {
-    if (validSelectedIds.size === 0) return;
-
-    if (validSelectedIds.size === cartProducts.length) {
-      clearCart();
-      return;
-    }
-
-    validSelectedIds.forEach(variantId => removeFromCart(variantId));
-    setSelectedIds([]);
-  };
-
-  const handleDeleteItem = (variantId: number) => {
-    removeFromCart(variantId);
-  };
-
-  const handleUpdateCount = (variantId: number, delta: number) => {
-    const targetItem = cartProducts.find(item => item.id === variantId);
-    if (!targetItem) return;
-
-    if (targetItem.stock <= 0) {
-      handleDeleteItem(variantId);
-      return;
-    }
-
-    const nextQuantity = Math.min(
-      Math.max(targetItem.quantity + delta, 1),
-      targetItem.stock,
-    );
-
-    updateQuantity(variantId, nextQuantity);
+  const isInitialLoading = cart === null && !error;
+  const handleToggleSelectAll = (checked: boolean) => { if (ready) selectAll(checked); };
+  const handleToggleItem = (id: string, checked: boolean) => { if (ready) setSelected(id, checked); };
+  async function report(work: Promise<CartReply>) {
+    try {
+      const result = await work;
+      if (result.status !== 'ok') { toast.error('message' in result ? result.message : '장바구니 계정이 변경되었습니다. 다시 확인해주세요.'); return false; }
+      return result.cart.operation?.outcome !== 'rejected';
+    } catch { toast.error('장바구니 요청을 확인하지 못했습니다. 다시 시도해주세요.'); return false; }
+  }
+  const handleDeleteSelected = async () => ready && validSelectedIds.size > 0 ? report(removeItems([...validSelectedIds])) : false;
+  const handleDeleteItem = async (id: string) => ready ? report(removeItems([id])) : false;
+  const handleUpdateCount = async (id: string, delta: 1 | -1) => {
+    if (ready && cartProducts.some(item => item.id === id && item.canSelect)) await report(adjustQuantity(id, delta));
   };
 
   return (
@@ -233,8 +74,8 @@ export function CartPageClient() {
                 type="button"
                 size="sm"
                 variant="outline"
-                onClick={() => setRetryCount(value => value + 1)}
-                disabled={isLoading}
+                onClick={() => void retry()}
+                disabled={phase !== 'retryable'}
               >
                 다시 시도
               </Button>
@@ -269,7 +110,7 @@ export function CartPageClient() {
                       handleToggleSelectAll(Boolean(checked))
                     }
                     className="size-4 border border-black transition-all duration-200 data-[state=checked]:bg-black data-[state=checked]:text-white"
-                    disabled={cartProducts.length === 0}
+                    disabled={!ready || purchasable.length === 0}
                   />
                   <Label
                     htmlFor="select-all"
@@ -281,7 +122,7 @@ export function CartPageClient() {
                 <DeleteConfirmModal
                   onConfirm={handleDeleteSelected}
                   type="selected"
-                  disableTrigger={validSelectedIds.size === 0}
+                  disableTrigger={!ready || validSelectedIds.size === 0}
                 />
               </div>
 
@@ -293,6 +134,8 @@ export function CartPageClient() {
                   className="relative grid grid-cols-[auto_5rem_minmax(0,1fr)] items-start gap-x-3 gap-y-3 overflow-hidden rounded-md border border-gray-200 p-4 transition-all md:flex md:gap-2 md:border-2 md:border-gray-100 md:p-6"
                 >
                   <Checkbox
+                    aria-label={`${item.name} 선택`}
+                    disabled={!ready || !item.canSelect}
                     checked={validSelectedIds.has(item.id)}
                     onCheckedChange={checked =>
                       handleToggleItem(item.id, Boolean(checked))
@@ -302,7 +145,7 @@ export function CartPageClient() {
 
                   <div className="relative aspect-square h-20 w-20 shrink-0 overflow-hidden rounded-md bg-zinc-100 md:h-28 md:w-28">
                     <Image
-                      src={item.imageUrl}
+                      src={item.thumbnailUrl}
                       alt={item.name}
                       fill
                       sizes="(max-width: 640px) 96px, 112px"
@@ -326,13 +169,14 @@ export function CartPageClient() {
                         <DeleteConfirmModal
                           onConfirm={() => handleDeleteItem(item.id)}
                           type="item"
+                          disableTrigger={!ready}
                         />
                       </div>
 
                       {/* 옵션 정보*/}
                       <div className="flex flex-wrap items-center gap-2 md:gap-4">
                         <p className="text-xs font-bold uppercase tracking-normal text-gray-400 md:text-sm md:tracking-widest">
-                          {item.color} / {item.option}
+                          {item.color} / {item.size}
                           {item.priceOffset > 0 && (
                             <span className="ml-1 text-xs tracking-normal md:text-sm">
                               (+
@@ -345,10 +189,11 @@ export function CartPageClient() {
                         </p>
                         {/* 옵션 변경 버튼 */}
                         <OptionChangeModal
+                          itemId={item.id}
                           currentVariantId={item.variantId}
                           currentProductId={item.productId}
                           productOptionViewModels={
-                            response?.optionGroups[item.styleId] ?? []
+                            cart?.optionGroups[item.styleId] ?? []
                           }
                         />
                       </div>
@@ -357,6 +202,7 @@ export function CartPageClient() {
                     {/* 수량 조절 및 가격 */}
                     <div className="col-span-full flex items-end justify-between gap-3 border-t border-gray-100 pt-3 md:mt-0 md:border-0 md:pt-0">
                       {/* 수량 조절 */}
+                      <fieldset disabled={!ready || !item.canSelect}>
                       <QuantitySelector
                         count={item.quantity}
                         stock={item.stock}
@@ -365,10 +211,12 @@ export function CartPageClient() {
                         className="[&_button]:size-8 md:[&_button]:size-6"
                       />
 
+                      </fieldset>
+
                       {/* 가격 섹션 */}
                       <ProductPrice
                         price={item.price}
-                        discount={item.discount}
+                        discount={item.discountRate}
                         size="compact"
                         quantity={item.quantity}
                         priceOffset={item.priceOffset}
@@ -380,7 +228,7 @@ export function CartPageClient() {
               ))}
 
               {/* 비어있을 때 (참고용) */}
-              {!isLoading && <EmptyCart isEmpty={items.length === 0} />}
+              {ready && <EmptyCart isEmpty={cartProducts.length === 0} />}
             </>
           )}
         </div>

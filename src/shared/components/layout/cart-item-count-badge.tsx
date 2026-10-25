@@ -1,7 +1,7 @@
 import { cn } from '@/shared/lib/utils';
 
 interface CartItemCountBadgeProps {
-  count: number;
+  count: number | null;
   className?: string;
 }
 
@@ -9,7 +9,8 @@ export function getCartItemCountLabel(count: number): string {
   return count > 99 ? '99+' : String(count);
 }
 
-export function getCartAriaLabel(count: number): string {
+export function getCartAriaLabel(count: number | null): string {
+  if (count === null) return '장바구니, 확인 중';
   return count > 0 ? `장바구니, 상품 ${count}개` : '장바구니';
 }
 
@@ -17,7 +18,7 @@ export function CartItemCountBadge({
   count,
   className,
 }: CartItemCountBadgeProps) {
-  if (count <= 0) return null;
+  if (count === null || count <= 0) return null;
 
   return (
     <span

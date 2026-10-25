@@ -1,6 +1,7 @@
 'use client';
 
-import { useActionState, type ComponentProps } from 'react';
+import { useActionState, useEffect, type ComponentProps } from 'react';
+import { useCartCommands } from '@/features/cart/use-cart';
 import { FormSubmitButton } from '@/shared/components/ui/button';
 
 interface LogoutButtonProps
@@ -16,10 +17,15 @@ export function LogoutButton({
   variant = 'default',
   className,
 }: LogoutButtonProps) {
+  const { beginAuthTransition, recheck } = useCartCommands();
   const [state, formAction, isPending] = useActionState(logoutAction, null);
 
+  useEffect(() => {
+    if (state) { try { void recheck('auth').catch(() => {}); } catch { /* Keep the original logout failure visible. */ } }
+  }, [state, recheck]);
+
   return (
-    <form action={formAction} className="flex flex-col gap-2">
+    <form action={formAction} onSubmit={() => { try { beginAuthTransition(); } catch { /* Cart storage failure must not block logout. */ } }} className="flex flex-col gap-2">
       <FormSubmitButton
         variant={variant}
         size={size}

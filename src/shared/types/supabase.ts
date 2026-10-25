@@ -14,6 +14,115 @@ export type Database = {
   }
   public: {
     Tables: {
+      cart_items: {
+        Row: {
+          cart_id: string
+          created_at: string
+          id: string
+          product_variant_id: number
+          quantity: number
+          updated_at: string
+        }
+        Insert: {
+          cart_id: string
+          created_at?: string
+          id?: string
+          product_variant_id: number
+          quantity: number
+          updated_at?: string
+        }
+        Update: {
+          cart_id?: string
+          created_at?: string
+          id?: string
+          product_variant_id?: number
+          quantity?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cart_items_cart_id_fkey"
+            columns: ["cart_id"]
+            isOneToOne: false
+            referencedRelation: "carts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cart_items_product_variant_id_fkey"
+            columns: ["product_variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cart_operations: {
+        Row: {
+          cart_id: string
+          completed_at: string
+          operation_type: string
+          request_id: string
+          request_payload: Json
+          result: Json
+        }
+        Insert: {
+          cart_id: string
+          completed_at?: string
+          operation_type: string
+          request_id: string
+          request_payload: Json
+          result: Json
+        }
+        Update: {
+          cart_id?: string
+          completed_at?: string
+          operation_type?: string
+          request_id?: string
+          request_payload?: Json
+          result?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cart_operations_cart_id_fkey"
+            columns: ["cart_id"]
+            isOneToOne: false
+            referencedRelation: "carts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      carts: {
+        Row: {
+          created_at: string
+          id: string
+          revision: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          revision?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          revision?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "carts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           alt_text: string | null
@@ -562,6 +671,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_cart_operation: {
+        Args: {
+          p_expected_user_id: string
+          p_operation: Json
+          p_request_id: string
+        }
+        Returns: Json
+      }
       complete_signup: {
         Args: {
           p_agreements: Json
@@ -572,6 +689,7 @@ export type Database = {
         }
         Returns: string
       }
+      get_cart: { Args: { p_expected_user_id: string }; Returns: Json }
     }
     Enums: {
       term_kind: "document" | "confirmation"

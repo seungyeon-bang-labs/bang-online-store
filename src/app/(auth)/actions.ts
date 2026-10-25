@@ -16,10 +16,8 @@ import {
   type MemberAccessResult,
 } from '@/domains/auth/member-access.server';
 
-export type LoginResult =
-  | { status: 'success' }
-  | { status: 'error'; message: string }
-  | { status: 'verification_required'; email: string };
+// Success and email verification end in a server redirect; only failures return.
+export type LoginResult = { status: 'error'; message: string };
 
 export type SignupMemberFailure = {
   ok: false;
@@ -27,10 +25,15 @@ export type SignupMemberFailure = {
   retryable: boolean;
   message: string;
 };
-export type SignupMemberResult = { ok: true } | SignupMemberFailure;
+export type SignupMemberResult = SignupMemberFailure;
 
 export type SignupVerificationResult =
-  | { ok: false; stage: 'otp'; message: string; reason?: AuthFeatureRestriction['reason'] }
+  | {
+      ok: false;
+      stage: 'otp';
+      message: string;
+      reason?: AuthFeatureRestriction['reason'];
+    }
   | SignupMemberResult;
 
 const accessMessages = {
@@ -58,6 +61,13 @@ export async function logoutAction(): Promise<{ message: string } | null> {
   redirect('/', RedirectType.replace);
 }
 
+function redirectToEmailVerification(email: string): never {
+  redirect(
+    `/verify-email?email=${encodeURIComponent(email)}`,
+    RedirectType.push,
+  );
+}
+
 export async function loginAction(input: unknown): Promise<LoginResult> {
   const parsed = loginFormSchema.safeParse(input);
 
@@ -67,9 +77,8 @@ export async function loginAction(input: unknown): Promise<LoginResult> {
 
   const client = await createAuthClient();
   const { error } = await client.auth.signInWithPassword(parsed.data);
-  if (error?.code === 'email_not_confirmed') {
-    return { status: 'verification_required', email: parsed.data.email };
-  }
+  if (error?.code === 'email_not_confirmed')
+    redirectToEmailVerification(parsed.data.email);
   if (error) {
     return {
       status: 'error',
@@ -79,18 +88,20 @@ export async function loginAction(input: unknown): Promise<LoginResult> {
 
   const access = await getCurrentMemberAccess();
 
-  if (access.status === 'unverified') {
-    return { status: 'verification_required', email: access.email };
-  }
+  if (access.status === 'unverified') redirectToEmailVerification(access.email);
   if (access.status !== 'active') {
     return { status: 'error', message: accessMessages[access.status] };
   }
-  return { status: 'success' };
+  redirect('/', RedirectType.replace);
 }
 
 export async function signupAction(
   input: unknown,
-): Promise<{ ok: boolean; message: string; reason?: AuthFeatureRestriction['reason'] }> {
+): Promise<{
+  ok: boolean;
+  message: string;
+  reason?: AuthFeatureRestriction['reason'];
+}> {
   const restriction = getAuthFeatureRestriction('signup');
   if (restriction) return { ok: false, ...restriction };
 
@@ -209,7 +220,7 @@ export async function verifySignupOtpAction(
 export async function retrySignupMemberAction(): Promise<SignupMemberResult> {
   const access = await getCurrentMemberAccess();
 
-  if (access.status === 'active') return { ok: true };
+  if (access.status === 'active') redirect('/', RedirectType.replace);
 
   return {
     ok: false,
@@ -221,7 +232,11 @@ export async function retrySignupMemberAction(): Promise<SignupMemberResult> {
 
 export async function resendSignupOtpAction(
   input: unknown,
-): Promise<{ ok: boolean; message: string; reason?: AuthFeatureRestriction['reason'] }> {
+): Promise<{
+  ok: boolean;
+  message: string;
+  reason?: AuthFeatureRestriction['reason'];
+}> {
   const restriction = getAuthFeatureRestriction('emailVerification');
   if (restriction) return { ok: false, ...restriction };
 
