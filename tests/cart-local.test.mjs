@@ -396,3 +396,16 @@ test('a rejected merge is held for its account, never returned to the shared gue
   assert.equal((await local.read()).heldByAccount?.[A], undefined);
   assert.deepEqual(await local.peek(A), retried);
 });
+
+test('held items are not restaged behind another request saved first', async () => {
+  const env = environment();
+  const local = env.adapter();
+  await local.updateGuest(0, [line()]);
+  await local.holdMerge(await local.stageMerge(A));
+  const other = { version: 1, requestId: REQUEST3, expectedUserId: A, operation: { kind: 'remove_items', itemIds: [I2] } };
+  await local.enqueue(other);
+  assert.equal(await local.restageHeld(A), 'pending'); // the check and the move share one lock
+  const document = await local.read();
+  assert.deepEqual(document.pendingByAccount[A], [other]);
+  assert.deepEqual(document.heldByAccount[A], [{ productId: 1, variantId: 2, quantity: 3 }]);
+});

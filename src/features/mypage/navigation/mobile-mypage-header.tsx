@@ -16,7 +16,7 @@ import {
 } from '@/shared/lib/mypage-routes';
 import { getCartHref } from '@/shared/lib/cart-routes';
 import { useCartState } from '@/features/cart/use-cart';
-import { selectCartItemCount } from '@/features/cart/cart-count';
+import { selectCartItemCount, selectCartNeedsCheck } from '@/features/cart/cart-count';
 import { getMypageCurrentLabel } from './mypage-menu';
 import {
   CartItemCountBadge,
@@ -175,6 +175,7 @@ export function MypageMobileHeader() {
   const receiptDocumentTitle = getReceiptDocumentTitle(pathname);
   const HeaderActionIcon = headerAction?.icon;
   const cartItemCount = useCartState(selectCartItemCount);
+  const cartNeedsCheck = useCartState(selectCartNeedsCheck);
   const isCartAction = headerAction?.ariaLabel === '장바구니';
 
   const backHref = backHeader?.backHref ?? (pathname === '/mypage' ? null : '/mypage');
@@ -212,7 +213,7 @@ export function MypageMobileHeader() {
         <ButtonLink
           href={headerAction.href}
           aria-label={
-            isCartAction ? getCartAriaLabel(cartItemCount) : headerAction.ariaLabel
+            isCartAction ? getCartAriaLabel(cartItemCount, cartNeedsCheck) : headerAction.ariaLabel
           }
           variant="ghost"
           size="icon-md"
@@ -223,6 +224,7 @@ export function MypageMobileHeader() {
               <HeaderActionIcon className="size-[22px]" />
               <CartItemCountBadge
                 count={cartItemCount}
+                needsCheck={cartNeedsCheck}
                 className="pointer-events-none absolute -right-2 -top-2"
               />
             </span>

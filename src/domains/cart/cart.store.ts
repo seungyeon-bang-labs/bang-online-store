@@ -16,6 +16,10 @@ export type CartState = {
   cart: CartViewModel | null;
   selectedIds: readonly string[];
   settledRequests: Readonly<Record<string, CartOperationResult>>;
+  // The current member has a request whose server outcome is still unknown.
+  unresolved: boolean;
+  // Lines of a rejected login merge held for the current member.
+  heldCount: number;
   message: string | null;
 };
 
@@ -25,6 +29,8 @@ export type CartSelectionCommands = {
 };
 
 export function createCartStore() {
+  // Settled results belong to an account identity; access states (restricted, error, unknown) are not one.
+  let settledOwner: string | null = null;
   return createStore<
     CartState &
       CartSelectionCommands & {
@@ -37,21 +43,21 @@ export function createCartStore() {
     selectedIds: [],
     message: null,
     settledRequests: {},
+    unresolved: false,
+    heldCount: 0,
     setStateFromController: next =>
       set(state => {
         const cart = next.cart === undefined ? state.cart : next.cart;
-        const settled = next.settledRequests ?? state.settledRequests;
-        // Only an explicit cart reset (account change) forgets settled results; a still-empty initial sync keeps them.
-        const settledRequests =
-          next.cart === null
-            ? {}
-            : next.cart?.operation
-              ? {
-                  ...settled,
-                  [next.cart.operation.requestId]: next.cart.operation,
-                }
-              : settled;
+        const identity = next.access?.status === 'member' ? `member:${next.access.userId}` : next.access?.status === 'guest' ? 'guest' : null;
+        // A different account clears its results in this same update, so no reader sees the new owner with old results.
+        const changed = identity !== null && identity !== settledOwner;
+        if (changed) settledOwner = identity;
+        const settled = next.settledRequests ?? (changed ? {} : state.settledRequests);
+        const settledRequests = next.cart?.operation
+          ? { ...settled, [next.cart.operation.requestId]: next.cart.operation }
+          : settled;
         return {
+          ...(changed ? { unresolved: false, heldCount: 0 } : {}),
           ...next,
           settledRequests,
           selectedIds: reconcileSelection(

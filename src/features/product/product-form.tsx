@@ -14,6 +14,7 @@ import {
 } from '@/shared/components/ui/select';
 import type { ProductVariantModel } from '@/domains/product';
 import { useCartState, useCartCommands } from '@/features/cart/use-cart';
+import { selectCartNeedsCheck } from '@/features/cart/cart-count';
 import { toast } from 'sonner';
 import { QuantitySelector } from '@/features/product/quantity-selector';
 import { ColorChip } from '@/shared/components/ui/color-chip';
@@ -54,6 +55,8 @@ export function ProductForm({
   const [pending, setPending] = useState(false);
   const access = useCartState(state => state.access);
   const settledRequests = useCartState(state => state.settledRequests);
+  // Only for a confirmed member: a hidden previous account's request is not offered.
+  const unresolved = useCartState(selectCartNeedsCheck);
   const [recovery, setRecovery] = useState<{ requestId: string; userId: string; items: SelectedItem[] } | null>(null);
   const [shownRecoveries] = useState(() => new Set<string>());
   const locked = pending || recovery !== null;
@@ -325,6 +328,7 @@ export function ProductForm({
         <div role={phase === 'retryable' ? 'alert' : 'status'} className="text-sm text-gray-600">
           <p>{message ?? (phase === 'restricted' ? '이메일 인증과 회원 상태를 확인해주세요.' : '장바구니를 확인하고 있습니다.')}</p>
           {(phase === 'retryable' || recovery) && <Button type="button" variant="outline" onClick={() => void retry()}>다시 시도</Button>}
+          {unresolved && <Button type="button" variant="outline" onClick={() => router.push(cartHref)}>장바구니에서 확인</Button>}
         </div>
       )}
     </div>

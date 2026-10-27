@@ -1,7 +1,6 @@
 'use client';
 
 import { createContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { usePathname } from 'next/navigation';
 import { useStore } from 'zustand';
 import { toast } from 'sonner';
 import type { StoreApi } from 'zustand/vanilla';
@@ -13,7 +12,7 @@ import { createCartHttpClient } from './cart.http-client';
 import { loadCartProducts } from './cart.product-client';
 
 type CartCommands = Pick<CartController,
-  'enterCart' | 'addItems' | 'adjustQuantity' | 'changeOption' | 'removeItems' | 'retry' | 'beginAuthTransition' | 'recheck'
+  'enterCart' | 'addItems' | 'adjustQuantity' | 'changeOption' | 'removeItems' | 'moveHeldItems' | 'retry' | 'beginAuthTransition' | 'recheck'
 > & CartSelectionCommands;
 type CartContextValue = {
   state: Pick<StoreApi<CartState>, 'getState' | 'getInitialState' | 'subscribe'>;
@@ -29,10 +28,6 @@ const blocked = (): CartReply => ({ status: 'retryable', message: '장바구니 
 function createRuntime(initialActions: CartActionPort) {
   let actions = initialActions;
   let appliedSnapshot: string | null = null;
-  let lastPath: string | null | undefined;
-  let navigation = 0;
-  let initialization: Promise<void> = Promise.resolve();
-  let entry: Promise<void> | null = null;
   const store = createCartStore();
   const controller = createCartController({
     store, local: createCartLocalAdapter(), loadProducts: loadCartProducts,
@@ -48,29 +43,17 @@ function createRuntime(initialActions: CartActionPort) {
     updateActions(next: CartActionPort) { actions = next; },
     activate(access: CartAccess) {
       appliedSnapshot = accessKey(access);
-      navigation++;
-      initialization = controller.start(access);
+      void controller.start(access);
       // Notify a previously masked subscriber even if start kept a ready cache.
       store.getState().setStateFromController({});
     },
     dispose() {
-      appliedSnapshot = null; navigation++;
+      appliedSnapshot = null;
       controller.dispose();
-    },
-    async navigate(path: string | null) {
-      if (lastPath === path) return;
-      const first = lastPath === undefined;
-      lastPath = path;
-      if (first) return;
-      const request = ++navigation;
-      await initialization;
-      // A page's enterCart and the pathname effect share its item refresh.
-      if (entry) await entry;
-      if (request === navigation) await controller.recheck('navigation');
     },
     view(snapshotKey: string): CartContextValue {
       const visible = () => appliedSnapshot === snapshotKey;
-      const hidden: CartState = { phase: 'checking', access: null, cart: null, selectedIds: [], message: null, settledRequests: {} };
+      const hidden: CartState = { phase: 'checking', access: null, cart: null, selectedIds: [], message: null, settledRequests: {}, unresolved: false, heldCount: 0 };
       let source: ReturnType<typeof store.getState> | undefined;
       let cached: CartState;
       const getState = (): CartState => {
@@ -78,23 +61,20 @@ function createRuntime(initialActions: CartActionPort) {
         const next = store.getState();
         if (next !== source) {
           source = next;
-          cached = { phase: next.phase, access: next.access, cart: next.cart, selectedIds: next.selectedIds, message: next.message, settledRequests: next.settledRequests };
+          cached = { phase: next.phase, access: next.access, cart: next.cart, selectedIds: next.selectedIds, message: next.message, settledRequests: next.settledRequests, unresolved: next.unresolved, heldCount: next.heldCount };
         }
         return cached;
       };
       const commands: CartCommands = {
-        async enterCart() {
-          if (!visible()) return;
-          const pending = controller.enterCart(); entry = pending;
-          try { await pending; } finally { if (entry === pending) entry = null; }
-        },
+        enterCart: () => visible() ? controller.enterCart() : Promise.resolve(),
         addItems: items => visible() ? controller.addItems(items) : Promise.resolve(blocked()),
         adjustQuantity: (itemId, delta) => visible() ? controller.adjustQuantity(itemId, delta) : Promise.resolve(blocked()),
         changeOption: (itemId, productId, variantId) => visible() ? controller.changeOption(itemId, productId, variantId) : Promise.resolve(blocked()),
         removeItems: itemIds => visible() ? controller.removeItems(itemIds) : Promise.resolve(blocked()),
+        moveHeldItems: () => visible() ? controller.moveHeldItems() : Promise.resolve(blocked()),
         retry: () => visible() ? controller.retry() : Promise.resolve(),
         recheck: reason => visible() ? controller.recheck(reason) : Promise.resolve(),
-        beginAuthTransition: () => { if (visible()) { navigation++; controller.beginAuthTransition(); } },
+        beginAuthTransition: () => { if (visible()) controller.beginAuthTransition(); },
         setSelected: (id, checked) => { if (visible()) store.getState().setSelected(id, checked); },
         selectAll: checked => { if (visible()) store.getState().selectAll(checked); },
       };
@@ -107,7 +87,6 @@ function createRuntime(initialActions: CartActionPort) {
 export function CartProvider({ access, actions, children }: {
   access: CartAccess; actions?: CartActionPort; children: ReactNode;
 }) {
-  const pathname = usePathname();
   const [runtime] = useState(() => createRuntime(actions ?? createCartHttpClient()));
   const snapshotKey = accessKey(access);
   const context = useMemo(() => runtime.view(snapshotKey), [runtime, snapshotKey]);
@@ -117,7 +96,6 @@ export function CartProvider({ access, actions, children }: {
   useEffect(() => { if (actions) runtime.updateActions(actions); }, [runtime, actions]);
   useEffect(() => () => runtime.dispose(), [runtime]);
   useEffect(() => { runtime.activate(access); }, [runtime, access]);
-  useEffect(() => { void runtime.navigate(pathname); }, [runtime, pathname]);
   useEffect(() => {
     for (const notice of cart?.notices ?? []) {
       if (shownNotices.has(notice)) continue;
@@ -126,7 +104,7 @@ export function CartProvider({ access, actions, children }: {
         : notice.kind === 'sold_out' ? '품절된 옵션은 새로 담거나 수량을 변경할 수 없습니다.'
         : notice.kind === 'unavailable' ? '현재 이용할 수 없는 상품을 장바구니에서 제외했습니다.'
         : notice.kind === 'item_missing' ? '이미 변경되거나 삭제된 장바구니 항목입니다.'
-        : notice.kind === 'merge_returned' ? '로그인 전에 담은 상품을 회원 장바구니로 옮기지 못했습니다. 상품은 이 계정으로 보관했다가 다음에 접속할 때 다시 옮깁니다.'
+        : notice.kind === 'merge_returned' ? '로그인 전에 담은 상품을 회원 장바구니로 옮기지 못했습니다. 상품은 이 계정에 보관했으니 장바구니에서 다시 옮길 수 있습니다.'
         : '선택한 옵션으로 변경할 수 없습니다.');
     }
   }, [cart, shownNotices]);

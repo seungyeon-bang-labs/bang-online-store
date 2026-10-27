@@ -165,7 +165,7 @@ test('an omitted actions prop keeps the HTTP port created at mount across re-ren
   const view = mount(t, { access: member(A) }); view.flush();
   await until(() => view.latest().snapshot.phase === 'ready', view.flush);
   view.render({ access: member(A) }); view.flush();
-  view.path('/cart'); view.flush();
+  await view.latest().commands.retry(); view.flush(); // a later request after the re-render (routes no longer trigger one)
   await until(() => requests.some(request => request.url === '/api/cart/access'), view.flush);
   await until(() => view.latest().snapshot.phase === 'ready', view.flush);
   assert.ok(requests.some(request => request.url === '/api/cart/read' && request.method === 'POST'));
@@ -218,7 +218,7 @@ test('selection commands use the current provider only and never persist or call
   assert.equal('setStateFromController' in first.latest().snapshot, false);
 });
 
-test('StrictMode-style cleanup and restart replays the same durable merge with one logical application', async t => {
+test('StrictMode-style cleanup and restart keeps the same durable merge for one explicit, single-application retry', async t => {
   const env = browser(t, [{ id: I1, productId: 1, variantId: 2, quantity: 2 }]);
   const lost = deferred(); const receipts = new Map(); const applied = new Map();
   const { actions, calls } = actionBoundary({ mutate: command => {
@@ -231,7 +231,9 @@ test('StrictMode-style cleanup and restart replays the same durable merge with o
     return calls.mutate.length === 1 ? lost.promise : receipts.get(command.requestId);
   } });
   const view = mount(t, { access: member(A), actions }); view.flush(); await until(() => calls.mutate.length === 1, view.flush);
-  view.restartEffects(); await until(() => view.latest().snapshot.phase === 'ready', view.flush);
+  view.restartEffects(); await until(() => view.latest().snapshot.phase === 'retryable', view.flush);
+  assert.equal(calls.mutate.length, 1); // the remount does not resend on its own
+  await view.latest().commands.retry(); await until(() => view.latest().snapshot.phase === 'ready', view.flush);
   assert.equal(calls.mutate.length, 2); assert.deepEqual(calls.mutate[0], calls.mutate[1]);
   assert.equal(applied.get(calls.mutate[0].requestId), 1);
   assert.equal(view.latest().snapshot.cart.items[0].quantity, 4);
@@ -240,7 +242,7 @@ test('StrictMode-style cleanup and restart replays the same durable merge with o
   view.dispose(); assert.equal(env.listeners.size, 0);
 });
 
-test('pathname recheck and cart entry share one item read and preserve confirmed actual access', async t => {
+test('cart entry reads its items once, a route change adds nothing, and an auth recheck shows the actual account', async t => {
   browser(t); let actual = member(A);
   const entering = deferred();
   const { actions, calls } = actionBoundary({ resolve: () => actual, read: input => calls.read.length === 2 ? entering.promise : ok(cartView({ owner: { kind: 'member', userId: input.expectedUserId }, cartId: input.expectedUserId === B ? CART_B : CART_A })) });
@@ -248,10 +250,11 @@ test('pathname recheck and cart entry share one item read and preserve confirmed
   const entry = view.latest().commands.enterCart(); await until(() => calls.read.length === 2);
   view.path('/cart'); view.flush();
   entering.resolve(ok(cartView())); await entry;
-  await until(() => calls.resolve === 1 && view.latest().snapshot.phase === 'ready', view.flush);
+  await until(() => view.latest().snapshot.phase === 'ready', view.flush);
   assert.equal(calls.read.length, 2);
-  view.path('/products/1'); view.flush(); await until(() => calls.resolve === 2, view.flush);
+  view.path('/products/1'); view.flush(); await setImmediate(); view.flush();
   assert.equal(calls.read.length, 2);
+  assert.equal(calls.resolve, 0);
   actual = member(B); await view.latest().commands.recheck('auth'); view.flush();
   assert.equal(view.latest().snapshot.cart.owner.userId, B);
   // Boundary props may still be A until the Server Component refresh arrives.
@@ -271,7 +274,7 @@ test('storage failure and error access lock the cart while the page child remain
   assert.equal(view.latest().snapshot.cart, null);
 });
 
-test('an earlier pathname callback cannot unlock an authentication transition', async t => {
+test('a route change during cart entry cannot unlock an authentication transition', async t => {
   const env = browser(t); const entering = deferred();
   let actual = member(A);
   const { actions, calls } = actionBoundary({ resolve: () => actual, read: () => calls.read.length === 2 ? entering.promise : ok(cartView()) });
@@ -324,4 +327,15 @@ test('confirmed adjustment notices appear outside the cart page once across effe
   assert.match(view.notices[0], /재고.*수량/);
   view.restartEffects(); await until(() => view.latest().snapshot.phase === 'ready', view.flush);
   assert.equal(view.notices.length, 1);
+});
+
+test('route changes make no cart request and keep the confirmed count', async t => {
+  browser(t);
+  const { actions, calls } = actionBoundary({ resolve: () => member(A) });
+  const view = mount(t, { access: member(A), actions }); view.flush();
+  await until(() => view.latest().snapshot.phase === 'ready', view.flush);
+  const before = { resolve: calls.resolve, read: calls.read.length };
+  for (const path of ['/products/1', '/mypage', '/']) { view.path(path); view.flush(); await setImmediate(); view.flush(); }
+  assert.deepEqual({ resolve: calls.resolve, read: calls.read.length }, before);
+  assert.equal(view.latest().snapshot.phase, 'ready');
 });

@@ -63,8 +63,8 @@ export interface CartLocalAdapter {
   ): Promise<CartCommand | null>;
   // Releases a rejected merge and holds its items for that account only (never the shared guest cart); false if already settled.
   holdMerge(command: CartCommand): Promise<boolean>;
-  // Queues an account's held items as a new merge; called only when that account enters again.
-  restageHeld(userId: string): Promise<CartCommand | null>;
+  // Queues an account's held items as a new merge only while that account has no earlier request ('pending' keeps them held).
+  restageHeld(userId: string): Promise<CartCommand | 'pending' | null>;
   enqueue(command: CartCommand): Promise<void>;
   peek(userId: string): Promise<CartCommand | null>;
   ack(command: CartCommand): Promise<void>;
@@ -266,6 +266,8 @@ export function createCartLocalAdapter(
       return locked((document, target) => {
         const held = document.heldByAccount?.[account];
         if (!held?.length) return null;
+        // Checked inside the same lock as the move, so a request another tab just saved is never overtaken.
+        if (document.pendingByAccount[account]?.length) return 'pending';
         const command = cartCommandSchema.parse({
           version: 1,
           requestId: dependencies.newId
@@ -274,10 +276,7 @@ export function createCartLocalAdapter(
           expectedUserId: account,
           operation: { kind: 'merge_guest', items: held },
         });
-        const pending = document.pendingByAccount[account] ?? [];
-        if (pending.some(entry => entry.requestId === command.requestId))
-          throw new Error('CART_LOCAL_CONFLICT');
-        document.pendingByAccount[account] = [...pending, command];
+        document.pendingByAccount[account] = [command];
         const rest = { ...document.heldByAccount };
         delete rest[account];
         if (Object.keys(rest).length) document.heldByAccount = rest;

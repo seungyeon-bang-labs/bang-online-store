@@ -22,10 +22,12 @@ function MobileProductHeader({
   activeHref,
   cartHref,
   cartItemCount,
+  cartNeedsCheck,
 }: {
   activeHref: string;
   cartHref: string;
   cartItemCount: number | null;
+  cartNeedsCheck: boolean;
 }) {
   useEffect(() => {
     let previousScrollY = Math.max(window.scrollY, 0);
@@ -106,7 +108,7 @@ function MobileProductHeader({
         </Link>
         <ButtonLink
           href={cartHref}
-          aria-label={getCartAriaLabel(cartItemCount)}
+          aria-label={getCartAriaLabel(cartItemCount, cartNeedsCheck)}
           variant="ghost"
           size="icon-md"
           className="mr-2"
@@ -115,6 +117,7 @@ function MobileProductHeader({
             <ShoppingCart className="size-5.5" />
             <CartItemCountBadge
               count={cartItemCount}
+              needsCheck={cartNeedsCheck}
               className="pointer-events-none absolute -right-2 -top-2"
             />
           </span>
@@ -128,6 +131,7 @@ function MobileProductHeader({
 
 interface MainMobileHeaderProps {
   cartItemCount?: number | null;
+  cartNeedsCheck?: boolean;
   config: MainMobileHeaderConfig;
   activeHref: string;
   cartHref: string;
@@ -135,6 +139,7 @@ interface MainMobileHeaderProps {
 
 export function MainMobileHeader({
   cartItemCount = 0,
+  cartNeedsCheck = false,
   config,
   activeHref,
   cartHref,
@@ -145,6 +150,7 @@ export function MainMobileHeader({
         activeHref={activeHref}
         cartHref={cartHref}
         cartItemCount={cartItemCount}
+        cartNeedsCheck={cartNeedsCheck}
       />
     );
   }
@@ -182,7 +188,7 @@ export function MainMobileHeader({
       {config.action === 'cart' ? (
         <ButtonLink
           href={cartHref}
-          aria-label={getCartAriaLabel(cartItemCount)}
+          aria-label={getCartAriaLabel(cartItemCount, cartNeedsCheck)}
           variant="ghost"
           size="icon-md"
           className="mr-2 justify-self-end"
@@ -191,6 +197,7 @@ export function MainMobileHeader({
             <ShoppingCart className="size-5.5" />
             <CartItemCountBadge
               count={cartItemCount}
+              needsCheck={cartNeedsCheck}
               className="pointer-events-none absolute -right-2 -top-2"
             />
           </span>

@@ -11,12 +11,14 @@ export type CartCommandReply = CartReply & { requestId?: string };
 
 export interface CartController {
   start(access: CartAccess): Promise<void>;
-  recheck(reason: 'navigation' | 'auth' | 'storage'): Promise<void>;
+  recheck(reason: 'auth' | 'storage'): Promise<void>;
   enterCart(): Promise<void>;
   addItems(items: readonly CartProductInput[]): Promise<CartCommandReply>;
   adjustQuantity(itemId: string, delta: 1 | -1): Promise<CartCommandReply>;
   changeOption(itemId: string, productId: number, variantId: number): Promise<CartCommandReply>;
   removeItems(itemIds: readonly string[]): Promise<CartCommandReply>;
+  // Moves a rejected login merge's held items into the cart again; only on the user's request.
+  moveHeldItems(): Promise<CartCommandReply>;
   retry(): Promise<void>;
   beginAuthTransition(): void;
   dispose(): void;
@@ -24,6 +26,7 @@ export interface CartController {
 
 const nil = '00000000-0000-0000-0000-000000000000';
 const retryMessage = '장바구니를 다시 확인해주세요. 기존 내역과 미완료 요청은 보존됩니다.';
+const unresolvedMessage = '확인이 필요한 장바구니 요청이 있습니다. 다시 시도를 눌러 확인해주세요.';
 const pendingAuthMessage = '다른 창에서 로그인 상태가 바뀌고 있습니다. 잠시 후 다시 시도해주세요.';
 class StaleFlow extends Error {}
 class AccessChange extends Error {
@@ -31,6 +34,12 @@ class AccessChange extends Error {
 }
 class FlowFailure extends Error {
   constructor(readonly status: 'retryable' | 'invalid' | 'conflict' = 'retryable', message = retryMessage) { super(message); }
+}
+// The session check failed: the account is unknown, which is not an account change.
+class AccessUnknown extends Error {}
+// A request the server confirmed for its account while the current account is unknown; reported as applied, view stays locked.
+class SettledWhileUnknown extends Error {
+  constructor(readonly reply: CartReply) { super(); }
 }
 type Context = { generation: number; order: number; signal: AbortSignal; epoch?: number };
 const key = (access: CartAccess) => access.status === 'member' ? `member:${access.userId}` : access.status === 'restricted' ? `restricted:${access.reason}` : access.status;
@@ -47,14 +56,16 @@ export function createCartController({ store, local, actions, loadProducts, newI
   let snapshotOwner: string | null = null;
   // The account this tab last actually showed (props can lag behind accounts learned from other tabs); errors never overwrite it.
   let shownAccount: string | null = null;
-  let restageFor: string | null = null; // a member newly shown here, whose held items are retried once
   let pendingAuthOwner: string | null = null;
   let cartId: string | null = null;
   let revision: bigint | null = null;
   let observedEpoch: number | null = null;
   // An interrupted login merge, bound to the guest revision seen when that member was confirmed.
   let mergeOwner: { userId: string; guestRevision: number } | null = null;
-  let deferredRecheck: Promise<void> | null = null;
+  // Storage notices are decided one at a time from local state only; network checks run outside this chain.
+  let storageCheck: Promise<void> = Promise.resolve();
+  let noticeToken = 0; // the latest account notice; older session checks are ignored
+  let ownAuthWrites = 0; // this tab's own auth writes; a notice read queued before one of them is outdated
   let published = 0; // counts carts actually read and shown, so cart entry knows whether a waited flow refreshed items
   let abort: AbortController | null = null;
   let unsubscribe: (() => void) | null = null;
@@ -66,6 +77,8 @@ export function createCartController({ store, local, actions, loadProducts, newI
   let heldNoticeFor: string | null = null; // the member whose rejected login merge was just held; told once with their next cart
   const seenNotices = new Set<string>();
   const unconfirmed = new Map<string, CartCommand>();
+  // Counted when requested, so a storage read already queued ahead of the write can tell it is older.
+  function authWrite<T>(write: () => Promise<T>): Promise<T> { ownAuthWrites++; return write(); }
   const set = (next: Parameters<ReturnType<typeof store.getState>['setStateFromController']>[0]) => store.getState().setStateFromController(next);
   const current = (ctx: Context) => active && ctx.generation === generation && ctx.order === order;
   const check = (ctx: Context) => { if (!current(ctx)) throw new StaleFlow(); };
@@ -89,7 +102,7 @@ export function createCartController({ store, local, actions, loadProducts, newI
     const document = await local.read(); check(ctx);
     if (!document.authPending || pendingAuthOwner !== null) return null;
     const access = await actions.resolveAccess({ signal: ctx.signal }); check(ctx);
-    if (access.status !== 'error' && await local.completeAuthTransition(document.authEpoch)) { check(ctx); return access; }
+    if (access.status !== 'error' && await authWrite(() => local.completeAuthTransition(document.authEpoch))) { check(ctx); return access; }
     check(ctx);
     // Another flow may have released it meanwhile; a newer transition stays locked.
     if (access.status !== 'error' && !(await local.read()).authPending) return null;
@@ -108,9 +121,7 @@ export function createCartController({ store, local, actions, loadProducts, newI
 
   function accessState(ctx: Context, access: CartAccess) {
     check(ctx);
-    if (access.status !== 'error' && shownAccount !== key(access)) {
-      shownAccount = key(access); restageFor = access.status === 'member' ? access.userId : null;
-    }
+    if (access.status !== 'error' && shownAccount !== key(access)) shownAccount = key(access);
     if (owner !== key(access)) {
       generation++; ctx.generation = generation; owner = key(access); cartId = null; revision = null; heldNoticeFor = null;
       set({ access, phase: 'checking', cart: null, selectedIds: [], message: null });
@@ -142,7 +153,11 @@ export function createCartController({ store, local, actions, loadProducts, newI
   async function checkEpoch(ctx: Context) {
     const document = await local.read(); holdPendingAuth(ctx, document);
     if (ctx.epoch !== undefined && ctx.epoch !== document.authEpoch) {
-      const access = await actions.resolveAccess({ signal: ctx.signal }); check(ctx); throw new AccessChange(access);
+      const access = await actions.resolveAccess({ signal: ctx.signal }); check(ctx);
+      if (access.status === 'error') throw new AccessUnknown();
+      if (owner !== key(access)) throw new AccessChange(access);
+      // Another tab confirmed the same account: the flow keeps going.
+      ctx.epoch = document.authEpoch; observedEpoch = document.authEpoch;
     }
     return document;
   }
@@ -175,13 +190,42 @@ export function createCartController({ store, local, actions, loadProducts, newI
     if (cartId !== null && cart.cartId !== cartId) throw new FlowFailure();
     const nextRevision = BigInt(cart.revision!);
     if (revision !== null && nextRevision < revision) throw new FlowFailure();
-    await checkEpoch(ctx); check(ctx);
+    try { await checkEpoch(ctx); } catch (error) {
+      if (!(error instanceof AccessUnknown) || !command) throw error;
+      // The server applied this request to its account: settle it there, but show no cart for an unknown account.
+      await local.ack(command); check(ctx); unconfirmed.delete(command.requestId);
+      set({ phase: 'retryable', message: retryMessage, ...(cart.operation ? { settledRequests: { ...store.getState().settledRequests, [command.requestId]: cart.operation } } : {}) });
+      throw new SettledWhileUnknown(reply);
+    }
+    check(ctx);
     cartId = cart.cartId; revision = nextRevision;
     if (command) { await local.ack(command); check(ctx); unconfirmed.delete(command.requestId); }
     publish(cart);
     return reply;
   }
 
+  // Shows whether this account still has a request whose outcome is unknown, and how many held lines it keeps.
+  async function syncPending(ctx: Context, userId: string): Promise<boolean> {
+    const document = await local.read(); check(ctx);
+    const pending = !!document.pendingByAccount[userId]?.length || [...unconfirmed.values()].some(command => command.expectedUserId === userId);
+    set({ unresolved: pending, heldCount: document.heldByAccount?.[userId]?.length ?? 0 });
+    return pending;
+  }
+
+  async function flagPending(userId: string) {
+    try {
+      const document = await local.read();
+      const shown = store.getState().access;
+      if (!active || shown?.status !== 'member' || shown.userId !== userId) return;
+      set({ unresolved: !!document.pendingByAccount[userId]?.length || [...unconfirmed.values()].some(command => command.expectedUserId === userId), heldCount: document.heldByAccount?.[userId]?.length ?? 0 });
+    } catch { /* storage unavailable: the retry state already locks changes */ }
+  }
+
+  async function readMember(ctx: Context, userId: string) {
+    const reply = await actions.read({ expectedUserId: userId }, { signal: ctx.signal }); check(ctx); await consume(ctx, reply, userId);
+  }
+
+  // Sends this account's queued requests in order under their own IDs; only an explicit retry calls it.
   async function drainMember(ctx: Context, userId: string, readIfEmpty: boolean) {
     let applied = false;
     for (;;) {
@@ -291,7 +335,7 @@ export function createCartController({ store, local, actions, loadProducts, newI
     publish(cart); return { status: 'ok', cart };
   }
 
-  async function initialize(ctx: Context, initial: CartAccess) {
+  async function initialize(ctx: Context, initial: CartAccess, recover = false) {
     let access = initial;
     for (let hops = 0; ; hops++) {
       accessState(ctx, access);
@@ -302,14 +346,27 @@ export function createCartController({ store, local, actions, loadProducts, newI
         set({ phase: access.status === 'member' ? 'syncing' : 'restoring' });
         const document = await local.read(); holdPendingAuth(ctx, document); ctx.epoch = document.authEpoch; observedEpoch = document.authEpoch;
         // Resume only the same guest snapshot; items added since then may belong to someone else.
-        if (mergeOwner) { await local.stageMerge(mergeOwner.userId, mergeOwner.guestRevision); check(ctx); mergeOwner = null; }
+        const staged: CartCommand[] = [];
+        if (mergeOwner) { const resumed = await local.stageMerge(mergeOwner.userId, mergeOwner.guestRevision); check(ctx); mergeOwner = null; if (resumed) staged.push(resumed); }
         if (access.status === 'member') {
-          // Held items are retried once when this tab newly shows the account (page load, login, recovery), not on same-account rechecks.
-          if (restageFor === access.userId) { await local.restageHeld(access.userId); restageFor = null; check(ctx); }
           mergeOwner = { userId: access.userId, guestRevision: document.guest.revision };
           // Merge only the guest snapshot read above; items written after it (e.g. after a logout elsewhere) stay guest.
-          await local.stageMerge(access.userId, document.guest.revision); check(ctx); mergeOwner = null;
-          await drainMember(ctx, access.userId, true);
+          const merge = await local.stageMerge(access.userId, document.guest.revision); check(ctx); mergeOwner = null;
+          if (merge) staged.push(merge);
+          if (recover) await drainMember(ctx, access.userId, true);
+          else {
+            const userId = access.userId;
+            // Only a merge this flow just staged is sent, and only while it heads the account queue (checked after the lock, not before it).
+            const head = staged.length ? await local.peek(access.userId) : null; check(ctx);
+            const own = head && staged.find(command => command.requestId === head.requestId);
+            if (own && ![...unconfirmed.values()].some(command => command.expectedUserId === userId)) {
+              unconfirmed.set(own.requestId, own);
+              const reply = await actions.mutate(own, { signal: ctx.signal }); check(ctx);
+              if ((await consume(ctx, reply, access.userId, own)).status !== 'ok') await readMember(ctx, access.userId);
+            } else await readMember(ctx, access.userId);
+          }
+          // A remaining request blocks changes until the user retries; its account's latest cart stays visible.
+          if (await syncPending(ctx, access.userId)) { set({ phase: 'retryable', message: unresolvedMessage }); return; }
         } else await guestCart(ctx);
         check(ctx); set({ phase: 'ready', message: null }); return;
       } catch (error) {
@@ -326,12 +383,16 @@ export function createCartController({ store, local, actions, loadProducts, newI
       try { return await work(ctx); }
       catch (error) {
         if (!current(ctx) || error instanceof StaleFlow) return;
+        if (error instanceof SettledWhileUnknown) return error.reply;
         if (error instanceof AccessChange) {
           try { restartFlow(ctx); await initialize(ctx, error.access); return { status: 'access_changed' as const, access: error.access }; }
           catch (failure) { if (!current(ctx) || failure instanceof StaleFlow) return; }
         }
         const failure = error instanceof FlowFailure ? error : new FlowFailure();
         set({ phase: 'retryable', message: failure.message });
+        // Any member flow (a login merge, a retry) that leaves a request unconfirmed shows it as needing a check.
+        const shown = store.getState().access;
+        if (shown?.status === 'member') await flagPending(shown.userId);
         return { status: failure.status, message: failure.message };
       }
     })();
@@ -340,45 +401,58 @@ export function createCartController({ store, local, actions, loadProducts, newI
     return job;
   }
 
-  // A storage notice that carries another tab's auth transition must not wait behind an in-flight change.
-  async function authSignalChanged(): Promise<boolean> {
-    try {
-      const document = await local.read();
-      return !!document.authPending || (observedEpoch !== null && document.authEpoch !== observedEpoch);
-    } catch { return false; }
+  // Another tab's notice: quantity/ack writes change nothing here; only an auth epoch change checks the session.
+  function observeStorage(): Promise<void> {
+    storageCheck = storageCheck.then(async () => {
+      if (!active) return;
+      let document: Awaited<ReturnType<CartLocalAdapter['read']>>;
+      const writes = ownAuthWrites;
+      try { document = await local.read(); } catch { return; }
+      if (!active) return;
+      // This tab wrote auth state after the read was queued (e.g. its login props arrived): decide from a fresh read.
+      if (writes !== ownAuthWrites) { void observeStorage(); return; }
+      if (document.authPending) {
+        // A logout started elsewhere hides this account at once, without waiting for any check or change.
+        noticeToken++; reset();
+        if (pendingAuthOwner !== null) set({ cart: null, access: null, selectedIds: [], phase: 'checking', message: null });
+        else set({ cart: null, access: null, selectedIds: [], phase: 'retryable', message: pendingAuthMessage });
+        return;
+      }
+      if (observedEpoch === null || document.authEpoch === observedEpoch) return;
+      void confirmAccount(++noticeToken, document.authEpoch, generation);
+    });
+    return storageCheck;
   }
 
-  async function refresh(reason: 'navigation' | 'auth' | 'storage' | 'retry'): Promise<void> {
-    if (!active) return;
-    // Another tab may ack this tab's in-flight request; recheck once the change settles instead of aborting it.
-    const pendingChange = running;
-    if ((reason === 'navigation' || reason === 'storage') && store.getState().phase === 'mutating' && pendingChange &&
-      !(reason === 'storage' && await authSignalChanged())) {
-      // Coalesced notices rerun once with the first reason; navigation and storage rechecks take the same path.
-      if (!deferredRecheck) {
-        const queued: Promise<void> = pendingChange.then((): Promise<void> => { if (deferredRecheck === queued) deferredRecheck = null; return refresh(reason); });
-        deferredRecheck = queued;
-      }
-      return deferredRecheck;
+  async function confirmAccount(token: number, epoch: number, seen: number) {
+    let access: CartAccess;
+    // Its own signal: a session check must never abort this tab's in-flight change.
+    try { access = await actions.resolveAccess({ signal: new AbortController().signal }); } catch { access = { status: 'error', message: retryMessage }; }
+    const latest = () => active && token === noticeToken && seen === generation;
+    if (!latest()) return;
+    if (access.status === 'error') {
+      // A newer check that already confirmed this epoch (e.g. the change's own) wins; a waiting request keeps its own message.
+      const show = () => { if (latest() && observedEpoch !== epoch) set({ phase: 'retryable', message: store.getState().unresolved ? unresolvedMessage : retryMessage }); };
+      if (running) void running.finally(show); else show();
+      return;
     }
-    const wasReady = store.getState().phase === 'ready';
-    if (reason === 'auth') { pendingAuthOwner = null; signalIsNotice = false; authSignal = local.announceAuthTransition(false); reset(); set({ cart: null, selectedIds: [], access: null }); }
-    // A same-account route change keeps the confirmed view (and header count) while checking in the background.
-    if (!(reason === 'navigation' && wasReady)) set({ phase: 'checking', message: null });
+    if (owner === key(access)) { observedEpoch = epoch; return; }
+    void launch(ctx => initialize(ctx, access));
+  }
+
+  async function refresh(reason: 'auth' | 'retry'): Promise<void> {
+    if (!active) return;
+    if (reason === 'auth') { pendingAuthOwner = null; signalIsNotice = false; authSignal = authWrite(() => local.announceAuthTransition(false)); reset(); set({ cart: null, selectedIds: [], access: null }); }
+    set({ phase: 'checking', message: null });
     await launch(async ctx => {
-      try { await authSignal; } catch { if (reason !== 'retry') throw new FlowFailure(); authSignal = signalIsNotice ? local.notifyAccountChange().then(() => {}) : local.announceAuthTransition(); await authSignal; }
+      try { await authSignal; } catch { if (reason !== 'retry') throw new FlowFailure(); authSignal = signalIsNotice ? authWrite(() => local.notifyAccountChange()).then(() => {}) : authWrite(() => local.announceAuthTransition()); await authSignal; }
       check(ctx);
       const settled = reason === 'retry' ? await settlePendingAuth(ctx) : null;
       const document = await local.read(); holdPendingAuth(ctx, document);
       if (observedEpoch !== null && observedEpoch !== document.authEpoch) { restartFlow(ctx); set({ cart: null, selectedIds: [], phase: 'checking' }); }
       const access = settled ?? await actions.resolveAccess({ signal: ctx.signal }); check(ctx);
-      const cart = store.getState().cart;
-      const pending = access.status === 'member' && (document.pendingByAccount[access.userId]?.length || [...unconfirmed.values()].some(command => command.expectedUserId === access.userId));
-      if ((reason === 'navigation' || reason === 'storage') && wasReady && owner === key(access) && cart && !pending &&
-        (access.status === 'member' ? document.guest.items.length === 0 : access.status === 'guest' && cart.revision === String(document.guest.revision))) {
-        observedEpoch = document.authEpoch; set({ access, phase: 'ready', message: null }); return;
-      }
-      await initialize(ctx, access);
+      // Only an explicit retry sends this account's queued requests.
+      await initialize(ctx, access, reason === 'retry');
     });
   }
 
@@ -389,39 +463,53 @@ export function createCartController({ store, local, actions, loadProducts, newI
     if (!parsed.success) return { status: 'invalid', message: '장바구니 요청 형식을 확인해주세요.' };
     set({ phase: 'mutating', message: null });
     let requestId: string | undefined;
-    // This change's confirmed result; a later restart (e.g. while draining another tab's request) clears settledRequests.
-    let ownResult: CartViewModel['operation'] | undefined;
     const result = await launch(async ctx => {
       const command = cartCommandSchema.parse({ version: 1, requestId: newId(), expectedUserId: state.access!.status === 'member' ? state.access!.userId : nil, operation: parsed.data.operation });
       let reply: CartReply;
       if (state.access!.status === 'member') {
         const document = await local.read(); holdPendingAuth(ctx, document); ctx.epoch = document.authEpoch;
-        // Another tab's request (or a staged merge) still queued goes first under its own ID; then this change queues.
-        for (let attempt = 0; ; attempt++) {
-          try { await local.enqueue(command); break; }
-          catch (error) {
-            if (!(error instanceof Error && error.message === 'CART_LOCAL_PENDING') || attempt >= 2) throw error;
-            check(ctx); await drainMember(ctx, state.access!.userId, false);
-          }
+        try { await local.enqueue(command); } catch (error) {
+          if (!(error instanceof Error && error.message === 'CART_LOCAL_PENDING')) throw error;
+          // An earlier request of this account is still uncertain; only an explicit retry may send it.
+          check(ctx); await syncPending(ctx, state.access!.userId); throw new FlowFailure('retryable', unresolvedMessage);
         }
         requestId = command.requestId; unconfirmed.set(command.requestId, command); check(ctx);
         reply = await actions.mutate(command, { signal: ctx.signal }); check(ctx);
-        const consumed = await consume(ctx, reply, state.access!.userId, command);
-        if (consumed.status === 'ok') ownResult = consumed.cart.operation ?? undefined;
-        await drainMember(ctx, state.access!.userId, consumed.status !== 'ok');
+        // A definitive rejection still needs the current cart.
+        if ((await consume(ctx, reply, state.access!.userId, command)).status !== 'ok') await readMember(ctx, state.access!.userId);
       } else reply = await guestCart(ctx, command);
       check(ctx); set({ phase: 'ready', message: null }); return reply;
     });
+    return report(state.access, requestId, result);
+  }
+
+  function report(sender: CartAccess | null, requestId: string | undefined, result: CartReply | void): CartCommandReply {
     const reply = result ?? { status: 'retryable' as const, message: retryMessage };
-    // A same-account auth signal mid-change restarts the flow and replays the request; report its settled result, not an account change.
-    if (requestId && reply.status === 'access_changed' && state.access?.status === 'member' &&
-      reply.access.status === 'member' && reply.access.userId === state.access.userId) {
-      const settled = store.getState().settledRequests[requestId] ?? ownResult;
-      const cart = store.getState().cart;
-      if (settled && cart && store.getState().phase === 'ready') return { status: 'ok', cart: { ...cart, operation: settled }, requestId };
-      return { status: 'retryable', message: retryMessage, requestId };
-    }
+    // An unconfirmed change of the account still shown keeps that account's changes locked.
+    const shown = store.getState().access;
+    if (requestId && unconfirmed.has(requestId) && shown?.status === 'member' && sender?.status === 'member' && shown.userId === sender.userId) set({ unresolved: true });
     return requestId ? { ...reply, requestId } : reply;
+  }
+
+  async function moveHeldItems(): Promise<CartCommandReply> {
+    const state = store.getState();
+    // The store flag is only the screen's precheck; restageHeld decides inside the lock.
+    if (!active || state.phase !== 'ready' || state.access?.status !== 'member' || state.unresolved) return { status: 'retryable', message: unresolvedMessage };
+    const userId = state.access.userId;
+    set({ phase: 'mutating', message: null });
+    let requestId: string | undefined;
+    const result = await launch(async ctx => {
+      const document = await local.read(); holdPendingAuth(ctx, document); ctx.epoch = document.authEpoch;
+      const command = await local.restageHeld(userId); check(ctx);
+      if (command === 'pending') { await syncPending(ctx, userId); throw new FlowFailure('retryable', unresolvedMessage); }
+      if (!command) { await syncPending(ctx, userId); set({ phase: 'ready', message: null }); return { status: 'ok' as const, cart: store.getState().cart! }; }
+      requestId = command.requestId; unconfirmed.set(command.requestId, command);
+      const reply = await actions.mutate(command, { signal: ctx.signal }); check(ctx);
+      // A rejected move is held again for this account by consume.
+      if ((await consume(ctx, reply, userId, command)).status !== 'ok') await readMember(ctx, userId);
+      await syncPending(ctx, userId); check(ctx); set({ phase: 'ready', message: null }); return reply;
+    });
+    return report(state.access, requestId, result);
   }
 
   const controller: CartController = {
@@ -430,19 +518,21 @@ export function createCartController({ store, local, actions, loadProducts, newI
       // Props that only catch up with an account this tab already shows (e.g. learned from another tab) are its new snapshot.
       if (active && owner === key(access) && access.status !== 'error') snapshotOwner = key(access);
       if (active && owner === key(access) && store.getState().phase === 'ready') return Promise.resolve();
+      // Equal props while a request awaits the user's retry must not reread the cart.
+      if (active && owner === key(access) && store.getState().phase === 'retryable' && store.getState().unresolved) return Promise.resolve();
       // Same-account props re-created mid change/sync (e.g. a cookie-refreshing Server Action) must not abort it.
       if (active && owner === key(access) && running && ['mutating', 'syncing', 'restoring'].includes(store.getState().phase)) return running.then(() => {});
       // Only the initiating tab can complete its pending transition from new
       // server props. Another tab's stale props must never unlock that transition.
       if (pendingAuthOwner !== null && pendingAuthOwner !== key(access)) {
-        pendingAuthOwner = null; signalIsNotice = false; authSignal = local.announceAuthTransition(false);
+        pendingAuthOwner = null; signalIsNotice = false; authSignal = authWrite(() => local.announceAuthTransition(false));
       } else if (access.status !== 'error' && ((snapshotOwner !== null && snapshotOwner !== key(access)) ||
         (pendingAuthOwner === null && access.status === 'member' && shownAccount !== null && shownAccount !== key(access)))) {
         // A running tab's real account change (e.g. a login redirect) may write nothing else; notify other tabs once.
         // Compared with what it showed too: a tab that followed another tab's logout still holds the old props.
         // Only a login is caught this way (logouts announce themselves); stale guest props after a login must not notify.
         // Stale props during another tab's pending transition must not release it, so the notice is conditional.
-        signalIsNotice = true; authSignal = local.notifyAccountChange().then(() => {});
+        signalIsNotice = true; authSignal = authWrite(() => local.notifyAccountChange()).then(() => {});
       }
       // An error snapshot says nothing about the account; keep the last known owner so a return is not a change.
       if (access.status !== 'error') snapshotOwner = key(access);
@@ -459,7 +549,7 @@ export function createCartController({ store, local, actions, loadProducts, newI
       starting = { key: key(access), generation, promise };
       return promise;
     },
-    recheck: reason => refresh(reason),
+    recheck: reason => reason === 'storage' ? observeStorage() : refresh(reason),
     async enterCart() {
       set({ selectedIds: [] });
       const seen = published;
@@ -468,24 +558,25 @@ export function createCartController({ store, local, actions, loadProducts, newI
       // No confirmed account (e.g. another tab's pending login) leaves its retry state rather than a spinner nothing resolves.
       const access = store.getState().access;
       if (!active || !access) return;
-      set({ phase: 'restoring' });
+      if (!store.getState().cart) set({ phase: 'restoring' });
       await launch(ctx => initialize(ctx, access));
     },
     addItems: items => mutate({ kind: 'add_items', items }),
     adjustQuantity: (itemId, delta) => mutate({ kind: 'adjust_quantity', itemId, delta }),
     changeOption: (itemId, productId, variantId) => mutate({ kind: 'change_option', itemId, productId, variantId }),
     removeItems: itemIds => mutate({ kind: 'remove_items', itemIds }),
+    moveHeldItems,
     retry: () => refresh('retry'),
     beginAuthTransition() {
       if (!active) return;
       pendingAuthOwner = owner ?? snapshotOwner;
       reset(); set({ phase: 'checking', access: null, cart: null, selectedIds: [], message: null });
       const token = generation;
-      signalIsNotice = false; authSignal = local.announceAuthTransition(true);
+      signalIsNotice = false; authSignal = authWrite(() => local.announceAuthTransition(true));
       void authSignal.catch(() => { if (active && token === generation) set({ phase: 'retryable', message: retryMessage }); });
     },
     dispose() {
-      active = false; reset(); unsubscribe?.(); unsubscribe = null; running = null; deferredRecheck = null; shownAccount = null; restageFor = null;
+      active = false; reset(); unsubscribe?.(); unsubscribe = null; running = null; noticeToken++; shownAccount = null;
       set({ phase: 'checking', cart: null, access: null, selectedIds: [] });
     },
   };

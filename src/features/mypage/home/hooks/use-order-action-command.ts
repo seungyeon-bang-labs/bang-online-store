@@ -18,7 +18,11 @@ export function useOrderActionCommand() {
 
   return async (action: MypageHomeOrderCommandAction) => {
     if (inFlight.current) return;
-    if (phase !== 'ready') { toast.info('장바구니를 먼저 확인해주세요.'); return; }
+    if (phase !== 'ready') {
+      const search = searchParams.toString();
+      toast.info('장바구니를 먼저 확인해주세요.', { action: { label: '장바구니 확인', onClick: () => router.push(getCartHref(search ? `${pathname}?${search}` : pathname)) } });
+      return;
+    }
     inFlight.current = true;
     try {
       const reply = await addItems([action.cartItem]);

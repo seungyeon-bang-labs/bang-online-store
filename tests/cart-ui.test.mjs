@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { loadTs } from './helpers/load-ts.mjs';
 import { client, confirmed, deferred, nodes, text } from './helpers/cart-client.mjs';
-import { I1, I2, cartView } from './helpers/cart-fixtures.mjs';
+import { A, I1, I2, cartView } from './helpers/cart-fixtures.mjs';
 
 const productProps = { productId:1,colors:[],price:10001,discount:15,variants:[{id:2,size:'M',stock:10,priceOffset:500},{id:3,size:'L',stock:5,priceOffset:0}] };
 function select(view, value) { const node=view.nodes().find(n=>n.props?.onValueChange);assert.ok(node,'size selector');node.props.onValueChange(String(value));view.flush(); }
@@ -119,7 +119,7 @@ for (const recoveredElsewhere of [false, true]) test(`lost add response recovers
   const view=client('src/features/product/product-form.tsx','ProductForm',{props:productProps,store,commands:controller});t.after(()=>view.dispose());
   select(view,2);await view.button('장바구니').props.onClick();view.flush();
   assert.equal(store.getState().phase,'retryable');assert.equal(view.calls.success.length,0);
-  if (recoveredElsewhere) { const other=create();await other.controller.start({status:'member',userId:A});assert.equal(await local.peek(A),null); }
+  if (recoveredElsewhere) { const other=create();await other.controller.start({status:'member',userId:A});await other.controller.retry();assert.equal(await local.peek(A),null); }
   await controller.retry();
   // A different consumer can replace the last receipt before this form renders.
   await controller.adjustQuantity(I1,1);
@@ -165,4 +165,85 @@ test('a double-clicked order item repurchase sends one add',async t=>{
 for(const [phase,shown] of [['mutating',false],['syncing',false],['checking',true],['retryable',true]])test(`product form ${shown?'shows':'hides'} the cart status line while ${phase}`,async t=>{
   const view=client('src/features/product/product-form.tsx','ProductForm',{props:productProps,phase});t.after(()=>view.dispose());view.flush();
   assert.equal(view.nodes().some(n=>n.props?.role==='status'||n.props?.role==='alert'),shown);
+});
+
+test('an unresolved request keeps the last count with a visible check label, and no count becomes check-only', () => {
+  const { selectCartItemCount, selectCartNeedsCheck } = loadTs('src/features/cart/cart-count.ts');
+  const { CartItemCountBadge, getCartAriaLabel } = loadTs('src/shared/components/layout/cart-item-count-badge.tsx');
+  const base = { access: { status: 'member', userId: A }, selectedIds: [], message: null, settledRequests: {}, heldCount: 0 };
+  const zero = cartView({ items: [] });
+  assert.equal(selectCartItemCount({ ...base, phase: 'retryable', unresolved: true, cart: zero }), 0);
+  assert.equal(selectCartNeedsCheck({ ...base, phase: 'retryable', unresolved: true, cart: zero }), true);
+  assert.equal(selectCartNeedsCheck({ ...base, access: null, phase: 'checking', unresolved: true, cart: null }), false);
+  assert.equal(text(CartItemCountBadge({ count: 0, needsCheck: true })), '0 확인 필요');
+  assert.equal(text(CartItemCountBadge({ count: null, needsCheck: true })), '확인 필요');
+  const wide = CartItemCountBadge({ count: 120, needsCheck: true, className: 'pointer-events-none absolute -right-2 -top-2' }).props.className;
+  assert.match(wide, /whitespace-nowrap/);
+  assert.match(wide, /(^|\s)right-0(\s|$)/);
+  assert.doesNotMatch(wide, /-right-2/);
+  assert.equal(text(CartItemCountBadge({ count: 120, needsCheck: true })), '99+ 확인 필요');
+  assert.equal(getCartAriaLabel(3, true), '장바구니, 상품 3개, 확인 필요');
+  assert.equal(getCartAriaLabel(null, true), '장바구니, 확인 필요');
+});
+
+test('every header shows the check label while the member has an unresolved request', t => {
+  for (const [file, name, props] of [['src/features/cart/cart-header.tsx', 'CartAwareHeader', {}], ['src/features/storefront/storefront-mobile-header.tsx', 'StorefrontMobileHeader', { categoryGroupViewModels: [] }], ['src/features/mypage/navigation/mobile-mypage-header.tsx', 'MypageMobileHeader', {}]]) {
+    const view = client(file, name, { props, phase: 'retryable' }); t.after(() => view.dispose());
+    view.store.getState().setStateFromController({ unresolved: true }); view.flush();
+    const html = JSON.stringify(view.nodes().map(node => node.props?.['aria-label']).filter(Boolean));
+    const flagged = view.nodes().some(node => node.props?.cartNeedsCheck === true || node.props?.needsCheck === true);
+    assert.ok(flagged || html.includes('확인 필요'), name);
+  }
+});
+
+test('the cart page keeps the last cart with a progress line while a change is in flight', async t => {
+  const view = client('src/features/cart/cart-page-client.tsx', 'CartPageClient', { phase: 'mutating' }); t.after(() => view.dispose());
+  view.flush();
+  assert.ok(view.nodes().some(n => n.props?.role === 'status' && text(n).includes('장바구니 변경을 확인하고 있습니다.')));
+  assert.ok(view.nodes().some(n => text(n).includes(cartView().items[0].name)));
+});
+
+test('held items offer an explicit move on the cart page', async t => {
+  let moved = 0;
+  const view = client('src/features/cart/cart-page-client.tsx', 'CartPageClient', { commands: { moveHeldItems: async () => { moved++; return confirmed(); } } });
+  t.after(() => view.dispose());
+  view.store.getState().setStateFromController({ heldCount: 2 }); view.flush();
+  assert.ok(view.nodes().some(n => text(n) === '로그인 전에 담은 상품 2개를 보관하고 있습니다.'));
+  await view.button('보관 상품 다시 옮기기').props.onClick();
+  assert.equal(moved, 1);
+});
+
+test('a product page blocked by an unresolved request links to the cart', async t => {
+  const view = client('src/features/product/product-form.tsx', 'ProductForm', { phase: 'retryable', props: productProps });
+  t.after(() => view.dispose());
+  view.store.getState().setStateFromController({ unresolved: true, message: '확인이 필요한 장바구니 요청이 있습니다. 다시 시도를 눌러 확인해주세요.' }); view.flush();
+  view.button('장바구니에서 확인').props.onClick();
+  assert.equal(view.calls.navigation.length, 1);
+});
+
+test('mypage repurchase while the cart is not ready offers a way to the cart', async t => {
+  const view = client('src/features/mypage/orders/order-item-actions.tsx', 'MypageOrderItemActions', { phase: 'retryable', props: { actions: { primary: { type: 'repurchase', label: '다시 담기' }, secondary: null, more: [] }, productName: '상품', orderId: 'demo-order', orderItemId: 'demo-item', repurchaseItem: { productId: 1, variantId: 2, quantity: 2 } } });
+  t.after(() => view.dispose());
+  const action = view.nodes().find(n => n.props?.action?.type === 'repurchase');
+  await action.props.onAction(action.props.action);
+  const [, options] = view.calls.info.at(-1);
+  assert.equal(options.action.label, '장바구니 확인');
+  options.action.onClick();
+  assert.equal(view.calls.navigation.length, 1);
+});
+
+test('a definitively rejected held move is told once, by the held notice only', async t => {
+  const view = client('src/features/cart/cart-page-client.tsx', 'CartPageClient', { commands: { moveHeldItems: async () => ({ status: 'conflict', message: '확정 거부' }) } });
+  t.after(() => view.dispose());
+  view.store.getState().setStateFromController({ heldCount: 1 }); view.flush();
+  await view.button('보관 상품 다시 옮기기').props.onClick();
+  assert.equal(view.calls.error.length, 0);
+  assert.equal(view.calls.success.length, 0);
+});
+
+test('the product page hides the previous account\'s cart link while the account is unknown', async t => {
+  const view = client('src/features/product/product-form.tsx', 'ProductForm', { phase: 'retryable', props: productProps });
+  t.after(() => view.dispose());
+  view.store.getState().setStateFromController({ unresolved: true, access: null, cart: null }); view.flush();
+  assert.equal(view.button('장바구니에서 확인'), undefined);
 });

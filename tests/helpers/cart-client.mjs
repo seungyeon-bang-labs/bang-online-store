@@ -20,6 +20,7 @@ export function client(file, name, { props = {}, phase = 'ready', cart = cartVie
     adjustQuantity: async (...args) => { calls.adjust.push(args); return confirmed(); },
     changeOption: async (...args) => { calls.option.push(args); return confirmed(); },
     removeItems: async items => { calls.remove.push(items); return confirmed(); },
+    moveHeldItems: async () => confirmed(),
     enterCart: async () => { calls.enter++; }, retry: async () => { calls.retry++; },
     recheck: async reason => { calls.recheck.push(reason); }, beginAuthTransition: () => { calls.begin++; },
     setSelected: (...args) => store.getState().setSelected(...args), selectAll: checked => store.getState().selectAll(checked), ...overrides,

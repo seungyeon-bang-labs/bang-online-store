@@ -42,7 +42,7 @@ function setup({ env = storageEnvironment(), resolve, read, mutate, products } =
   return { controller, store, calls, env };
 }
 
-test('duplicate start and initial enterCart coalesce, navigation keeps cache and later entry clears selection', async () => {
+test('duplicate start and initial enterCart coalesce, a repeated start keeps cache and later entry clears selection', async () => {
   const first = deferred();
   const { controller, store, calls } = setup({ read: (_, n) => n === 1 ? first.promise : ok(cartView()) });
   const start = controller.start(member(A));
@@ -55,8 +55,7 @@ test('duplicate start and initial enterCart coalesce, navigation keeps cache and
   assert.equal(calls.read.length, 1);
   await controller.start(member(A));
   store.getState().setSelected(I1, true);
-  await controller.recheck('navigation');
-  assert.equal(calls.access, 1);
+  assert.equal(calls.access, 0); // a repeated same-account start checks nothing
   assert.equal(calls.read.length, 1);
   assert.deepEqual(store.getState().selectedIds, [I1]);
   await controller.enterCart();
@@ -65,7 +64,7 @@ test('duplicate start and initial enterCart coalesce, navigation keeps cache and
   controller.dispose();
 });
 
-test('member initialization stages guest once, drains FIFO and never consumes another account queue', async () => {
+test('member initialization stages guest once, sends its own merge once and never consumes another account queue', async () => {
   const env = storageEnvironment();
   await env.local.updateGuest(0, [line()]);
   const other = { version: 1, requestId: env.newId(), expectedUserId: B, operation: { kind: 'remove_items', itemIds: [I2] } };
@@ -225,7 +224,10 @@ test('dispose ignores outstanding replies and start can recover the same pending
   const pending = await env.local.peek(A);
   controller.dispose();
   await controller.start(member(A));
+  assert.deepEqual(calls.mutate, [pending]); // a remount never resends on its own
+  assert.equal(store.getState().unresolved, true);
   old.resolve(ok(receipt(pending, 'applied', { revision: '999' }))); await change;
+  await controller.retry();
   assert.deepEqual(calls.mutate, [pending, pending]);
   assert.equal(store.getState().cart.revision, '3');
   assert.equal(store.getState().phase, 'ready');
@@ -338,11 +340,14 @@ test('auth transition locks immediately and failed signal persistence stays visi
   assert.equal((await env.local.read()).authEpoch, 1);
 });
 
-test('storage signals recheck actual access without polling a member cart when no request is pending', async () => {
+test('a plain storage signal checks nothing; an auth epoch change rechecks the actual account', async () => {
   let actual = member(A);
   const { controller, env, store, calls } = setup({ resolve: () => actual }); await controller.start(member(A));
-  env.emit(); await until(() => calls.access === 1 && store.getState().phase === 'ready');
+  const before = calls.access;
+  env.emit(); await setImmediate(); await setImmediate();
+  assert.equal(calls.access, before);
   assert.equal(calls.read.length, 1);
+  assert.equal(store.getState().phase, 'ready');
   actual = member(B); await env.local.announceAuthTransition(); env.emit();
   await until(() => store.getState().cart?.owner.userId === B && store.getState().phase === 'ready');
   assert.equal(calls.read.length, 2);
@@ -374,7 +379,7 @@ test('auth epoch recovery renews the product signal instead of reusing an aborte
   await controller.start(guest);
   const first = calls.products[0].signal;
   await env.local.announceAuthTransition();
-  await controller.recheck('storage');
+  await controller.retry(); // a same-account notice changes nothing; an explicit retry reloads
   assert.equal(first.aborted, true);
   assert.equal(store.getState().phase, 'ready');
   assert.notEqual(calls.products[1].signal, first);
@@ -436,11 +441,12 @@ test('two controllers share one durable merge and recover its identity without d
   const mutate = async command => { sent.push(command); await release.promise; return ok(receipt(command)); };
   const first = setup({ env, mutate }); const second = setup({ env, mutate });
   const one = first.controller.start(member(A)); const two = second.controller.start(member(A));
-  await until(() => sent.length === 2);
-  assert.deepEqual(sent[0], sent[1]);
+  await until(() => sent.length === 1 && [first, second].every(instance => ['retryable', 'syncing'].includes(instance.store.getState().phase)));
   assert.deepEqual(sent[0].operation.items, [{ productId: 1, variantId: 2, quantity: 2 }]);
   release.resolve(); await Promise.all([one, two]);
   assert.equal(await env.local.peek(A), null);
+  for (const instance of [first, second]) if (instance.store.getState().phase !== 'ready') await instance.controller.retry();
+  assert.equal(sent.length, 1); // the waiting tab only rereads
   for (const instance of [first, second]) {
     assert.equal(instance.store.getState().phase, 'ready');
     assert.deepEqual(instance.store.getState().selectedIds, []);
@@ -591,12 +597,16 @@ test('re-entry with an interrupted transition checks the real session first and 
   const { controller, store, calls } = setup({ env });
   t.after(() => controller.dispose());
   await controller.start(member(A));
-  assert.equal(store.getState().phase, 'ready');
+  assert.equal(store.getState().phase, 'retryable');
+  assert.equal(store.getState().unresolved, true);
   assert.ok(calls.access >= 1);
   const after = await env.local.read();
   assert.equal(after.authPending, false);
   assert.ok(after.authEpoch > before.authEpoch);
-  assert.equal(calls.mutate.length, 1); // the preserved A request resumed once
+  assert.equal(calls.mutate.length, 0); // the preserved A request waits for an explicit retry
+  await controller.retry();
+  assert.equal(calls.mutate.length, 1);
+  assert.equal(store.getState().phase, 'ready');
 });
 
 test('re-entry keeps the lock and every pending request when the session check fails', async t => {
@@ -705,28 +715,14 @@ test('another tab acking this tab\'s in-flight request does not abort it or show
   t.after(() => { first.controller.dispose(); second.controller.dispose(); });
   await Promise.all([first.controller.start(member(A)), second.controller.start(member(A))]);
   const change = first.controller.adjustQuantity(I1, 1);
-  await until(() => second.calls.mutate.length === 1); // the other tab recovered the same request ID
-  assert.equal(second.calls.mutate[0].requestId, first.calls.mutate[0].requestId);
+  await until(() => first.calls.mutate.length === 1);
   await setImmediate(); await setImmediate();
+  assert.equal(second.calls.mutate.length, 0); // the other tab never sends a request it did not create
   held.resolve(ok(receipt(first.calls.mutate[0])));
   const reply = await change;
   assert.equal(reply.status, 'ok');
   await until(() => first.store.getState().phase === 'ready');
   assert.deepEqual((await first.env.local.read()).pendingByAccount, {});
-});
-
-test('a same-account navigation recheck keeps the ready cart visible while it checks in the background', async t => {
-  const access = deferred(); let n = 0;
-  const { controller, store, calls } = setup({ resolve: () => (++n === 1 ? access.promise : member(A)) });
-  t.after(() => controller.dispose());
-  await controller.start(member(A));
-  const recheck = controller.recheck('navigation');
-  assert.equal(store.getState().phase, 'ready');
-  assert.ok(store.getState().cart);
-  access.resolve(member(A));
-  await recheck;
-  assert.equal(store.getState().phase, 'ready');
-  assert.equal(calls.read.length, 1);
 });
 
 test('an interrupted login merge resumes only if the guest cart is unchanged since that login', async t => {
@@ -771,10 +767,14 @@ test('a queued request the server definitively rejects is released so later chan
     const { controller, store, calls } = setup({ env, mutate: (command, n) => n === 1 ? { status, message: '확정 거부' } : ok(receipt(command)) });
     t.after(() => controller.dispose());
     await controller.start(member(A));
+    assert.equal(store.getState().unresolved, true, status);
+    assert.equal(calls.mutate.length, 0);
+    const reads = calls.read.length;
+    await controller.retry();
     assert.equal(store.getState().phase, 'ready', status);
     assert.equal(await env.local.peek(A), null);
     assert.equal(store.getState().settledRequests[stuck.requestId].outcome, 'rejected');
-    assert.equal(calls.read.length, 1); // the current cart is re-read after the release
+    assert.equal(calls.read.length, reads + 1); // the current cart is re-read after the release
     assert.equal((await controller.adjustQuantity(I1, 1)).status, 'ok');
   }
 });
@@ -877,53 +877,6 @@ test('another tab\'s auth transition is handled at once even while a change is i
   assert.equal(store.getState().cart, null);
 });
 
-test('cart entry still reads current items when it only waited for an access-only recheck', async t => {
-  const access = deferred(); let n = 0;
-  const { controller, store, calls } = setup({ resolve: () => (++n === 1 ? access.promise : member(A)) });
-  t.after(() => controller.dispose());
-  await controller.start(member(A));
-  assert.equal(calls.read.length, 1);
-  const navigation = controller.recheck('navigation'); // previous route's background check is in flight
-  const entry = controller.enterCart();
-  access.resolve(member(A));
-  await Promise.all([navigation, entry]);
-  assert.equal(calls.read.length, 2);
-  assert.equal(store.getState().phase, 'ready');
-});
-
-test('a storage recheck completes when the mutation finishes during its auth check', async t => {
-  const held = deferred();
-  const authRead = deferred();
-  const authReadStarted = deferred();
-  const base = storageEnvironment();
-  let pauseRead = false;
-  const local = { ...base.local, read: async () => {
-    if (pauseRead) {
-      pauseRead = false;
-      authReadStarted.resolve();
-      await authRead.promise;
-    }
-    return base.local.read();
-  } };
-  const { controller, store, calls } = setup({ env: { ...base, local }, mutate: () => held.promise });
-  t.after(() => controller.dispose());
-  await controller.start(member(A));
-  const change = controller.adjustQuantity(I1, 1);
-  await until(() => calls.mutate.length === 1);
-  pauseRead = true;
-  const recheck = controller.recheck('storage');
-  await authReadStarted.promise;
-  held.resolve(ok(receipt(calls.mutate[0])));
-  assert.equal((await change).status, 'ok');
-  await setImmediate(); // The completed flow has cleared its running job before the auth read resumes.
-  authRead.resolve();
-  await assert.doesNotReject(recheck);
-  assert.equal(store.getState().phase, 'ready');
-  assert.equal(calls.mutate.length, 1);
-  assert.ok(calls.access >= 1, 'the storage recheck must still confirm the actual session');
-  assert.equal(await base.local.peek(A), null);
-});
-
 test('a tab that followed another tab\'s login does not announce it again after an error snapshot', async t => {
   let actual = guest;
   const [first, second] = twoTabs(() => actual);
@@ -938,28 +891,6 @@ test('a tab that followed another tab\'s login does not announce it again after 
   await second.controller.start(member(A));
   assert.equal(second.store.getState().phase, 'ready');
   assert.equal((await second.env.local.read()).authEpoch, epoch);
-});
-
-test('a recheck deferred before dispose does not hold the next mount\'s recheck', async t => {
-  const stale = deferred(); const held = deferred(); let hold = false;
-  const env = storageEnvironment();
-  const { controller, store, calls } = setup({ env, mutate: (command, n) => n === 1 ? stale.promise : hold ? held.promise : ok(receipt(command)) });
-  t.after(() => controller.dispose());
-  await controller.start(member(A));
-  void controller.adjustQuantity(I1, 1);
-  await until(() => calls.mutate.length === 1);
-  void controller.recheck('navigation'); // deferred behind the change, which never settles
-  controller.dispose();
-  await controller.start(member(A)); // remount, which replays the interrupted change
-  hold = true;
-  const change = controller.adjustQuantity(I1, 1);
-  await until(() => calls.mutate.length === 3 && store.getState().phase === 'mutating');
-  let done = false;
-  const recheck = controller.recheck('navigation').then(() => { done = true; });
-  held.resolve(ok(receipt(calls.mutate.at(-1))));
-  await change;
-  await until(() => done);
-  await recheck;
 });
 
 const mergeItems = command => command.operation.items;
@@ -979,14 +910,14 @@ test('a login merge the server definitively rejects is held for that account and
     assert.deepEqual(document.heldByAccount[A], [{ productId: 1, variantId: 2, quantity: 2 }]);
     assert.equal(calls.read.length, 1);
     assert.deepEqual(store.getState().cart.notices.filter(notice => notice.kind === 'merge_returned'), [{ kind: 'merge_returned' }]);
-    await controller.recheck('navigation');
     await controller.enterCart();
-    assert.equal(calls.mutate.length, 1, 'navigation and cart entry do not resend a held merge');
+    assert.equal(calls.mutate.length, 1, 'cart entry does not resend a held merge');
+    assert.equal(store.getState().heldCount, 1);
     assert.equal(store.getState().cart.notices.some(notice => notice.kind === 'merge_returned'), false, 'the notice is shown once');
   }
 });
 
-test('two open tabs settle a deterministic merge rejection with a bounded number of sends', async t => {
+test('two open tabs send a deterministic merge rejection once and keep its items held', async t => {
   let sends = 0;
   const slow = async command => { if (command.operation.kind === 'merge_guest') sends++; await new Promise(resolve => setTimeout(resolve, 5)); return rejectMerges()(command); };
   const [first, second] = twoTabs(() => member(A), [{ mutate: slow }, { mutate: slow }]);
@@ -997,7 +928,10 @@ test('two open tabs settle a deterministic merge rejection with a bounded number
   const settled = sends;
   await new Promise(resolve => setTimeout(resolve, 200));
   assert.equal(sends, settled, 'no further merge sends once both tabs settle');
-  assert.ok(sends <= 4, `each tab entering retries at most once: ${sends}`);
+  assert.equal(sends, 1, 'only the tab that staged the merge sends it');
+  // The other tab met that merge while it was pending; its explicit retry only rereads.
+  for (const tab of [first, second]) if (tab.store.getState().phase !== 'ready') await tab.controller.retry();
+  assert.equal(sends, 1);
   assert.equal(first.store.getState().phase, 'ready');
   assert.equal(second.store.getState().phase, 'ready');
   assert.deepEqual((await first.env.local.read()).heldByAccount[A], [{ productId: 1, variantId: 2, quantity: 2 }]);
@@ -1023,7 +957,7 @@ test('a held merge stays with its account through logout and never reaches the n
   assert.deepEqual((await env.local.read()).heldByAccount[A], [{ productId: 1, variantId: 2, quantity: 2 }]);
 });
 
-test('a held merge is retried once when the same account enters again', async t => {
+test('a held merge stays held when the same account enters again', async t => {
   const env = storageEnvironment();
   await env.local.updateGuest(0, [line()]);
   const first = setup({ env, mutate: rejectMerges() });
@@ -1033,8 +967,9 @@ test('a held merge is retried once when the same account enters again', async t 
   t.after(() => again.controller.dispose());
   await again.controller.start(member(A));
   assert.equal(again.store.getState().phase, 'ready');
-  assert.deepEqual(again.calls.mutate.map(mergeItems), [[{ productId: 1, variantId: 2, quantity: 2 }]]);
-  assert.equal((await env.local.read()).heldByAccount?.[A], undefined);
+  assert.equal(again.calls.mutate.length, 0, 'held items move only on the user\'s request');
+  assert.equal(again.store.getState().heldCount, 1);
+  assert.deepEqual((await env.local.read()).heldByAccount[A], [{ productId: 1, variantId: 2, quantity: 2 }]);
 });
 
 test('entering the cart while another tab\'s login is pending keeps the retry instead of an endless spinner', async t => {
@@ -1049,15 +984,19 @@ test('entering the cart while another tab\'s login is pending keeps the retry in
   assert.equal(store.getState().phase, 'ready');
 });
 
-test('an add made while another tab\'s request is still queued sends that request first, then its own', async t => {
+test('an add made while another tab\'s request is still queued is blocked and retry sends only that request', async t => {
   const env = storageEnvironment(); const { controller, store, calls } = setup({ env });
   t.after(() => controller.dispose()); await controller.start(member(A));
   const foreign = { version: 1, requestId: env.newId(), expectedUserId: A, operation: { kind: 'remove_items', itemIds: [I2] } };
   await env.local.enqueue(foreign); // another tab's add is in flight; no storage event has arrived yet
   const reply = await controller.addItems([{ productId: 1, variantId: 2, quantity: 1 }]);
-  assert.equal(reply.status, 'ok');
-  assert.ok(reply.requestId);
-  assert.deepEqual(calls.mutate.map(command => command.requestId), [foreign.requestId, reply.requestId]);
+  assert.equal(reply.status, 'retryable');
+  assert.equal(reply.message, '확인이 필요한 장바구니 요청이 있습니다. 다시 시도를 눌러 확인해주세요.');
+  assert.equal(reply.requestId, undefined);
+  assert.equal(calls.mutate.length, 0);
+  assert.equal(store.getState().unresolved, true);
+  await controller.retry();
+  assert.deepEqual(calls.mutate.map(command => command.requestId), [foreign.requestId]);
   assert.equal(await env.local.peek(A), null);
   assert.equal(store.getState().phase, 'ready');
 });
@@ -1068,7 +1007,7 @@ async function holdFor(local, userId, items = [line()]) {
   await local.holdMerge(await local.stageMerge(userId));
 }
 
-test('a tab that followed another tab\'s logout retries held items and tells other tabs when the same account logs in there', async t => {
+test('a tab that followed another tab\'s logout keeps held items and tells other tabs when the same account logs in there', async t => {
   let actual = member(A);
   const [first, second] = twoTabs(() => actual);
   t.after(() => { first.controller.dispose(); second.controller.dispose(); });
@@ -1082,12 +1021,13 @@ test('a tab that followed another tab\'s logout retries held items and tells oth
   actual = member(A);
   await second.controller.start(member(A)); // the login redirect in the tab that only learned of the logout
   assert.equal(second.store.getState().phase, 'ready');
-  assert.deepEqual(second.calls.mutate.filter(command => command.operation.kind === 'merge_guest').map(mergeItems), [[{ productId: 1, variantId: 2, quantity: 2 }]]);
-  assert.equal((await second.env.local.read()).heldByAccount?.[A], undefined);
+  assert.equal(second.calls.mutate.filter(command => command.operation.kind === 'merge_guest').length, 0);
+  assert.equal(second.store.getState().heldCount, 1);
+  assert.deepEqual((await second.env.local.read()).heldByAccount[A], [{ productId: 1, variantId: 2, quantity: 2 }]);
   await until(() => first.store.getState().access?.status === 'member' && first.store.getState().phase === 'ready');
 });
 
-test('a fresh mount that recovers from an error snapshot still retries the account\'s held items', async t => {
+test('a fresh mount that recovers from an error snapshot shows the account\'s held items without moving them', async t => {
   const env = storageEnvironment();
   await holdFor(env.local, A);
   const { controller, store, calls } = setup({ env });
@@ -1096,6 +1036,9 @@ test('a fresh mount that recovers from an error snapshot still retries the accou
   assert.equal(store.getState().phase, 'retryable');
   await controller.retry();
   assert.equal(store.getState().phase, 'ready');
+  assert.equal(calls.mutate.length, 0);
+  assert.equal(store.getState().heldCount, 1);
+  assert.equal((await controller.moveHeldItems()).status, 'ok');
   assert.deepEqual(calls.mutate.map(mergeItems), [[{ productId: 1, variantId: 2, quantity: 2 }]]);
   assert.equal((await env.local.read()).heldByAccount?.[A], undefined);
 });
@@ -1149,4 +1092,228 @@ test('stale props from before a login another tab announced do not announce an a
   const epoch = (await second.env.local.read()).authEpoch;
   await second.controller.start(guest); // props rendered before the login cookie reached this tab
   assert.equal((await second.env.local.read()).authEpoch, epoch);
+});
+
+test('a same-account login elsewhere, delivered before the reply, keeps the add applied and its result recorded', async t => {
+  const held = deferred();
+  const [first, second] = twoTabs(() => member(A), [{ mutate: (command, n) => n === 1 ? held.promise : ok(receipt(command)) }]);
+  t.after(() => { first.controller.dispose(); second.controller.dispose(); });
+  await Promise.all([first.controller.start(member(A)), second.controller.start(member(A))]);
+  const add = first.controller.addItems([{ productId: 1, variantId: 2, quantity: 1 }]);
+  await until(() => first.calls.mutate.length === 1);
+  await second.env.local.notifyAccountChange(); // storage event reaches the first tab before its reply
+  await setImmediate(); await setImmediate();
+  held.resolve(ok(receipt(first.calls.mutate[0])));
+  const reply = await add;
+  assert.equal(reply.status, 'ok');
+  assert.equal(first.store.getState().settledRequests[reply.requestId].outcome, 'applied');
+  assert.equal(first.calls.mutate.length, 1);
+  assert.equal(first.store.getState().phase, 'ready');
+});
+
+test('a transient access error during a same-account notice neither aborts the add nor forgets its result', async t => {
+  let fail = false; const held = deferred();
+  const [first, second] = twoTabs(() => fail ? { status: 'error', message: 'x' } : member(A), [{ mutate: (command, n) => n === 1 ? held.promise : ok(receipt(command)) }]);
+  t.after(() => { first.controller.dispose(); second.controller.dispose(); });
+  await Promise.all([first.controller.start(member(A)), second.controller.start(member(A))]);
+  const mark = first.calls.signals.length; // the finished start flow's signal is aborted by the next launch; only this add's signals count
+  const add = first.controller.addItems([{ productId: 1, variantId: 2, quantity: 1 }]);
+  await until(() => first.calls.mutate.length === 1);
+  fail = true; await second.env.local.notifyAccountChange(); await setImmediate();
+  held.resolve(ok(receipt(first.calls.mutate[0])));
+  const reply = await add;
+  assert.equal(reply.status, 'ok');
+  assert.ok(first.store.getState().settledRequests[reply.requestId]);
+  assert.equal(first.calls.signals.slice(mark).filter(signal => signal.aborted).length, 0);
+  assert.equal(await first.env.local.peek(A), null); // confirmed by the server for A, so acknowledged
+  assert.equal(first.store.getState().phase, 'retryable'); // the account is unknown, so the view stays locked
+  assert.equal(first.calls.mutate.length, 1);
+});
+
+test('a logout start from another tab hides the cart at once even behind a stuck access check and a stuck add', async t => {
+  const never = deferred(); let stuck = false;
+  const [first, second] = twoTabs(() => stuck ? never.promise : member(A), [{ mutate: () => never.promise }]);
+  t.after(() => { first.controller.dispose(); second.controller.dispose(); });
+  await Promise.all([first.controller.start(member(A)), second.controller.start(member(A))]);
+  void first.controller.addItems([{ productId: 1, variantId: 2, quantity: 1 }]);
+  await until(() => first.calls.mutate.length === 1);
+  stuck = true; await second.env.local.notifyAccountChange(); await setImmediate(); // its access check never answers
+  await second.env.local.announceAuthTransition(true); // another tab starts logging out
+  await until(() => first.store.getState().cart === null);
+  assert.equal(first.store.getState().access, null);
+});
+
+test('a plain quantity notice from another tab makes no cart request', async t => {
+  const [first, second] = twoTabs(() => member(A));
+  t.after(() => { first.controller.dispose(); second.controller.dispose(); });
+  await Promise.all([first.controller.start(member(A)), second.controller.start(member(A))]);
+  await setImmediate(); await setImmediate();
+  const before = { access: first.calls.access, read: first.calls.read.length };
+  await second.controller.adjustQuantity(I1, 1); await setImmediate(); await setImmediate();
+  assert.deepEqual({ access: first.calls.access, read: first.calls.read.length }, before);
+  assert.equal(first.calls.mutate.length, 0);
+});
+
+test('a remount with a pending request shows the cart read-only and resends nothing until retry', async () => {
+  const env = storageEnvironment();
+  const stuck = { version: 1, requestId: env.newId(), expectedUserId: A, operation: { kind: 'remove_items', itemIds: [I2] } };
+  await env.local.enqueue(stuck);
+  const { controller, store, calls } = setup({ env });
+  await controller.start(member(A));
+  assert.equal(calls.mutate.length, 0);
+  assert.equal(calls.read.length, 1);
+  assert.equal(store.getState().phase, 'retryable');
+  assert.equal(store.getState().unresolved, true);
+  assert.ok(store.getState().cart);
+  assert.equal((await controller.addItems([{ productId: 1, variantId: 2, quantity: 1 }])).status, 'retryable');
+  assert.equal(calls.mutate.length, 0);
+  await controller.retry();
+  assert.deepEqual(calls.mutate, [stuck]);
+  assert.equal(store.getState().unresolved, false);
+  assert.equal(store.getState().phase, 'ready');
+});
+
+test('a login with nothing pending sends its new merge once; with an earlier pending request it holds the merge', async () => {
+  for (const earlier of [false, true]) {
+    const env = storageEnvironment(); await env.local.updateGuest(0, [line()]);
+    if (earlier) await env.local.enqueue({ version: 1, requestId: env.newId(), expectedUserId: A, operation: { kind: 'remove_items', itemIds: [I2] } });
+    const { controller, calls, store } = setup({ env });
+    await controller.start(member(A));
+    assert.equal(calls.mutate.length, earlier ? 0 : 1, String(earlier));
+    assert.equal(store.getState().unresolved, earlier);
+    assert.equal((await env.local.read()).guest.items.length, 0); // bound to A either way
+  }
+});
+
+test('a request another tab saves right before the merge is staged keeps the new merge unsent', async () => {
+  const env = storageEnvironment(); await env.local.updateGuest(0, [line()]);
+  const stageMerge = env.local.stageMerge;
+  // Another tab enqueues between this tab's account check and its stageMerge lock.
+  env.local.stageMerge = async (...args) => { await env.local.enqueue({ version: 1, requestId: env.newId(), expectedUserId: A, operation: { kind: 'remove_items', itemIds: [I2] } }); return stageMerge(...args); };
+  const { controller, calls, store } = setup({ env });
+  await controller.start(member(A));
+  assert.equal(calls.mutate.length, 0);
+  assert.equal(store.getState().unresolved, true);
+  assert.equal((await env.local.read()).pendingByAccount[A].length, 2);
+});
+
+test('the other open tab neither sends a login merge it did not create nor stays locked after an explicit retry', async t => {
+  // Either tab may stage the merge first (the login notice races the initiating tab's stageMerge); only the stager sends.
+  let actual = guest; const held = deferred();
+  const hold = { mutate: async command => { await held.promise; return ok(receipt(command)); } };
+  const tabs = twoTabs(() => actual, [hold, hold]);
+  t.after(() => tabs.forEach(tab => tab.controller.dispose()));
+  await tabs[0].env.local.updateGuest(0, [line()]);
+  await Promise.all(tabs.map(tab => tab.controller.start(guest)));
+  actual = member(A); const login = tabs[0].controller.start(member(A));
+  await until(() => tabs.every(tab => tab.store.getState().access?.status === 'member') && tabs.some(tab => tab.calls.mutate.length === 1));
+  const sender = tabs.find(tab => tab.calls.mutate.length === 1); const other = tabs.find(tab => tab !== sender);
+  assert.equal(other.calls.mutate.length, 0);
+  await until(() => other.store.getState().unresolved === true);
+  held.resolve(); await login; await until(() => sender.store.getState().phase === 'ready');
+  await other.controller.retry();
+  assert.equal(other.calls.mutate.length, 0);
+  assert.equal(other.store.getState().phase, 'ready');
+  assert.equal(other.store.getState().unresolved, false);
+});
+
+test('cart entry during a change that never answers keeps the last cart visible and starts nothing', async () => {
+  const never = deferred();
+  const { controller, store, calls } = setup({ mutate: () => never.promise });
+  await controller.start(member(A));
+  const mark = calls.signals.length;
+  void controller.adjustQuantity(I1, 1); await until(() => calls.mutate.length === 1);
+  void controller.enterCart(); await setImmediate();
+  assert.ok(store.getState().cart);
+  assert.equal(store.getState().phase, 'mutating');
+  assert.equal(calls.read.length, 1);
+  assert.equal(calls.mutate.length, 1);
+  assert.equal(calls.signals.slice(mark).filter(signal => signal.aborted).length, 0);
+});
+
+test('held items stay held on every entry and move only when the user asks', async () => {
+  const env = storageEnvironment(); await holdFor(env.local, A);
+  const { controller, store, calls } = setup({ env });
+  await controller.start(member(A)); await controller.enterCart();
+  assert.equal(calls.mutate.length, 0);
+  assert.equal(store.getState().heldCount, 1);
+  const reply = await controller.moveHeldItems();
+  assert.equal(reply.status, 'ok');
+  assert.ok(reply.requestId);
+  assert.equal(calls.mutate.length, 1);
+  assert.equal(calls.mutate[0].operation.kind, 'merge_guest');
+  assert.equal(store.getState().heldCount, 0);
+  assert.equal((await env.local.read()).heldByAccount, undefined);
+  assert.equal(store.getState().phase, 'ready');
+});
+
+test('moving held items stays unsent when another tab saved a request after this screen was ready', async () => {
+  const env = storageEnvironment(); await holdFor(env.local, A);
+  const { controller, calls, store } = setup({ env });
+  await controller.start(member(A));
+  assert.equal(store.getState().unresolved, false);
+  await env.local.enqueue({ version: 1, requestId: env.newId(), expectedUserId: A, operation: { kind: 'remove_items', itemIds: [I2] } });
+  assert.equal((await controller.moveHeldItems()).status, 'retryable');
+  assert.equal(calls.mutate.length, 0);
+  assert.equal(store.getState().unresolved, true);
+  assert.equal((await env.local.read()).heldByAccount[A].length, 1);
+});
+
+test('moving held items is refused while an uncertain request is pending', async () => {
+  const env = storageEnvironment(); await holdFor(env.local, A);
+  await env.local.enqueue({ version: 1, requestId: env.newId(), expectedUserId: A, operation: { kind: 'remove_items', itemIds: [I2] } });
+  const { controller, calls } = setup({ env });
+  await controller.start(member(A));
+  assert.equal((await controller.moveHeldItems()).status, 'retryable');
+  assert.equal(calls.mutate.length, 0);
+});
+
+test('a logout-start notice read just before this tab\'s login props does not strand the login tab', async t => {
+  let actual = guest;
+  const [first, second] = twoTabs(() => actual);
+  t.after(() => { first.controller.dispose(); second.controller.dispose(); });
+  await Promise.all([first.controller.start(guest), second.controller.start(guest)]);
+  first.controller.beginAuthTransition(); await setImmediate(); await setImmediate();
+  actual = member(A);
+  first.emit(); await Promise.resolve(); await Promise.resolve(); // its read is queued before the login props' own auth write
+  await first.controller.start(member(A));
+  await until(() => first.store.getState().phase === 'ready');
+  assert.deepEqual(first.store.getState().access, member(A));
+  assert.equal((await first.env.local.read()).authPending, false);
+});
+
+test('a lost login-merge reply flags the account as needing a check', async () => {
+  const env = storageEnvironment(); await env.local.updateGuest(0, [line()]);
+  const { controller, store, calls } = setup({ env, mutate: () => ({ status: 'retryable', message: 'net' }) });
+  await controller.start(member(A));
+  assert.equal(calls.mutate.length, 1);
+  assert.equal(store.getState().phase, 'retryable');
+  assert.equal(store.getState().unresolved, true);
+});
+
+test('a late access error from a notice does not undo a newer successful check of the same epoch', async t => {
+  let errors = 0; const held = deferred();
+  const [first, second] = twoTabs(() => errors-- > 0 ? { status: 'error', message: 'x' } : member(A), [{ mutate: (command, n) => n === 1 ? held.promise : ok(receipt(command)) }]);
+  t.after(() => { first.controller.dispose(); second.controller.dispose(); });
+  await Promise.all([first.controller.start(member(A)), second.controller.start(member(A))]);
+  const add = first.controller.addItems([{ productId: 1, variantId: 2, quantity: 1 }]);
+  await until(() => first.calls.mutate.length === 1);
+  errors = 1; await second.env.local.notifyAccountChange(); // the notice's check fails once…
+  await until(() => first.calls.access >= 1);
+  held.resolve(ok(receipt(first.calls.mutate[0]))); // …then the add's own check confirms A for that epoch
+  assert.equal((await add).status, 'ok');
+  for (let i = 0; i < 5; i++) await setImmediate();
+  assert.equal(first.store.getState().phase, 'ready');
+});
+
+test('an access error notice keeps the specific message of a request awaiting retry', async t => {
+  let fail = false;
+  const [first, second] = twoTabs(() => fail ? { status: 'error', message: 'x' } : member(A));
+  t.after(() => { first.controller.dispose(); second.controller.dispose(); });
+  await first.env.local.enqueue({ version: 1, requestId: first.env.newId(), expectedUserId: A, operation: { kind: 'remove_items', itemIds: [I2] } });
+  await Promise.all([first.controller.start(member(A)), second.controller.start(member(A))]);
+  assert.equal(first.store.getState().unresolved, true);
+  fail = true; await second.env.local.notifyAccountChange();
+  await until(() => first.calls.access >= 1); for (let i = 0; i < 5; i++) await setImmediate();
+  assert.equal(first.store.getState().message, '확인이 필요한 장바구니 요청이 있습니다. 다시 시도를 눌러 확인해주세요.');
 });
