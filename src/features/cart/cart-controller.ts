@@ -60,6 +60,8 @@ export function createCartController({ store, local, actions, loadProducts, newI
   let cartId: string | null = null;
   let revision: bigint | null = null;
   let observedEpoch: number | null = null;
+  // A failed or still-running auth check is not retried by quantity/ack writes at the same epoch.
+  let handledAuthEpoch: number | null = null;
   // An interrupted login merge, bound to the guest revision seen when that member was confirmed.
   let mergeOwner: { userId: string; guestRevision: number } | null = null;
   // Storage notices are decided one at a time from local state only; network checks run outside this chain.
@@ -130,7 +132,21 @@ export function createCartController({ store, local, actions, loadProducts, newI
     set({ access, message: null });
   }
 
+  // Mask only the view: the original owner, in-flight request and settled results remain intact.
+  function hideUnknownAccess() {
+    set({ access: null, cart: null, selectedIds: [], phase: 'retryable', message: store.getState().unresolved ? unresolvedMessage : retryMessage });
+  }
+
   function publish(received: CartViewModel) {
+    // An auth check can fail while local acknowledgement is awaited, after the response's epoch check.
+    if (store.getState().access === null) {
+      hideUnknownAccess();
+      if (received.operation) {
+        set({ settledRequests: { ...store.getState().settledRequests, [received.operation.requestId]: received.operation } });
+        throw new SettledWhileUnknown({ status: 'ok', cart: received });
+      }
+      throw new AccessUnknown();
+    }
     published++;
     const cart = heldNoticeFor !== null && received.owner.kind === 'member' && received.owner.userId === heldNoticeFor
       ? { ...received, notices: [...received.notices, { kind: 'merge_returned' as const }] } : received;
@@ -152,12 +168,14 @@ export function createCartController({ store, local, actions, loadProducts, newI
 
   async function checkEpoch(ctx: Context) {
     const document = await local.read(); holdPendingAuth(ctx, document);
-    if (ctx.epoch !== undefined && ctx.epoch !== document.authEpoch) {
+    if (ctx.epoch !== undefined && (ctx.epoch !== document.authEpoch || observedEpoch !== document.authEpoch)) {
+      handledAuthEpoch = document.authEpoch;
       const access = await actions.resolveAccess({ signal: ctx.signal }); check(ctx);
-      if (access.status === 'error') throw new AccessUnknown();
+      if (access.status === 'error') { hideUnknownAccess(); throw new AccessUnknown(); }
       if (owner !== key(access)) throw new AccessChange(access);
       // Another tab confirmed the same account: the flow keeps going.
       ctx.epoch = document.authEpoch; observedEpoch = document.authEpoch;
+      set({ access });
     }
     return document;
   }
@@ -418,7 +436,8 @@ export function createCartController({ store, local, actions, loadProducts, newI
         else set({ cart: null, access: null, selectedIds: [], phase: 'retryable', message: pendingAuthMessage });
         return;
       }
-      if (observedEpoch === null || document.authEpoch === observedEpoch) return;
+      if (observedEpoch === null || document.authEpoch === observedEpoch || document.authEpoch === handledAuthEpoch) return;
+      handledAuthEpoch = document.authEpoch;
       void confirmAccount(++noticeToken, document.authEpoch, generation);
     });
     return storageCheck;
@@ -428,15 +447,14 @@ export function createCartController({ store, local, actions, loadProducts, newI
     let access: CartAccess;
     // Its own signal: a session check must never abort this tab's in-flight change.
     try { access = await actions.resolveAccess({ signal: new AbortController().signal }); } catch { access = { status: 'error', message: retryMessage }; }
-    const latest = () => active && token === noticeToken && seen === generation;
+    const latest = () => active && token === noticeToken && seen === generation && handledAuthEpoch === epoch;
     if (!latest()) return;
     if (access.status === 'error') {
-      // A newer check that already confirmed this epoch (e.g. the change's own) wins; a waiting request keeps its own message.
-      const show = () => { if (latest() && observedEpoch !== epoch) set({ phase: 'retryable', message: store.getState().unresolved ? unresolvedMessage : retryMessage }); };
-      if (running) void running.finally(show); else show();
+      // A newer successful check wins; otherwise hide the old account without aborting its request.
+      if (observedEpoch !== epoch) hideUnknownAccess();
       return;
     }
-    if (owner === key(access)) { observedEpoch = epoch; return; }
+    if (owner === key(access)) { observedEpoch = epoch; set({ access }); return; }
     void launch(ctx => initialize(ctx, access));
   }
 
@@ -521,7 +539,7 @@ export function createCartController({ store, local, actions, loadProducts, newI
       // Equal props while a request awaits the user's retry must not reread the cart.
       if (active && owner === key(access) && store.getState().phase === 'retryable' && store.getState().unresolved) return Promise.resolve();
       // Same-account props re-created mid change/sync (e.g. a cookie-refreshing Server Action) must not abort it.
-      if (active && owner === key(access) && running && ['mutating', 'syncing', 'restoring'].includes(store.getState().phase)) return running.then(() => {});
+      if (active && owner === key(access) && running && (store.getState().access === null || ['mutating', 'syncing', 'restoring'].includes(store.getState().phase))) return running.then(() => {});
       // Only the initiating tab can complete its pending transition from new
       // server props. Another tab's stale props must never unlock that transition.
       if (pendingAuthOwner !== null && pendingAuthOwner !== key(access)) {

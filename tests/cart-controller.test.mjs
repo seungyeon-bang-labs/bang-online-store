@@ -1120,6 +1120,10 @@ test('a transient access error during a same-account notice neither aborts the a
   const add = first.controller.addItems([{ productId: 1, variantId: 2, quantity: 1 }]);
   await until(() => first.calls.mutate.length === 1);
   fail = true; await second.env.local.notifyAccountChange(); await setImmediate();
+  await until(() => first.calls.access >= 1);
+  await setImmediate();
+  assert.equal(first.store.getState().access, null);
+  assert.equal(first.store.getState().cart, null, 'an unresolved account hides its cart before the add finishes');
   held.resolve(ok(receipt(first.calls.mutate[0])));
   const reply = await add;
   assert.equal(reply.status, 'ok');
@@ -1127,6 +1131,7 @@ test('a transient access error during a same-account notice neither aborts the a
   assert.equal(first.calls.signals.slice(mark).filter(signal => signal.aborted).length, 0);
   assert.equal(await first.env.local.peek(A), null); // confirmed by the server for A, so acknowledged
   assert.equal(first.store.getState().phase, 'retryable'); // the account is unknown, so the view stays locked
+  assert.equal(first.store.getState().cart, null);
   assert.equal(first.calls.mutate.length, 1);
 });
 
@@ -1316,4 +1321,158 @@ test('an access error notice keeps the specific message of a request awaiting re
   fail = true; await second.env.local.notifyAccountChange();
   await until(() => first.calls.access >= 1); for (let i = 0; i < 5; i++) await setImmediate();
   assert.equal(first.store.getState().message, '확인이 필요한 장바구니 요청이 있습니다. 다시 시도를 눌러 확인해주세요.');
+});
+
+test('quantity notices do not repeat a failed auth check', async t => {
+  let actual = { status: 'error', message: 'offline' };
+  const { controller, store, env, calls } = setup({ resolve: () => actual });
+  t.after(() => controller.dispose());
+  await controller.start(member(A));
+  await env.local.notifyAccountChange();
+  await controller.recheck('storage');
+  await until(() => store.getState().phase === 'retryable');
+  assert.equal(calls.access, 1);
+  actual = member(B);
+  for (let revision = 0; revision < 3; revision++) {
+    await env.local.updateGuest(revision, []);
+    await controller.recheck('storage');
+    await setImmediate();
+  }
+  assert.equal(calls.access, 1, 'quantity-only writes do not retry the failed epoch');
+  assert.equal(calls.read.length, 1);
+  assert.equal(calls.mutate.length, 0);
+  // A genuinely new account notification still starts one check and loads B.
+  await env.local.notifyAccountChange();
+  await controller.recheck('storage');
+  await until(() => store.getState().cart?.owner.userId === B && store.getState().phase === 'ready');
+  assert.equal(calls.access, 2);
+});
+
+test('quantity notices do not replace an auth check already in flight', async t => {
+  const access = deferred();
+  const { controller, store, env, calls } = setup({ resolve: () => access.promise });
+  t.after(() => controller.dispose());
+  await controller.start(member(A));
+  await env.local.notifyAccountChange();
+  await controller.recheck('storage');
+  assert.equal(calls.access, 1);
+  await env.local.updateGuest(0, []);
+  await controller.recheck('storage');
+  assert.equal(calls.access, 1);
+  access.resolve(member(B));
+  await until(() => store.getState().cart?.owner.userId === B && store.getState().phase === 'ready');
+  assert.equal(calls.read.length, 2);
+});
+
+for (const recoveredUser of [A, B]) test(`an unknown account hides the pending cart until manual recovery to ${recoveredUser === A ? 'the same account' : 'another account'}`, async t => {
+  let actual = { status: 'error', message: 'offline' };
+  const { controller, store, env, calls } = setup({ resolve: () => actual,
+    mutate: (command, n) => n === 2 ? { status: 'retryable', message: 'lost response' } : ok(receipt(command)) });
+  t.after(() => controller.dispose());
+  await controller.start(member(A));
+  const settled = await controller.adjustQuantity(I1, 1);
+  store.getState().setSelected(I1, true);
+  assert.equal((await controller.removeItems([I1])).status, 'retryable');
+  const pending = await env.local.peek(A);
+  await env.local.notifyAccountChange();
+  await controller.recheck('storage');
+  await until(() => calls.access === 1);
+  await setImmediate();
+  assert.equal(store.getState().access, null);
+  assert.equal(store.getState().cart, null);
+  assert.deepEqual(store.getState().selectedIds, []);
+  const { selectCartItemCount, selectCartNeedsCheck } = loadTs('src/features/cart/cart-count.ts');
+  assert.equal(selectCartItemCount(store.getState()), null);
+  assert.equal(selectCartNeedsCheck(store.getState()), false);
+  assert.equal(store.getState().settledRequests[settled.requestId].outcome, 'applied');
+  assert.deepEqual(await env.local.peek(A), pending);
+  await controller.enterCart(); // recovery stays explicit; entry cannot revive stale owner props
+  assert.equal(calls.access, 1);
+  assert.equal(calls.mutate.length, 2);
+  actual = member(recoveredUser);
+  await controller.retry();
+  assert.equal(store.getState().phase, 'ready');
+  assert.equal(store.getState().cart.owner.userId, recoveredUser);
+  if (recoveredUser === A) {
+    assert.deepEqual(calls.mutate.slice(1), [pending, pending]);
+    assert.equal(await env.local.peek(A), null);
+    assert.equal(store.getState().settledRequests[settled.requestId].outcome, 'applied');
+  } else {
+    assert.equal(calls.mutate.length, 2, 'B never sends the preserved A request');
+    assert.deepEqual(await env.local.peek(A), pending);
+    assert.deepEqual(store.getState().settledRequests, {});
+  }
+});
+
+test('an auth failure during local acknowledgement cannot republish the old cart or abort the request on same-account props', async t => {
+  const acknowledged = deferred(); const release = deferred(); let fail = false;
+  const base = storageEnvironment();
+  const local = { ...base.local, ack: async command => {
+    acknowledged.resolve(); await release.promise; await base.local.ack(command);
+  } };
+  const { controller, store, calls } = setup({ env: { ...base, local }, resolve: () => fail ? { status: 'error', message: 'offline' } : member(A) });
+  t.after(() => controller.dispose());
+  await controller.start(member(A));
+  await controller.recheck('auth'); // clears the old start job; later props must preserve the current change
+  const mark = calls.signals.length;
+  const change = controller.adjustQuantity(I1, 1);
+  await acknowledged.promise;
+  fail = true; await local.notifyAccountChange(); await controller.recheck('storage');
+  await until(() => calls.access >= 2);
+  await setImmediate();
+  assert.equal(store.getState().cart, null);
+  const props = controller.start(member(A));
+  assert.equal(calls.signals.slice(mark).some(signal => signal.aborted), false);
+  release.resolve();
+  const reply = await change;
+  await props;
+  assert.equal(reply.status, 'ok');
+  assert.equal(calls.mutate.length, 1);
+  assert.equal(store.getState().cart, null);
+  assert.equal(store.getState().phase, 'retryable');
+  assert.equal(store.getState().settledRequests[reply.requestId].outcome, 'applied');
+  assert.equal(await local.peek(A), null);
+});
+
+test('a change started after an unseen auth epoch verifies the account before publishing its result', async t => {
+  const held = deferred();
+  const { controller, store, env, calls } = setup({ resolve: () => ({ status: 'error', message: 'offline' }), mutate: () => held.promise });
+  t.after(() => controller.dispose());
+  await controller.start(member(A));
+  await env.local.notifyAccountChange(); // stored already, but its storage event has not reached this tab
+  const change = controller.adjustQuantity(I1, 1);
+  await until(() => calls.mutate.length === 1);
+  held.resolve(ok(receipt(calls.mutate[0])));
+  const reply = await change;
+  assert.equal(reply.status, 'ok');
+  assert.equal(store.getState().cart, null);
+  assert.equal(store.getState().access, null);
+  assert.equal(store.getState().settledRequests[reply.requestId].outcome, 'applied');
+  assert.equal(await env.local.peek(A), null);
+  assert.equal(calls.access, 1);
+  await env.local.updateGuest(0, []);
+  await controller.recheck('storage');
+  await setImmediate();
+  assert.equal(calls.access, 1, 'the mutation-side check already handled this auth epoch');
+});
+
+test('an older auth notice error cannot hide a cart confirmed for a newer epoch', async t => {
+  const oldAccess = deferred(); const held = deferred(); let checks = 0;
+  const { controller, store, env, calls } = setup({ resolve: () => ++checks === 1 ? oldAccess.promise : member(A), mutate: () => held.promise });
+  t.after(() => controller.dispose());
+  await controller.start(member(A));
+  const change = controller.adjustQuantity(I1, 1);
+  await until(() => calls.mutate.length === 1);
+  await env.local.notifyAccountChange();
+  await controller.recheck('storage'); // epoch 1's check stays in flight
+  await env.local.notifyAccountChange(); // epoch 2 is confirmed by the mutation before its storage event arrives
+  held.resolve(ok(receipt(calls.mutate[0])));
+  assert.equal((await change).status, 'ok');
+  assert.equal(store.getState().phase, 'ready');
+  oldAccess.resolve({ status: 'error', message: 'late error' });
+  for (let n = 0; n < 3; n++) await setImmediate();
+  assert.equal(store.getState().phase, 'ready');
+  assert.deepEqual(store.getState().access, member(A));
+  assert.equal(store.getState().cart.owner.userId, A);
+  assert.equal(calls.access, 2);
 });
