@@ -1,7 +1,9 @@
 import { z } from 'zod';
 import type { CartProductRequestItem, CartProductResponse } from '@/domains/cart/cart.api';
+import { cartRequestTimeoutMs } from '@/domains/cart/cart.contract';
+import { numericIdSchema as id } from '@/domains/cart/cart.schema';
+import { pairKey } from './guest-cart';
 
-const id = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
 const stock = z.number().int().nonnegative().max(2147483647);
 const money = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 const pair = z.object({ productId: id, variantId: id });
@@ -38,14 +40,14 @@ export function parseGuestCartProductResponse(value: unknown): CartProductRespon
   return result;
 }
 
-export async function loadCartProducts(items: readonly CartProductRequestItem[], signal?: AbortSignal): Promise<CartProductResponse> {
+export async function loadCartProducts(items: readonly CartProductRequestItem[], timeoutMs = cartRequestTimeoutMs): Promise<CartProductResponse> {
   const input = z.array(pair).parse(items);
   const reply = await fetch('/api/cart/products', {
-    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(input), cache: 'no-store', signal,
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(input), cache: 'no-store', signal: AbortSignal.timeout(timeoutMs),
   });
   if (!reply.ok) throw new Error('장바구니 상품을 불러오지 못했습니다.');
   const result = parseGuestCartProductResponse(await reply.json());
-  const requested = new Set(input.map(item => `${item.productId}:${item.variantId}`));
-  if (result.cartItems.some(item => !requested.has(`${item.productId}:${item.variantId}`))) throw new Error('상품 응답이 요청과 일치하지 않습니다.');
+  const requested = new Set(input.map(pairKey));
+  if (result.cartItems.some(item => !requested.has(pairKey(item)))) throw new Error('상품 응답이 요청과 일치하지 않습니다.');
   return result;
 }

@@ -110,6 +110,15 @@ test('RPC failures distinguish request conflict/invalid input and recheck access
   assert.equal(calls.apply.length, 1);
 });
 
+test('a database refusal for the member the session still confirms is retryable, not an account change', async () => {
+  // The session check and the cart RPC disagree (e.g. users.email_verified_at drifted): restarting would loop forever.
+  const { actions, calls } = setup({ repositoryError: 'access_changed' });
+  const reply = await actions.mutateCart(command());
+  assert.equal(reply.status, 'retryable');
+  assert.equal(calls.access, 2);
+  assert.equal((await setup({ repositoryError: 'access_changed' }).actions.readCart({ expectedUserId: A })).status, 'retryable');
+});
+
 test('database, client and persistent display failures return safe retryable replies', async () => {
   for (const config of [
     { ordinaryError: new Error('PRIVATE_DB_DETAIL') }, { clientError: new Error('PRIVATE_COOKIE_DETAIL') }, { missingProduct: true },

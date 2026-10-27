@@ -13,6 +13,17 @@
 
 앱 실행과 환경변수 설정은 [프로젝트 README](../README.md)를 참고합니다.
 
+## 장바구니 클라이언트 재구성 — 2026-10-28
+
+DB·RPC·Route Handler는 바꾸지 않고 브라우저 장바구니 클라이언트를 단순한 구조로 다시 만들었습니다. 아래 2026-10-23·10-24 기록의 계정별 고정 요청 큐, Web Locks, 탭 간 인증 신호(epoch·authPending), 보관 상품 다시 옮기기, 확인 필요 표시는 이 재구성으로 없어졌으며 해당 기록은 당시 구현의 검증 이력으로만 남깁니다. 현재 동작은 [프로젝트 README](../README.md)의 장바구니 설명을 따릅니다.
+
+- 요청은 한 번에 하나, 변경은 즉시 화면 반영, 실패하면 서버 장바구니 재조회 후 필요하면 되돌림
+- 비회원 localStorage 키를 `bang-cart:v2`로 바꿨고 `bang-cart:v1`은 읽거나 옮기지 않음(데모 환경의 비회원 장바구니가 한 번 비워짐)
+- 로그인 병합 요청 ID는 비회원 문서에 함께 저장하고, 비회원 항목이 바뀌면 지움
+- 서버가 세션으로는 같은 회원이라고 확인했는데 RPC가 계정을 거부하면(예: `users.email_verified_at` 불일치) `access_changed` 대신 `retryable`을 돌려 클라이언트의 무한 재시작을 막음
+
+검증: 클라이언트 단위·Provider·UI 테스트와 typecheck·lint·build를 통과했습니다. 격리 DB 통합 테스트는 이번에 실행하지 않았습니다(DB·RPC 변경 없음). 사용자 승인 후 데모 계정 A(demo@example.com)로 별도 :3219 프로덕션 서버에서 수량 증감, 상품 담기, 옵션 변경·병합과 선택 유지, 오프라인 삭제·담기 실패 시 되돌림·안내·다시 시도, 비회원 담기·옵션 병합·두 탭의 최신 값 반영·삭제된 항목 안내, 로그인 병합(M8+비회원 M1·L1 → M9·L1, 비회원 저장소 비움)을 확인했습니다. 비회원 검증은 쿠키가 분리되는 `127.0.0.1` 출처에서 진행했고, 로그인은 사용자가 직접 입력했습니다. 검증 후 A의 장바구니를 처음 상태(상품2 M×8)로 되돌리고 해당 출처에서만 로그아웃했습니다. SQL은 실행하지 않았습니다.
+
 ## 장바구니 Gate A 적용·검증 — 2026-10-23
 
 사용자가 대상·단일 SQL·권한 변경·생성 타입의 로컬 반영을 승인한 뒤 **BANG Online Store** 프로젝트 `plamqblmcavrtioajopz`의 `main / PRODUCTION`에 적용했습니다. 앱 URL·CLI 프로젝트 목록·대시보드의 대상을 대조했고 SQL Editor의 `postgres` 역할로 아래 migration 한 개만 실행했습니다. 전체 `supabase db push`·기존 SQL 재실행·seed·처리 이력 등록은 하지 않았습니다. CLI 이력 테이블은 없으며, 이전 SQL과 동일하게 SQL Editor 적용 기록으로 관리합니다.
@@ -24,7 +35,7 @@
 
 `carts`, `cart_items`, `cart_operations` 세 테이블과 공개 RPC `get_cart`, `apply_cart_operation`, private 함수 9개, 갱신 트리거 2개, 본인 SELECT 정책 3개를 생성했습니다. 일반 사용자의 직접 쓰기를 차단하고 authenticated의 본인 조회와 공개 RPC 실행을 허용합니다. 두 RPC는 `auth.uid()`·예상 계정·실제 Auth 이메일 인증·활성 회원·미삭제 상태를 검증하고, 회원 장바구니 잠금 아래 변경과 이력을 한 트랜잭션으로 처리합니다. 재고를 예약·차감하지 않습니다.
 
-이후 `apply_cart_operation`의 입력 검증·정규화(`cart_normalize_operation`)나 서버 `cartCommandSchema`를 바꿀 때는 기존 v1 요청과 하위 호환을 유지해야 합니다. 브라우저에 남은 미완료 요청은 같은 요청 ID로 다시 전송되며, 이미 반영된 요청이 새 규칙에서 invalid·conflict로 바뀌면 클라이언트가 확정 거부로 처리합니다.
+이후 `apply_cart_operation`의 입력 검증·정규화(`cart_normalize_operation`)나 서버 `cartCommandSchema`를 바꿀 때는 기존 v1 요청과 하위 호환을 유지해야 합니다. 응답을 받지 못한 로그인 병합은 브라우저가 같은 요청 ID로 다시 전송하며, 이미 반영된 병합이 새 규칙에서 invalid·conflict로 바뀌면 클라이언트가 확정 거부로 처리합니다.
 
 실제 PostgreSQL 17.6에서 READ ONLY 사전 점검을 수행해 필수 타입·기존 RLS·회원 조회 정책·역할·실행 권한을 확인했고, 인증 미러의 불일치는 0건이었습니다. 적용 직전 신규 테이블·타입·함수 이름 충돌이 없고 기존 `complete_signup` 정의 해시가 같은 것을 다시 확인했습니다. migration 실행 결과는 `Success. No rows returned`였습니다.
 

@@ -1,25 +1,20 @@
 import { createStore } from 'zustand/vanilla';
-import type { CartAccess, CartOperationResult } from './cart.contract';
+import type { CartAccess } from './cart.contract';
 import type { CartViewModel } from './cart.view-model';
 import { reconcileSelection } from './cart.rules';
 
+export type CartPhase = 'loading' | 'ready' | 'error' | 'restricted';
+
 export type CartState = {
-  phase:
-    | 'checking'
-    | 'restoring'
-    | 'syncing'
-    | 'ready'
-    | 'mutating'
-    | 'retryable'
-    | 'restricted';
+  phase: CartPhase;
   access: CartAccess | null;
   cart: CartViewModel | null;
+  // A server request (or guest product load) is in flight; only one runs at a time.
+  busy: boolean;
+  // Quantity of adds not yet shown in the cart list.
+  pendingAdd: number;
   selectedIds: readonly string[];
-  settledRequests: Readonly<Record<string, CartOperationResult>>;
-  // The current member has a request whose server outcome is still unknown.
-  unresolved: boolean;
-  // Lines of a rejected login merge held for the current member.
-  heldCount: number;
+  // Shown while phase is error or restricted.
   message: string | null;
 };
 
@@ -29,40 +24,28 @@ export type CartSelectionCommands = {
 };
 
 export function createCartStore() {
-  // Settled results belong to an account identity; access states (restricted, error, unknown) are not one.
-  let settledOwner: string | null = null;
   return createStore<
     CartState &
       CartSelectionCommands & {
         setStateFromController(next: Partial<CartState>): void;
       }
   >((set, get) => ({
-    phase: 'checking',
+    phase: 'loading',
     access: null,
     cart: null,
+    busy: false,
+    pendingAdd: 0,
     selectedIds: [],
     message: null,
-    settledRequests: {},
-    unresolved: false,
-    heldCount: 0,
     setStateFromController: next =>
       set(state => {
         const cart = next.cart === undefined ? state.cart : next.cart;
-        const identity = next.access?.status === 'member' ? `member:${next.access.userId}` : next.access?.status === 'guest' ? 'guest' : null;
-        // A different account clears its results in this same update, so no reader sees the new owner with old results.
-        const changed = identity !== null && identity !== settledOwner;
-        if (changed) settledOwner = identity;
-        const settled = next.settledRequests ?? (changed ? {} : state.settledRequests);
-        const settledRequests = next.cart?.operation
-          ? { ...settled, [next.cart.operation.requestId]: next.cart.operation }
-          : settled;
         return {
-          ...(changed ? { unresolved: false, heldCount: 0 } : {}),
           ...next,
-          settledRequests,
           selectedIds: reconcileSelection(
             next.selectedIds ?? state.selectedIds,
             cart?.items ?? [],
+            next.cart?.operation?.itemIdMap,
           ),
         };
       }),

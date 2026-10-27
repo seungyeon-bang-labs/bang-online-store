@@ -6,12 +6,13 @@ import {
 } from '../common/styles';
 
 import Link from 'next/link';
-import { Fragment, useRef } from 'react';
+import { Fragment } from 'react';
 import { MoreHorizontal } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/shared/components/ui/button';
 import { useCartState, useCartCommands } from '@/features/cart/use-cart';
+import { selectCartLocked } from '@/features/cart/cart-count';
 import type {
   OrderItemActionViewModel,
   OrderItemActionsViewModel,
@@ -52,40 +53,25 @@ export function MypageOrderItemActions({
   repurchaseItem,
 }: MypageOrderItemActionsProps) {
   const { addItems } = useCartCommands();
-  const phase = useCartState(state => state.phase);
-  // A disabled button only applies after a re-render; two clicks in one tick must not add twice.
-  const inFlight = useRef(false);
+  const locked = useCartState(selectCartLocked);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const search = searchParams.toString();
   const returnTo = search ? `${pathname}?${search}` : pathname;
 
-  const runAction = async (action: OrderItemActionViewModel) => {
+  const runAction = (action: OrderItemActionViewModel) => {
     if (action.type === 'repurchase' && repurchaseItem) {
-      if (inFlight.current) return;
-      if (phase !== 'ready') { toast.info('장바구니를 먼저 확인해주세요.', { action: { label: '장바구니 확인', onClick: () => router.push(getCartHref(returnTo)) } }); return; }
-      inFlight.current = true;
-      try {
-        const reply = await addItems([repurchaseItem]);
-        if (reply.status !== 'ok') {
-          toast.error('message' in reply ? reply.message : '장바구니 계정이 변경되었습니다.');
-          return;
-        }
-        if (reply.cart.operation?.outcome === 'rejected') {
-          if (!reply.cart.notices.length) toast.info('현재 이 상품을 다시 담을 수 없습니다.');
-          return;
-        }
-        toast.success('상품을 장바구니에 다시 담았습니다.', {
-          position: 'bottom-center',
-          duration: 3000,
-          action: {
-            label: '보러가기',
-            onClick: () => router.push(getCartHref(returnTo)),
-          },
-        });
-      } catch { toast.error('장바구니 요청을 확인하지 못했습니다. 다시 시도해주세요.'); }
-      finally { inFlight.current = false; }
+      // The cart blocks a second add until the first finishes and reports a failure itself.
+      if (!addItems([repurchaseItem])) return;
+      toast.success('상품을 장바구니에 다시 담았습니다.', {
+        position: 'bottom-center',
+        duration: 3000,
+        action: {
+          label: '보러가기',
+          onClick: () => router.push(getCartHref(returnTo)),
+        },
+      });
       return;
     }
 
@@ -107,7 +93,7 @@ export function MypageOrderItemActions({
           orderId={orderId}
           orderItemId={orderItemId}
           returnTo={returnTo}
-          disabled={phase !== 'ready'}
+          disabled={locked}
           onAction={runAction}
         />
       ) : null}
@@ -117,7 +103,7 @@ export function MypageOrderItemActions({
           orderId={orderId}
           orderItemId={orderItemId}
           returnTo={returnTo}
-          disabled={phase !== 'ready'}
+          disabled={locked}
           onAction={runAction}
         />
       ) : null}
@@ -145,7 +131,7 @@ export function MypageOrderItemActions({
                   orderId={orderId}
                   orderItemId={orderItemId}
                   returnTo={returnTo}
-                  disabled={phase !== 'ready'}
+                  disabled={locked}
                   onAction={runAction}
                 />
                 {index < actions.more.length - 1 && (

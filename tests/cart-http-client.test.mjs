@@ -4,7 +4,7 @@ import { loadTs } from './helpers/load-ts.mjs';
 import { A, cartView, command } from './helpers/cart-fixtures.mjs';
 
 // The real adapter runs against a recording fetch; only the network is replaced.
-function client(respond) {
+function client(respond, timeoutMs) {
   const sent = [];
   const fetcher = async (url, options) => {
     sent.push({ url, options });
@@ -13,18 +13,19 @@ function client(respond) {
     return result;
   };
   const { createCartHttpClient } = loadTs('src/features/cart/cart.http-client.ts');
-  return { port: createCartHttpClient(fetcher), sent };
+  return { port: createCartHttpClient(fetcher, timeoutMs), sent };
 }
+// Never answers; settles only when the request is aborted.
+const hang = (_, options) => new Promise((_, reject) => options?.signal?.addEventListener?.('abort', () => reject(options.signal.reason)));
 const reply = (body, status = 200, type = 'application/json') =>
   new Response(typeof body === 'string' ? body : JSON.stringify(body), { status, headers: { 'content-type': type } });
 
-test('requests use relative same-origin URLs, JSON bodies and the caller signal without Next-Action', async () => {
-  const signal = new AbortController().signal;
+test('requests use relative same-origin URLs, JSON bodies and no Next-Action', async () => {
   const original = command();
   const { port, sent } = client(url => url === '/api/cart/access' ? reply({ status: 'member', userId: A }) : reply({ status: 'ok', cart: cartView() }));
-  assert.deepEqual(await port.resolveAccess({ signal }), { status: 'member', userId: A });
-  assert.equal((await port.read({ expectedUserId: A }, { signal })).status, 'ok');
-  assert.equal((await port.mutate(original, { signal })).status, 'ok');
+  assert.deepEqual(await port.resolveAccess(), { status: 'member', userId: A });
+  assert.equal((await port.read({ expectedUserId: A })).status, 'ok');
+  assert.equal((await port.mutate(original)).status, 'ok');
   assert.deepEqual(sent.map(({ url, options }) => [url, options.method]), [
     ['/api/cart/access', 'GET'], ['/api/cart/read', 'POST'], ['/api/cart/operations', 'POST'],
   ]);
@@ -32,11 +33,9 @@ test('requests use relative same-origin URLs, JSON bodies and the caller signal 
     assert.equal(options.headers['Next-Action'], undefined);
     assert.equal(options.credentials, 'same-origin');
     assert.equal(options.cache, 'no-store');
-    assert.equal(options.signal, signal);
   }
   assert.deepEqual(JSON.parse(sent[1].options.body), { expectedUserId: A });
   assert.deepEqual(JSON.parse(sent[2].options.body), original);
-  assert.equal('signal' in JSON.parse(sent[2].options.body), false);
 });
 
 test('a replayed command is sent with the same requestId and content', async () => {
@@ -101,10 +100,25 @@ test('access failures become CartAccess errors, while a 200 error access passes 
   }
 });
 
-test('origin (403) and body-size (413) rejections are transport problems that keep the pending request', async () => {
+test('origin (403) and body-size (413) rejections are transport problems, not a server verdict', async () => {
   for (const status of [403, 413]) {
     const { port } = client(() => reply({ status: 'invalid', message: '전송 거부' }, status));
     assert.equal((await port.mutate(command())).status, 'retryable');
     assert.equal((await port.read({ expectedUserId: A })).status, 'retryable');
   }
+});
+
+test('a request with no answer is cut off after the timeout and handled as a lost reply', async () => {
+  const { port } = client(hang, 20);
+  assert.equal((await port.mutate(command())).status, 'retryable');
+  assert.equal((await port.read({ expectedUserId: A })).status, 'retryable');
+  assert.equal((await port.resolveAccess()).status, 'error');
+});
+
+test('a product load with no answer is cut off after the timeout', async t => {
+  const previous = globalThis.fetch;
+  t.after(() => { globalThis.fetch = previous; });
+  globalThis.fetch = hang;
+  const { loadCartProducts } = loadTs('src/features/cart/cart.product-client.ts');
+  await assert.rejects(loadCartProducts([{ productId: 1, variantId: 2 }], 20));
 });

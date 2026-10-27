@@ -1,11 +1,10 @@
 'use client';
 
 import { useEffect } from 'react';
-import { toast } from 'sonner';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCartState, useCartCommands } from './use-cart';
-import type { CartReply } from '@/domains/cart/cart.contract';
+import { selectCartLocked } from './cart-count';
 import { PageTitle } from '@/shared/components/common/page-title';
 import { Checkbox } from '@/shared/components/ui/checkbox';
 import { Label } from '@/shared/components/ui/label';
@@ -19,11 +18,12 @@ import { Container } from '@/shared/components/layout/container';
 import { Button } from '@/shared/components/ui/button';
 
 export function CartPageClient() {
-  const { phase, cart, selectedIds, message, heldCount } = useCartState(state => state);
-  const { enterCart, retry, selectAll, setSelected, removeItems, adjustQuantity, moveHeldItems } = useCartCommands();
-  useEffect(() => { void enterCart(); }, [enterCart]);
+  const { phase, cart, selectedIds, message } = useCartState(state => state);
+  const { enterCart, retry, selectAll, setSelected, removeItems, adjustQuantity } = useCartCommands();
+  const locked = useCartState(selectCartLocked);
+  useEffect(() => { enterCart(); }, [enterCart]);
   const ready = phase === 'ready';
-  const error = phase === 'retryable' ? message ?? '장바구니를 확인하지 못했습니다.' : phase === 'restricted' ? '이메일 인증과 회원 상태를 확인해주세요.' : null;
+  const error = phase === 'error' || phase === 'restricted' ? message : null;
   const cartProducts = cart?.items ?? [];
   const purchasable = cartProducts.filter(item => item.canSelect);
   const validSelectedIds = new Set(selectedIds.filter(id => purchasable.some(item => item.id === id)));
@@ -33,27 +33,11 @@ export function CartPageClient() {
   const isInitialLoading = cart === null && !error;
   const handleToggleSelectAll = (checked: boolean) => { if (ready) selectAll(checked); };
   const handleToggleItem = (id: string, checked: boolean) => { if (ready) setSelected(id, checked); };
-  async function report(work: Promise<CartReply>) {
-    try {
-      const result = await work;
-      if (result.status !== 'ok') { toast.error('message' in result ? result.message : '장바구니 계정이 변경되었습니다. 다시 확인해주세요.'); return false; }
-      return result.cart.operation?.outcome !== 'rejected';
-    } catch { toast.error('장바구니 요청을 확인하지 못했습니다. 다시 시도해주세요.'); return false; }
-  }
-  const handleMoveHeld = async () => {
-    if (!ready) return;
-    try {
-      const reply = await moveHeldItems();
-      if (reply.status === 'ok') { if (reply.cart.operation?.outcome !== 'rejected') toast.success('보관 상품을 장바구니로 옮겼습니다.'); return; }
-      // A definitive rejection holds the items again and is told once by the held notice.
-      if (reply.status === 'invalid' || reply.status === 'conflict') return;
-      toast.error('message' in reply ? reply.message : '장바구니 계정이 변경되었습니다. 다시 확인해주세요.');
-    } catch { toast.error('장바구니 요청을 확인하지 못했습니다. 다시 시도해주세요.'); }
-  };
-  const handleDeleteSelected = async () => ready && validSelectedIds.size > 0 ? report(removeItems([...validSelectedIds])) : false;
-  const handleDeleteItem = async (id: string) => ready ? report(removeItems([id])) : false;
-  const handleUpdateCount = async (id: string, delta: 1 | -1) => {
-    if (ready && cartProducts.some(item => item.id === id && item.canSelect)) await report(adjustQuantity(id, delta));
+  // Results are reported by the cart itself; true only means the change was taken.
+  const handleDeleteSelected = () => !locked && validSelectedIds.size > 0 && removeItems([...validSelectedIds]);
+  const handleDeleteItem = (id: string) => !locked && removeItems([id]);
+  const handleUpdateCount = (id: string, delta: 1 | -1) => {
+    if (!locked && cartProducts.some(item => item.id === id && item.canSelect)) adjustQuantity(id, delta);
   };
 
   return (
@@ -84,22 +68,10 @@ export function CartPageClient() {
                 type="button"
                 size="sm"
                 variant="outline"
-                onClick={() => void retry()}
-                disabled={phase !== 'retryable'}
+                onClick={() => retry()}
+                disabled={phase !== 'error'}
               >
                 다시 시도
-              </Button>
-            </div>
-          )}
-          {/* A change in flight keeps the last confirmed cart on screen; only new changes wait. */}
-          {cart && (phase === 'mutating' || phase === 'syncing' || phase === 'restoring') && (
-            <p role="status" className="text-sm text-gray-600">장바구니 변경을 확인하고 있습니다.</p>
-          )}
-          {ready && heldCount > 0 && (
-            <div className="flex items-center justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              <p>{`로그인 전에 담은 상품 ${heldCount}개를 보관하고 있습니다.`}</p>
-              <Button type="button" size="sm" variant="outline" onClick={() => void handleMoveHeld()}>
-                보관 상품 다시 옮기기
               </Button>
             </div>
           )}
@@ -144,7 +116,7 @@ export function CartPageClient() {
                 <DeleteConfirmModal
                   onConfirm={handleDeleteSelected}
                   type="selected"
-                  disableTrigger={!ready || validSelectedIds.size === 0}
+                  disableTrigger={locked || validSelectedIds.size === 0}
                 />
               </div>
 
@@ -191,7 +163,7 @@ export function CartPageClient() {
                         <DeleteConfirmModal
                           onConfirm={() => handleDeleteItem(item.id)}
                           type="item"
-                          disableTrigger={!ready}
+                          disableTrigger={locked}
                         />
                       </div>
 
@@ -224,7 +196,7 @@ export function CartPageClient() {
                     {/* 수량 조절 및 가격 */}
                     <div className="col-span-full flex items-end justify-between gap-3 border-t border-gray-100 pt-3 md:mt-0 md:border-0 md:pt-0">
                       {/* 수량 조절 */}
-                      <fieldset disabled={!ready || !item.canSelect}>
+                      <fieldset disabled={locked || !item.canSelect}>
                       <QuantitySelector
                         count={item.quantity}
                         stock={item.stock}

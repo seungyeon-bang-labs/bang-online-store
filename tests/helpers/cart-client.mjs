@@ -14,15 +14,13 @@ export const text = node => node === null || node === undefined || typeof node =
 export function client(file, name, { props = {}, phase = 'ready', cart = cartView(), store: providedStore, commands: overrides = {}, mocks = {} } = {}) {
   const store = providedStore ?? loadTs('src/domains/cart/cart.store.ts').createCartStore();
   if (!providedStore) store.getState().setStateFromController({ phase, cart, access: cart?.owner.kind === 'member' ? { status: 'member', userId: cart.owner.userId } : { status: 'guest' } });
-  const calls = { add: [], adjust: [], option: [], remove: [], enter: 0, retry: 0, recheck: [], begin: 0, success: [], info: [], error: [], navigation: [] };
+  const calls = { add: [], adjust: [], option: [], remove: [], enter: 0, retry: 0, success: [], info: [], error: [], navigation: [] };
   const commands = {
-    addItems: async items => { calls.add.push(items); return confirmed(); },
-    adjustQuantity: async (...args) => { calls.adjust.push(args); return confirmed(); },
-    changeOption: async (...args) => { calls.option.push(args); return confirmed(); },
-    removeItems: async items => { calls.remove.push(items); return confirmed(); },
-    moveHeldItems: async () => confirmed(),
-    enterCart: async () => { calls.enter++; }, retry: async () => { calls.retry++; },
-    recheck: async reason => { calls.recheck.push(reason); }, beginAuthTransition: () => { calls.begin++; },
+    addItems: items => { calls.add.push(items); return true; },
+    adjustQuantity: (...args) => { calls.adjust.push(args); return true; },
+    changeOption: (...args) => { calls.option.push(args); return true; },
+    removeItems: items => { calls.remove.push(items); return true; },
+    enterCart: () => { calls.enter++; }, retry: () => { calls.retry++; },
     setSelected: (...args) => store.getState().setSelected(...args), selectAll: checked => store.getState().selectAll(checked), ...overrides,
   };
   const slots = []; const effects = []; let cursor = 0; let dirty = false; let tree; let currentProps = props;

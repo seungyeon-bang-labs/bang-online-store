@@ -1,18 +1,17 @@
 'use client';
 
-import { createContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { useStore } from 'zustand';
+import { createContext, useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import type { StoreApi } from 'zustand/vanilla';
-import type { CartAccess, CartActionPort, CartReply } from '@/domains/cart/cart.contract';
+import type { CartAccess, CartActionPort } from '@/domains/cart/cart.contract';
 import { createCartLocalAdapter } from '@/domains/cart/cart.local';
 import { createCartStore, type CartSelectionCommands, type CartState } from '@/domains/cart/cart.store';
 import { createCartController, type CartController } from './cart-controller';
 import { createCartHttpClient } from './cart.http-client';
 import { loadCartProducts } from './cart.product-client';
 
-type CartCommands = Pick<CartController,
-  'enterCart' | 'addItems' | 'adjustQuantity' | 'changeOption' | 'removeItems' | 'moveHeldItems' | 'retry' | 'beginAuthTransition' | 'recheck'
+export type CartCommands = Pick<CartController,
+  'enterCart' | 'retry' | 'addItems' | 'adjustQuantity' | 'changeOption' | 'removeItems'
 > & CartSelectionCommands;
 type CartContextValue = {
   state: Pick<StoreApi<CartState>, 'getState' | 'getInitialState' | 'subscribe'>;
@@ -23,91 +22,78 @@ type CartContextValue = {
 export const CartContext = createContext<CartContextValue | null>(null);
 const accessKey = (access: CartAccess) => access.status === 'member' ? `member:${access.userId}`
   : access.status === 'restricted' ? `restricted:${access.reason}` : access.status;
-const blocked = (): CartReply => ({ status: 'retryable', message: '장바구니 계정을 확인하고 있습니다. 잠시 후 다시 시도해주세요.' });
+const hidden: CartState = { phase: 'loading', access: null, cart: null, busy: false, pendingAdd: 0, selectedIds: [], message: null };
 
-function createRuntime(initialActions: CartActionPort) {
-  let actions = initialActions;
-  let appliedSnapshot: string | null = null;
+function createRuntime(actions: CartActionPort) {
+  // The server access this Provider last applied; restarts inside the controller do not change it.
+  let applied: CartAccess | null = null;
+  // The access of the latest committed render; the stable commands below act for it.
+  let rendered: CartAccess | null = null;
+  const shownKey = () => { const shown = store.getState().access; return shown ? accessKey(shown) : null; };
   const store = createCartStore();
   const controller = createCartController({
     store, local: createCartLocalAdapter(), loadProducts: loadCartProducts,
     newId: () => globalThis.crypto.randomUUID(),
-    actions: {
-      resolveAccess: options => actions.resolveAccess(options),
-      read: (input, options) => actions.read(input, options),
-      mutate: (command, options) => actions.mutate(command, options),
-    },
+    notify: { info: message => { toast.info(message); }, error: message => { toast.error(message); } },
+    actions,
   });
 
+  const visible = (access: CartAccess | null) => access !== null && (applied === access || shownKey() === accessKey(access));
+  const current = () => visible(rendered);
+  // One commands object for the Provider's lifetime, so a same-account server render does not look like a cart entry.
+  const commands: CartCommands = {
+    enterCart: () => { if (current()) controller.enterCart(); },
+    retry: () => { if (current()) controller.retry(); },
+    addItems: items => current() && controller.addItems(items),
+    adjustQuantity: (itemId, delta) => current() && controller.adjustQuantity(itemId, delta),
+    changeOption: (itemId, productId, variantId) => current() && controller.changeOption(itemId, productId, variantId),
+    removeItems: itemIds => current() && controller.removeItems(itemIds),
+    setSelected: (id, checked) => { if (current()) store.getState().setSelected(id, checked); },
+    selectAll: checked => { if (current()) store.getState().selectAll(checked); },
+  };
+
   return {
-    updateActions(next: CartActionPort) { actions = next; },
+    // Set on commit, so a render React throws away cannot point the commands at another account.
+    commit(access: CartAccess) { rendered = access; },
+    // Each server render brings a new access object; restart only when the cart shows another account,
+    // or on the first activation after a dispose (an effect replay disowned the earlier start).
     activate(access: CartAccess) {
-      appliedSnapshot = accessKey(access);
-      void controller.start(access);
-      // Notify a previously masked subscriber even if start kept a ready cache.
-      store.getState().setStateFromController({});
+      const fresh = applied === null;
+      applied = access;
+      if (fresh || shownKey() !== accessKey(access)) controller.start(access);
     },
     dispose() {
-      appliedSnapshot = null;
+      applied = null;
       controller.dispose();
     },
-    view(snapshotKey: string): CartContextValue {
-      const visible = () => appliedSnapshot === snapshotKey;
-      const hidden: CartState = { phase: 'checking', access: null, cart: null, selectedIds: [], message: null, settledRequests: {}, unresolved: false, heldCount: 0 };
+    // Between a server render for another account and its start effect, the shown cart stays hidden.
+    view(access: CartAccess): CartContextValue {
       let source: ReturnType<typeof store.getState> | undefined;
       let cached: CartState;
       const getState = (): CartState => {
-        if (!visible()) return hidden;
+        if (!visible(access)) return hidden;
         const next = store.getState();
         if (next !== source) {
           source = next;
-          cached = { phase: next.phase, access: next.access, cart: next.cart, selectedIds: next.selectedIds, message: next.message, settledRequests: next.settledRequests, unresolved: next.unresolved, heldCount: next.heldCount };
+          cached = { phase: next.phase, access: next.access, cart: next.cart, busy: next.busy, pendingAdd: next.pendingAdd, selectedIds: next.selectedIds, message: next.message };
         }
         return cached;
-      };
-      const commands: CartCommands = {
-        enterCart: () => visible() ? controller.enterCart() : Promise.resolve(),
-        addItems: items => visible() ? controller.addItems(items) : Promise.resolve(blocked()),
-        adjustQuantity: (itemId, delta) => visible() ? controller.adjustQuantity(itemId, delta) : Promise.resolve(blocked()),
-        changeOption: (itemId, productId, variantId) => visible() ? controller.changeOption(itemId, productId, variantId) : Promise.resolve(blocked()),
-        removeItems: itemIds => visible() ? controller.removeItems(itemIds) : Promise.resolve(blocked()),
-        moveHeldItems: () => visible() ? controller.moveHeldItems() : Promise.resolve(blocked()),
-        retry: () => visible() ? controller.retry() : Promise.resolve(),
-        recheck: reason => visible() ? controller.recheck(reason) : Promise.resolve(),
-        beginAuthTransition: () => { if (visible()) controller.beginAuthTransition(); },
-        setSelected: (id, checked) => { if (visible()) store.getState().setSelected(id, checked); },
-        selectAll: checked => { if (visible()) store.getState().selectAll(checked); },
       };
       return { state: { getState, getInitialState: () => hidden, subscribe: store.subscribe }, commands };
     },
   };
 }
 
-// Without injected actions the Provider owns one browser HTTP port for its lifetime.
+// The actions given at mount (tests inject them; the app uses the browser HTTP port) serve the Provider's lifetime.
 export function CartProvider({ access, actions, children }: {
   access: CartAccess; actions?: CartActionPort; children: ReactNode;
 }) {
   const [runtime] = useState(() => createRuntime(actions ?? createCartHttpClient()));
-  const snapshotKey = accessKey(access);
-  const context = useMemo(() => runtime.view(snapshotKey), [runtime, snapshotKey]);
-  const cart = useStore(context.state, state => state.cart);
-  const [shownNotices] = useState(() => new WeakSet<object>());
+  const context = useMemo(() => runtime.view(access), [runtime, access]);
 
-  useEffect(() => { if (actions) runtime.updateActions(actions); }, [runtime, actions]);
+  useLayoutEffect(() => { runtime.commit(access); }, [runtime, access]);
   useEffect(() => () => runtime.dispose(), [runtime]);
   useEffect(() => { runtime.activate(access); }, [runtime, access]);
-  useEffect(() => {
-    for (const notice of cart?.notices ?? []) {
-      if (shownNotices.has(notice)) continue;
-      shownNotices.add(notice);
-      toast.info(notice.kind === 'quantity_adjusted' ? '현재 재고에 맞게 수량을 조정했습니다.'
-        : notice.kind === 'sold_out' ? '품절된 옵션은 새로 담거나 수량을 변경할 수 없습니다.'
-        : notice.kind === 'unavailable' ? '현재 이용할 수 없는 상품을 장바구니에서 제외했습니다.'
-        : notice.kind === 'item_missing' ? '이미 변경되거나 삭제된 장바구니 항목입니다.'
-        : notice.kind === 'merge_returned' ? '로그인 전에 담은 상품을 회원 장바구니로 옮기지 못했습니다. 상품은 이 계정에 보관했으니 장바구니에서 다시 옮길 수 있습니다.'
-        : '선택한 옵션으로 변경할 수 없습니다.');
-    }
-  }, [cart, shownNotices]);
 
   return <CartContext.Provider value={context}>{children}</CartContext.Provider>;
 }

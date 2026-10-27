@@ -21,7 +21,7 @@ for(const target of ['/','/verify-email?email=visitor%40example.com'])test(`logi
   }});t.after(()=>view.dispose());
   // The server redirect renders the target with the new session; CartBoundary receives it without router.refresh.
   await assert.rejects(view.tree().props.onSubmit(),error=>error===control);await setImmediate();
-  assert.deepEqual(view.calls.recheck,[]);assert.deepEqual(events,[]);assert.deepEqual(errors,[]);
+  assert.deepEqual([view.calls.enter,view.calls.retry,view.calls.add.length],[0,0,0]);assert.deepEqual(events,[]);assert.deepEqual(errors,[]);
 });
 
 test('a login transport failure still shows the existing retry message',async t=>{
@@ -31,7 +31,7 @@ test('a login transport failure still shows the existing retry message',async t=
 
 test('login failure does not signal a successful cart authentication transition',async t=>{
   const errors=[];const view=client('src/features/auth/login-form.tsx','LoginForm',{mocks:{'react-hook-form':formBoundary({},errors),'@/app/(auth)/actions':{loginAction:async()=>({status:'error',message:'Invalid credentials'})}}});t.after(()=>view.dispose());
-  await view.tree().props.onSubmit();assert.deepEqual(view.calls.recheck,[]);assert.equal(errors.length,1);
+  await view.tree().props.onSubmit();assert.deepEqual([view.calls.enter,view.calls.retry,view.calls.add.length],[0,0,0]);assert.equal(errors.length,1);
 });
 
 for(const retry of [false,true])test(`${retry?'member retry':'OTP verification'} redirect is rethrown to Next without client navigation, refresh or a cart call`,async t=>{
@@ -42,30 +42,25 @@ for(const retry of [false,true])test(`${retry?'member retry':'OTP verification'}
     'next/navigation':navigation(events),
   }});t.after(()=>view.dispose());
   await assert.rejects(retry?view.button('회원 상태 다시 확인').props.onClick():view.tree().props.onSubmit(),error=>error===control);await setImmediate();
-  assert.deepEqual(view.calls.recheck,[]);assert.deepEqual(events,[]);assert.deepEqual(errors,[]);
+  assert.deepEqual([view.calls.enter,view.calls.retry,view.calls.add.length],[0,0,0]);assert.deepEqual(events,[]);assert.deepEqual(errors,[]);
 });
 
-test('logout submit locks immediately without replacing or vetoing the server form action and failure rechecks access',async t=>{
-  let state=null;let submissions=0;const action=async()=>{submissions++;};
-  const view=client('src/features/auth/logout-button.tsx','LogoutButton',{props:{logoutAction:action},mocks:{react:{...React,useEffect:()=>{},useActionState:()=>[state,action,false]}}});t.after(()=>view.dispose());
-  assert.equal(typeof view.tree().props.onSubmit,'function');view.tree().props.onSubmit();assert.equal(view.calls.begin,1);
+test('logout button is a plain form without cart commands',async t=>{
+  let submissions=0;const action=async()=>{submissions++;};
+  const view=client('src/features/auth/logout-button.tsx','LogoutButton',{props:{logoutAction:action},commands:{enterCart:()=>assert.fail('no cart command')},mocks:{react:{...React,useActionState:()=>[{message:'Logout failed'},action,false]}}});t.after(()=>view.dispose());
+  assert.equal(view.tree().props.onSubmit,undefined);
   assert.equal(view.tree().props.action,action);await view.tree().props.action();assert.equal(submissions,1);
-  state={message:'Logout failed'};
-  // Effects are exercised by the independent failure test below.
-});
-
-test('logout failure effect rechecks the actual session rather than declaring guest success',t=>{
-  const effects=[];const view=client('src/features/auth/logout-button.tsx','LogoutButton',{props:{logoutAction:async()=>null},mocks:{react:{...React,useEffect:fn=>effects.push(fn),useActionState:()=>[{message:'Logout failed'},async()=>{},false]}}});t.after(()=>view.dispose());effects.forEach(fn=>fn());assert.deepEqual(view.calls.recheck,['auth']);
+  assert.deepEqual([view.calls.enter,view.calls.retry,view.calls.add.length],[0,0,0]);
 });
 
 test('same-path logout switches the controller to guest and discards a late member response',async()=>{
   const {createCartStore}=loadTs('src/domains/cart/cart.store.ts');const {createCartLocalAdapter}=loadTs('src/domains/cart/cart.local.ts');const {createCartController}=loadTs('src/features/cart/cart-controller.ts');
-  let raw=null;const store=createCartStore();const local=createCartLocalAdapter({storage:{getItem:()=>raw,setItem:(_,value)=>{raw=value;}},locks:{request:async(_,fn)=>fn()},events:{subscribe:()=>()=>{}},newId:()=> '40000000-0000-4000-8000-000000000001'});
+  let raw=null;const store=createCartStore();const local=createCartLocalAdapter({storage:{getItem:()=>raw,setItem:(_,value)=>{raw=value;}}});
   let finish;const late=new Promise(resolve=>{finish=resolve;});let sent;
-  const controller=createCartController({store,local,newId:()=> '40000000-0000-4000-8000-000000000002',loadProducts:async()=>({cartItems:[],optionGroups:{}}),actions:{resolveAccess:async()=>({status:'guest'}),read:async()=>({status:'ok',cart:cartView()}),mutate:command=>{sent=command;return late;}}});
-  await controller.start({status:'member',userId:A});const operation=controller.adjustQuantity(I1,1);for(let n=0;!sent&&n<30;n++)await setImmediate();assert.ok(sent);
-  controller.beginAuthTransition();await controller.start({status:'guest'});
+  const controller=createCartController({store,local,newId:()=> '40000000-0000-4000-8000-000000000002',notify:{info(){},error(){}},loadProducts:async()=>({cartItems:[],optionGroups:{}}),actions:{resolveAccess:async()=>({status:'guest'}),read:async()=>({status:'ok',cart:cartView()}),mutate:command=>{sent=command;return late;}}});
+  controller.start({status:'member',userId:A});await controller.whenIdle();assert.equal(controller.adjustQuantity(I1,1),true);assert.ok(sent);
+  controller.start({status:'guest'});await controller.whenIdle();
   assert.equal(store.getState().access.status,'guest');assert.equal(store.getState().cart.owner.kind,'guest');assert.deepEqual(store.getState().selectedIds,[]);
-  finish({status:'ok',cart:cartView({revision:'999',operation:{requestId:sent.requestId,outcome:'applied',itemIdMap:{},notices:[]}})});await operation;
-  assert.equal(store.getState().cart.owner.kind,'guest');assert.ok(await local.peek(A));controller.dispose();
+  finish({status:'ok',cart:cartView({revision:'999',operation:{requestId:sent.requestId,outcome:'applied',itemIdMap:{},notices:[]}})});await late;await controller.whenIdle();
+  assert.equal(store.getState().cart.owner.kind,'guest');assert.equal(store.getState().busy,false);controller.dispose();
 });

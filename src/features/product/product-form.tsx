@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/lib/utils';
@@ -14,7 +14,7 @@ import {
 } from '@/shared/components/ui/select';
 import type { ProductVariantModel } from '@/domains/product';
 import { useCartState, useCartCommands } from '@/features/cart/use-cart';
-import { selectCartNeedsCheck } from '@/features/cart/cart-count';
+import { selectCartLocked } from '@/features/cart/cart-count';
 import { toast } from 'sonner';
 import { QuantitySelector } from '@/features/product/quantity-selector';
 import { ColorChip } from '@/shared/components/ui/color-chip';
@@ -52,37 +52,11 @@ export function ProductForm({
   const { addItems, retry } = useCartCommands();
   const phase = useCartState(state => state.phase);
   const message = useCartState(state => state.message);
-  const [pending, setPending] = useState(false);
-  const access = useCartState(state => state.access);
-  const settledRequests = useCartState(state => state.settledRequests);
-  // Only for a confirmed member: a hidden previous account's request is not offered.
-  const unresolved = useCartState(selectCartNeedsCheck);
-  const [recovery, setRecovery] = useState<{ requestId: string; userId: string; items: SelectedItem[] } | null>(null);
-  const [shownRecoveries] = useState(() => new Set<string>());
-  const locked = pending || recovery !== null;
-  const search = searchParams.toString();
-  const cartHref = getCartHref(search ? pathname + '?' + search : pathname);
-
-  useEffect(() => {
-    if (!recovery) return;
-    if (access && (access.status !== 'member' || access.userId !== recovery.userId)) { setRecovery(null); return; }
-    if (access?.status !== 'member') return;
-    const result = settledRequests[recovery.requestId];
-    if (!result || shownRecoveries.has(recovery.requestId)) return;
-    shownRecoveries.add(recovery.requestId);
-    setRecovery(null);
-    if (result.outcome === 'rejected') {
-      if (!result.notices.length) toast.info('현재 선택한 상품을 담을 수 없습니다. 재고와 판매 상태를 확인해주세요.');
-      return;
-    }
-    setSelectedItems(items => items.filter(item => !recovery.items.some(captured => captured.id === item.id && captured.count === item.count)));
-    toast.success('상품이 장바구니에 담겼습니다.', { position: 'bottom-center', action: { label: '보러가기', onClick: () => router.push(cartHref) }, duration: 3000 });
-  }, [recovery, access, settledRequests, shownRecoveries, router, cartHref]);
+  const cartLocked = useCartState(selectCartLocked);
   const isAllSoldOut = variants.every(variant => variant.stock <= 0);
   const discountedPrice = getDiscountedPrice(price, discount);
 
   const handleSizeSelect = (value: string) => {
-    if (locked) return;
     const variant = variants.find(v => String(v.id) === value);
     if (!variant || variant.stock <= 0) return;
 
@@ -112,7 +86,6 @@ export function ProductForm({
   };
 
   const updateCount = (id: number, delta: number) => {
-    if (locked) return;
     setSelectedItems(prev =>
       prev.map(item => {
         if (item.id === id) {
@@ -127,7 +100,6 @@ export function ProductForm({
   };
 
   const removeItem = (id: number) => {
-    if (locked) return;
     setSelectedItems(prev => prev.filter(item => item.id !== id));
   };
 
@@ -136,35 +108,22 @@ export function ProductForm({
     0,
   );
 
-  const handleAddToCart = async () => {
-    if (phase !== 'ready' || locked || selectedItems.length === 0) return;
-    setPending(true);
-    try {
-      const reply = await addItems(selectedItems.map(item => ({ productId, variantId: item.id, quantity: item.count })));
-      if (reply.status !== 'ok') {
-        // Only an unconfirmed (retryable) request may still apply later; a server-confirmed rejection is final.
-        if (reply.status === 'retryable' && reply.requestId && access?.status === 'member') setRecovery({ requestId: reply.requestId, userId: access.userId, items: selectedItems });
-        toast.error('message' in reply ? reply.message : '장바구니 계정이 변경되었습니다. 다시 확인해주세요.');
-        return;
-      }
-      if (reply.cart.operation?.outcome === 'rejected') {
-        if (!reply.cart.notices.length) toast.info('현재 선택한 상품을 담을 수 없습니다. 재고와 판매 상태를 확인해주세요.');
-        return;
-      }
-      setSelectedItems([]);
-      toast.success('상품이 장바구니에 담겼습니다.', {
-        position: 'bottom-center',
-        action: {
-          label: '보러가기',
-          onClick: () => {
-            const search = searchParams.toString();
-            router.push(getCartHref(search ? `${pathname}?${search}` : pathname));
-          },
+  // The cart shows the add at once and reports a failure itself; false means nothing was taken.
+  const handleAddToCart = () => {
+    if (cartLocked || selectedItems.length === 0) return;
+    if (!addItems(selectedItems.map(item => ({ productId, variantId: item.id, quantity: item.count })))) return;
+    setSelectedItems([]);
+    toast.success('상품이 장바구니에 담겼습니다.', {
+      position: 'bottom-center',
+      action: {
+        label: '보러가기',
+        onClick: () => {
+          const search = searchParams.toString();
+          router.push(getCartHref(search ? `${pathname}?${search}` : pathname));
         },
-        duration: 3000,
-      });
-    } catch { toast.error('장바구니 요청을 확인하지 못했습니다. 다시 시도해주세요.'); }
-    finally { setPending(false); }
+      },
+      duration: 3000,
+    });
   };
 
   return (
@@ -196,12 +155,12 @@ export function ProductForm({
         <h4 className="font-black text-base mb-2 flex items-center">사이즈</h4>
         <Select
           value={selectedSizeId === null ? '' : String(selectedSizeId)}
-          disabled={isAllSoldOut || locked}
+          disabled={isAllSoldOut}
           onValueChange={handleSizeSelect}
         >
           <SelectTrigger
             className={cn('w-full h-12 border-gray-200 focus:ring-black')}
-            disabled={isAllSoldOut || locked}
+            disabled={isAllSoldOut}
           >
             <SelectValue
               placeholder={isAllSoldOut ? '전체 품절' : '사이즈를 선택해주세요'}
@@ -308,7 +267,7 @@ export function ProductForm({
         <Button
           variant="outline"
           size="xl"
-          disabled={selectedItems.length === 0 || phase !== 'ready' || locked}
+          disabled={selectedItems.length === 0 || cartLocked}
           className="min-w-0 px-3 md:flex-1 md:px-8"
           onClick={handleAddToCart}
         >
@@ -323,12 +282,10 @@ export function ProductForm({
           구매하기
         </Button>
       </div>
-      {/* The form's own add (mutating) and background syncs keep the confirmed cart; only a lock needs this line. */}
-      {(phase === 'checking' || phase === 'restoring' || phase === 'retryable' || phase === 'restricted' || recovery) && (
-        <div role={phase === 'retryable' ? 'alert' : 'status'} className="text-sm text-gray-600">
-          <p>{message ?? (phase === 'restricted' ? '이메일 인증과 회원 상태를 확인해주세요.' : '장바구니를 확인하고 있습니다.')}</p>
-          {(phase === 'retryable' || recovery) && <Button type="button" variant="outline" onClick={() => void retry()}>다시 시도</Button>}
-          {unresolved && <Button type="button" variant="outline" onClick={() => router.push(cartHref)}>장바구니에서 확인</Button>}
+      {(phase === 'error' || phase === 'restricted') && (
+        <div role={phase === 'error' ? 'alert' : 'status'} className="text-sm text-gray-600">
+          <p>{message}</p>
+          {phase === 'error' && <Button type="button" variant="outline" onClick={() => retry()}>다시 시도</Button>}
         </div>
       )}
     </div>

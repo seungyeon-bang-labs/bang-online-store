@@ -1,5 +1,12 @@
 import type { CartViewModel } from './cart.view-model';
 
+// Largest quantity the database column holds (int4).
+export const maxCartQuantity = 2147483647;
+// A cart request with no answer by then is cut off and handled as a lost reply, so one stuck request cannot lock the cart.
+export const cartRequestTimeoutMs = 15_000;
+export const cartRetryMessage =
+  '장바구니를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.';
+
 export type CartAccess =
   | { status: 'guest' }
   | { status: 'member'; userId: string }
@@ -18,7 +25,12 @@ export type CartProductInput = Omit<CartLine, 'id'>;
 export type CartOperation =
   | { kind: 'merge_guest' | 'add_items'; items: readonly CartProductInput[] }
   | { kind: 'adjust_quantity'; itemId: string; delta: 1 | -1 }
-  | { kind: 'change_option'; itemId: string; productId: number; variantId: number }
+  | {
+      kind: 'change_option';
+      itemId: string;
+      productId: number;
+      variantId: number;
+    }
   | { kind: 'remove_items'; itemIds: readonly string[] };
 
 export type CartCommand = {
@@ -29,8 +41,12 @@ export type CartCommand = {
 };
 
 export type CartNotice = {
-  // merge_returned is client-only (a rejected login merge is held for its account); the server schema never accepts it.
-  kind: 'quantity_adjusted' | 'unavailable' | 'sold_out' | 'item_missing' | 'option_rejected' | 'merge_returned';
+  kind:
+    | 'quantity_adjusted'
+    | 'unavailable'
+    | 'sold_out'
+    | 'item_missing'
+    | 'option_rejected';
   variantId?: number;
   itemId?: string;
   before?: number;
@@ -49,11 +65,8 @@ export type CartReply =
   | { status: 'access_changed'; access: CartAccess }
   | { status: 'retryable' | 'invalid' | 'conflict'; message: string };
 
-// Transport options only; never serialized into a request body or RPC input.
-export type CartRequestOptions = { signal?: AbortSignal };
-
 export interface CartActionPort {
-  resolveAccess(options?: CartRequestOptions): Promise<CartAccess>;
-  read(input: { expectedUserId: string }, options?: CartRequestOptions): Promise<CartReply>;
-  mutate(command: CartCommand, options?: CartRequestOptions): Promise<CartReply>;
+  resolveAccess(): Promise<CartAccess>;
+  read(input: { expectedUserId: string }): Promise<CartReply>;
+  mutate(command: CartCommand): Promise<CartReply>;
 }

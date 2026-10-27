@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createElement } from 'react';
 import { loadTs as baseLoadTs } from './helpers/load-ts.mjs';
-const loadTs = (file, mocks = {}) => baseLoadTs(file, { '@/features/cart/use-cart': { useCartCommands: () => ({ recheck: async () => {}, beginAuthTransition() {} }) }, ...mocks });
+const loadTs = (file, mocks = {}) => baseLoadTs(file, mocks);
 
 process.env.AUTH_FEATURES_ENABLED = 'true';
 
@@ -110,6 +110,18 @@ test('request-bound client setup lets Next.js control-flow exceptions propagate'
     '@/shared/lib/supabase/auth-server': { createAuthClient: async () => { throw bailout; } },
   });
   await assert.rejects(getCurrentMemberAccess(), error => error === bailout);
+});
+test('one render shares one auth check across layouts, pages and the cart boundary', async () => {
+  let clients = 0;
+  const memo = fn => { let value; return () => (value ??= fn()); };
+  const { getCurrentMemberAccess } = loadTs('src/domains/auth/member-access.server.ts', {
+    react: { cache: memo },
+    '@/shared/lib/supabase/auth-server': { createAuthClient: async () => { clients++; return { auth: { getUser: async () => ({ data: { user: null }, error: null }) } }; } },
+    '@/domains/member/supabase-repository.server': { createMemberAccessRepository: () => ({ findById: async () => null }) },
+  });
+  await getCurrentMemberAccess();
+  await getCurrentMemberAccess();
+  assert.equal(clients, 1);
 });
 test('guard redirects unverified accounts to recovery and never accepts a missing member', async () => {
   for (const [access, destination] of [

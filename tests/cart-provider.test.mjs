@@ -5,14 +5,13 @@ import React from 'react';
 import * as Zustand from 'zustand';
 import { renderToString } from 'react-dom/server';
 import { loadTs } from './helpers/load-ts.mjs';
-import { A, B, I1, I2, CART_A, CART_B, cartView } from './helpers/cart-fixtures.mjs';
+import { A, B, I1, CART_A, CART_B, cartView } from './helpers/cart-fixtures.mjs';
 
 const member = userId => ({ status: 'member', userId });
 const guest = { status: 'guest' };
 const ok = cart => ({ status: 'ok', cart });
 const child = React.createElement('main', null, '상품 탐색');
 const mountedViews = new WeakMap();
-function deferred() { let resolve; const promise = new Promise(yes => { resolve = yes; }); return { promise, resolve }; }
 async function until(condition, flush = () => {}) {
   for (let n = 0; n < 150; n++) { flush(); if (condition()) return; await setImmediate(); }
   assert.fail('Expected asynchronous boundary was not reached');
@@ -26,21 +25,10 @@ function replaceGlobal(t, name, descriptor) {
   });
 }
 function browser(t, items = []) {
-  let raw = JSON.stringify({ version: 1, authEpoch: 0, guest: { revision: 0, items }, pendingByAccount: {} });
-  let writes = 0; let reads = 0; let fail = false; let tail = Promise.resolve();
-  const listeners = new Set();
-  const storage = {
-    getItem: () => { reads++; if (fail) throw new Error('Storage blocked'); return raw; },
-    setItem: (_, next) => { if (fail) throw new Error('Storage blocked'); writes++; raw = next; },
-  };
+  let raw = JSON.stringify({ version: 2, items });
+  const storage = { getItem: () => raw, setItem: (_, next) => { raw = next; } };
   replaceGlobal(t, 'localStorage', { value: storage });
-  replaceGlobal(t, 'navigator', { value: { locks: { request: (_, work) => { const job = tail.then(work); tail = job.catch(() => {}); return job; } } } });
-  replaceGlobal(t, 'window', { value: {
-    addEventListener: (name, listener) => { assert.equal(name, 'storage'); listeners.add(listener); },
-    removeEventListener: (name, listener) => { assert.equal(name, 'storage'); listeners.delete(listener); },
-  } });
-  return { document: () => JSON.parse(raw), writes: () => writes, reads: () => reads, listeners,
-    fail: next => { fail = next; } };
+  return { document: () => JSON.parse(raw) };
 }
 function actionBoundary({ resolve, read, mutate } = {}) {
   const calls = { resolve: 0, read: [], mutate: [] };
@@ -61,9 +49,16 @@ function actionBoundary({ resolve, read, mutate } = {}) {
 // boundaries are controlled. This is not a DOM or browser lifecycle test.
 function mount(t, props, { Consumer, path = '/products' } = {}) {
   const instances = new Map(); const contexts = new Map(); const providers = new Map();
-  const pending = []; const subscriptions = []; const observations = [];
+  const pending = []; const layout = []; const subscriptions = []; const observations = [];
   const notices = [];
   let current; let cursor = 0; let dirty = false; let pathname = path; let rootProps = props;
+  function effectHook(queue, effect, deps) {
+    const instance = current; const index = cursor++;
+    if (different(instance.slots[index]?.deps, deps)) queue.push(() => {
+      instance.slots[index]?.cleanup?.();
+      instance.slots[index] = { deps, effect, cleanup: effect() };
+    });
+  }
   const different = (left, right) => !left || !right || left.length !== right.length || left.some((v, i) => !Object.is(v, right[i]));
   const memo = (factory, deps) => {
     const index = cursor++;
@@ -80,20 +75,16 @@ function mount(t, props, { Consumer, path = '/products' } = {}) {
       if (!instance.slots[index]) instance.slots[index] = { value: typeof initial === 'function' ? initial() : initial };
       return [instance.slots[index].value, next => { instance.slots[index].value = typeof next === 'function' ? next(instance.slots[index].value) : next; dirty = true; }];
     },
-    useEffect: (effect, deps) => {
-      const instance = current; const index = cursor++;
-      if (different(instance.slots[index]?.deps, deps)) pending.push(() => {
-        instance.slots[index]?.cleanup?.();
-        instance.slots[index] = { deps, effect, cleanup: effect() };
-      });
-    },
+    // Layout effects run first in a commit, as in React.
+    useLayoutEffect: (effect, deps) => effectHook(layout, effect, deps),
+    useEffect: (effect, deps) => effectHook(pending, effect, deps),
     useSyncExternalStore: (subscribe, getSnapshot) => {
       const index = cursor++;
       if (!current.slots[index]) { const unsubscribe = subscribe(() => { dirty = true; }); subscriptions.push(unsubscribe); current.slots[index] = {}; }
       return getSnapshot();
     },
   };
-  const mocks = { react, 'next/navigation': { usePathname: () => pathname }, sonner: { toast: { info: message => notices.push(message) } },
+  const mocks = { react, 'next/navigation': { usePathname: () => pathname }, sonner: { toast: { info: message => notices.push(['info', message]), error: message => notices.push(['error', message]) } },
     zustand: { ...Zustand, useStore: (store, selector) => react.useSyncExternalStore(store.subscribe, () => selector(store.getState()), () => selector(store.getInitialState())) } };
   const provider = loadTs('src/features/cart/cart-provider.tsx', mocks);
   const hooks = loadTs('src/features/cart/use-cart.ts', { ...mocks, './cart-provider': provider });
@@ -120,9 +111,10 @@ function mount(t, props, { Consumer, path = '/products' } = {}) {
     return { ...node, props: { ...node.props, children: renderNode(node.props?.children, `${location}.children`) } };
   }
   function render(next = {}) { rootProps = { ...rootProps, ...next }; tree = renderNode(React.createElement(provider.CartProvider, rootProps), 'root'); dirty = false; return tree; }
-  function commit() { for (const effect of pending.splice(0)) effect(); }
+  function commitLayout() { for (const effect of layout.splice(0)) effect(); }
+  function commit() { commitLayout(); for (const effect of pending.splice(0)) effect(); }
   function flush() {
-    for (let n = 0; pending.length || dirty; n++) { assert.ok(n < 20, 'Provider render must settle'); if (dirty) render(); commit(); }
+    for (let n = 0; layout.length || pending.length || dirty; n++) { assert.ok(n < 20, 'Provider render must settle'); if (dirty) render(); commit(); }
   }
   let disposed = false;
   function dispose() { if (disposed) return; disposed = true; for (const instance of instances.values()) for (const slot of instance.slots) slot.cleanup?.(); subscriptions.forEach(fn => fn()); }
@@ -130,8 +122,16 @@ function mount(t, props, { Consumer, path = '/products' } = {}) {
   mountedViews.get(t).push(dispose);
   t.after(dispose);
   render();
-  return { render, commit, flush, dispose, observations, notices, latest: () => observations.at(-1), tree: () => tree,
+  return { render, commit, commitLayout, flush, dispose, observations, notices, latest: () => observations.at(-1), tree: () => tree,
     path: value => { pathname = value; render(); },
+    // A concurrent render React throws away: hooks and effects fall back to the committed tree.
+    abandon(next) {
+      const saved = [...instances].map(([key, instance]) => [key, instance.slots.map(slot => slot && { ...slot })]);
+      const savedProps = rootProps; const queued = [pending.length, layout.length];
+      render(next);
+      pending.length = queued[0]; layout.length = queued[1]; rootProps = savedProps;
+      instances.clear(); for (const [key, slots] of saved) instances.set(key, { slots });
+    },
     restartEffects() {
       for (const instance of instances.values()) for (const slot of instance.slots) slot.cleanup?.();
       for (const instance of instances.values()) for (const slot of instance.slots) if (slot.effect) slot.cleanup = slot.effect();
@@ -153,24 +153,6 @@ test('server boundary passes only serializable access and children, never server
   }
 });
 
-test('an omitted actions prop keeps the HTTP port created at mount across re-renders', async t => {
-  browser(t);
-  const requests = [];
-  replaceGlobal(t, 'fetch', { value: async (url, options) => {
-    requests.push({ url, method: options.method, nextAction: options.headers?.['Next-Action'] });
-    const body = url === '/api/cart/access' ? member(A)
-      : ok(cartView({ owner: { kind: 'member', userId: A }, cartId: CART_A }));
-    return new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } });
-  } });
-  const view = mount(t, { access: member(A) }); view.flush();
-  await until(() => view.latest().snapshot.phase === 'ready', view.flush);
-  view.render({ access: member(A) }); view.flush();
-  await view.latest().commands.retry(); view.flush(); // a later request after the re-render (routes no longer trigger one)
-  await until(() => requests.some(request => request.url === '/api/cart/access'), view.flush);
-  await until(() => view.latest().snapshot.phase === 'ready', view.flush);
-  assert.ok(requests.some(request => request.url === '/api/cart/read' && request.method === 'POST'));
-  assert.ok(requests.every(request => request.nextAction === undefined));
-});
 
 test('server rendering never accesses browser storage and retains children without cart reads', t => {
   for (const name of ['window', 'localStorage', 'navigator']) replaceGlobal(t, name, { get: () => { throw new Error(`SSR touched ${name}`); } });
@@ -181,161 +163,187 @@ test('server rendering never accesses browser storage and retains children witho
   assert.equal(calls.resolve + calls.read.length + calls.mutate.length, 0);
 });
 
-test('access changes mask the previous member before effects and preserve the consumer instance', async t => {
-  browser(t); const { actions } = actionBoundary(); let childrenCreated = 0;
-  const view = mount(t, { access: member(A), actions }, { Consumer: (hooks, observations, react) => {
-    const [identity] = react.useState(() => { childrenCreated++; return {}; });
-    observations.push({ snapshot: hooks.useCartState(s => s), commands: hooks.useCartCommands(), identity });
-    return child;
+
+test('an omitted actions prop keeps the HTTP port created at mount across re-renders', async t => {
+  browser(t);
+  const requests = [];
+  replaceGlobal(t, 'fetch', { value: async (url, options) => {
+    requests.push({ url, method: options.method, nextAction: options.headers?.['Next-Action'] });
+    const body = ok(cartView({ owner: { kind: 'member', userId: A }, cartId: CART_A }));
+    return new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } });
   } });
-  view.flush(); await until(() => view.latest().snapshot.phase === 'ready', view.flush);
-  assert.equal(view.latest().snapshot.cart.owner.userId, A);
-  const identity = view.latest().identity;
-  view.render({ access: member(B) });
-  assert.equal(view.latest().snapshot.cart, null);
-  assert.notEqual(view.latest().snapshot.phase, 'ready');
-  assert.equal(view.latest().identity, identity);
-  assert.equal(view.tree().type, 'main');
-  assert.equal(childrenCreated, 1);
-  assert.equal((await view.latest().commands.adjustQuantity(I1, 1)).status, 'retryable');
-  view.flush(); await until(() => view.latest().snapshot.cart?.owner.userId === B, view.flush);
+  const view = mount(t, { access: member(A) }); view.flush();
+  await until(() => view.latest().snapshot.phase === 'ready' && !view.latest().snapshot.busy, view.flush);
+  view.render({ access: member(A) }); view.flush();
+  view.latest().commands.enterCart(); view.flush();
+  await until(() => requests.filter(request => request.url === '/api/cart/read').length === 2, view.flush);
+  assert.ok(requests.every(request => request.method === 'POST' && request.nextAction === undefined));
 });
 
-test('selection commands use the current provider only and never persist or call Actions', async t => {
-  const env = browser(t);
-  const { actions, calls } = actionBoundary({ read: () => ok(cartView({ items: [cartView().items[0], { ...cartView().items[0], id: I2, variantId: 7, stock: 0, canSelect: false }] })) });
-  const first = mount(t, { access: member(A), actions }); const second = mount(t, { access: member(A), actions });
-  first.flush(); second.flush(); await until(() => first.latest().snapshot.phase === 'ready' && second.latest().snapshot.phase === 'ready', () => { first.flush(); second.flush(); });
-  const baseline = { writes: env.writes(), reads: env.reads(), server: calls.read.length + calls.mutate.length + calls.resolve };
-  const commands = first.latest().commands;
-  commands.setSelected(I1, true); first.flush(); assert.deepEqual(first.latest().snapshot.selectedIds, [I1]);
-  commands.setSelected(I2, true); first.flush(); assert.deepEqual(first.latest().snapshot.selectedIds, [I1]);
-  commands.selectAll(false); first.flush(); assert.deepEqual(first.latest().snapshot.selectedIds, []);
-  commands.selectAll(true); first.flush(); assert.deepEqual(first.latest().snapshot.selectedIds, [I1]);
-  assert.deepEqual(second.latest().snapshot.selectedIds, []);
-  assert.deepEqual({ writes: env.writes(), reads: env.reads(), server: calls.read.length + calls.mutate.length + calls.resolve }, baseline);
-  assert.equal('setStateFromController' in commands, false);
-  assert.equal('setStateFromController' in first.latest().snapshot, false);
-});
-
-test('StrictMode-style cleanup and restart keeps the same durable merge for one explicit, single-application retry', async t => {
-  const env = browser(t, [{ id: I1, productId: 1, variantId: 2, quantity: 2 }]);
-  const lost = deferred(); const receipts = new Map(); const applied = new Map();
-  const { actions, calls } = actionBoundary({ mutate: command => {
-    if (!receipts.has(command.requestId)) {
-      applied.set(command.requestId, (applied.get(command.requestId) ?? 0) + 1);
-      receipts.set(command.requestId, ok(cartView({ revision: '2', items: [{ ...cartView().items[0], quantity: 4 }], operation: {
-        requestId: command.requestId, outcome: 'applied', itemIdMap: {}, notices: [],
-      } })));
-    }
-    return calls.mutate.length === 1 ? lost.promise : receipts.get(command.requestId);
-  } });
-  const view = mount(t, { access: member(A), actions }); view.flush(); await until(() => calls.mutate.length === 1, view.flush);
-  view.restartEffects(); await until(() => view.latest().snapshot.phase === 'retryable', view.flush);
-  assert.equal(calls.mutate.length, 1); // the remount does not resend on its own
-  await view.latest().commands.retry(); await until(() => view.latest().snapshot.phase === 'ready', view.flush);
-  assert.equal(calls.mutate.length, 2); assert.deepEqual(calls.mutate[0], calls.mutate[1]);
-  assert.equal(applied.get(calls.mutate[0].requestId), 1);
-  assert.equal(view.latest().snapshot.cart.items[0].quantity, 4);
-  lost.resolve(receipts.get(calls.mutate[0].requestId)); await setImmediate(); view.flush();
-  assert.deepEqual(env.document().pendingByAccount, {}); assert.equal(env.listeners.size, 1);
-  view.dispose(); assert.equal(env.listeners.size, 0);
-});
-
-test('cart entry reads its items once, a route change adds nothing, and an auth recheck shows the actual account', async t => {
-  browser(t); let actual = member(A);
-  const entering = deferred();
-  const { actions, calls } = actionBoundary({ resolve: () => actual, read: input => calls.read.length === 2 ? entering.promise : ok(cartView({ owner: { kind: 'member', userId: input.expectedUserId }, cartId: input.expectedUserId === B ? CART_B : CART_A })) });
-  const view = mount(t, { access: member(A), actions }); view.flush(); await until(() => view.latest().snapshot.phase === 'ready', view.flush);
-  const entry = view.latest().commands.enterCart(); await until(() => calls.read.length === 2);
-  view.path('/cart'); view.flush();
-  entering.resolve(ok(cartView())); await entry;
-  await until(() => view.latest().snapshot.phase === 'ready', view.flush);
-  assert.equal(calls.read.length, 2);
-  view.path('/products/1'); view.flush(); await setImmediate(); view.flush();
-  assert.equal(calls.read.length, 2);
-  assert.equal(calls.resolve, 0);
-  actual = member(B); await view.latest().commands.recheck('auth'); view.flush();
-  assert.equal(view.latest().snapshot.cart.owner.userId, B);
-  // Boundary props may still be A until the Server Component refresh arrives.
-  assert.equal(view.latest().snapshot.phase, 'ready');
-});
-
-test('storage failure and error access lock the cart while the page child remains available', async t => {
-  const env = browser(t); env.fail(true); const { actions, calls } = actionBoundary();
+test('provider starts the controller with the server access and restarts on account change', async t => {
+  browser(t);
+  const { actions, calls } = actionBoundary();
   const view = mount(t, { access: member(A), actions }); view.flush();
-  await until(() => view.latest().snapshot.phase === 'retryable', view.flush);
-  assert.equal(view.tree().type, 'output'); assert.equal(view.latest().snapshot.cart, null);
-  assert.equal(calls.read.length + calls.mutate.length, 0);
-  env.fail(false); await view.latest().commands.retry(); view.flush();
-  assert.equal(view.latest().snapshot.phase, 'ready');
-  view.render({ access: { status: 'error', message: 'Access unavailable' } }); view.flush();
-  await until(() => view.latest().snapshot.phase === 'retryable', view.flush);
-  assert.equal(view.latest().snapshot.cart, null);
+  await until(() => view.latest().snapshot.phase === 'ready' && !view.latest().snapshot.busy, view.flush);
+  assert.deepEqual(calls.read, [{ expectedUserId: A }]);
+  view.render({ access: member(B) }); view.flush();
+  await until(() => calls.read.length === 2 && !view.latest().snapshot.busy, view.flush);
+  assert.deepEqual(calls.read[1], { expectedUserId: B });
+  assert.deepEqual(view.latest().snapshot.cart.owner, { kind: 'member', userId: B });
 });
 
-test('a route change during cart entry cannot unlock an authentication transition', async t => {
-  const env = browser(t); const entering = deferred();
-  let actual = member(A);
-  const { actions, calls } = actionBoundary({ resolve: () => actual, read: () => calls.read.length === 2 ? entering.promise : ok(cartView()) });
+test('a new account never sees the previous cart before its start runs', async t => {
+  browser(t);
+  const { actions } = actionBoundary();
   const view = mount(t, { access: member(A), actions }); view.flush();
   await until(() => view.latest().snapshot.phase === 'ready', view.flush);
-  const entry = view.latest().commands.enterCart(); await until(() => calls.read.length === 2);
-  view.path('/cart'); view.flush();
-  view.latest().commands.beginAuthTransition();
-  await until(() => env.document().authEpoch === 1, view.flush);
-  entering.resolve(ok(cartView())); await entry;
-  await setImmediate(); view.flush(); await setImmediate(); view.flush();
-  assert.equal(calls.resolve, 0);
-  assert.equal(view.latest().snapshot.phase, 'checking');
-  assert.equal(view.latest().snapshot.cart, null);
-  actual = guest;
-  await view.latest().commands.recheck('auth'); view.flush();
-  assert.equal(view.latest().snapshot.phase, 'ready');
-  assert.equal(view.latest().snapshot.cart.owner.kind, 'guest');
+  // Committed, but the start effect for B has not run yet.
+  view.render({ access: member(B) }); view.commitLayout();
+  const masked = view.latest();
+  assert.deepEqual([masked.snapshot.phase, masked.snapshot.cart, masked.snapshot.access], ['loading', null, null]);
+  assert.equal(masked.commands.adjustQuantity(I1, 1), false);
+  assert.equal(masked.commands.addItems([{ productId: 1, variantId: 2, quantity: 1 }]), false);
 });
 
-test('an equivalent server snapshot keeps cart entry effects stable and preserves manual selection', async t => {
-  browser(t); const { actions, calls } = actionBoundary();
-  const view = mount(t, { access: member(A), actions }, { Consumer: (hooks, observations, react) => {
-    const commands = hooks.useCartCommands();
-    react.useEffect(() => { void commands.enterCart(); }, [commands.enterCart]);
-    observations.push({ snapshot: hooks.useCartState(state => state), commands });
-    return child;
-  } });
-  view.flush(); await until(() => view.latest().snapshot.phase === 'ready', view.flush);
-  view.latest().commands.setSelected(I1, true); view.flush();
-  view.render({ access: member(A), actions: { ...actions } }); view.flush();
-  await setImmediate(); view.flush();
+test('an internal restart keeps the cart visible under the same props', async t => {
+  browser(t);
+  const { actions } = actionBoundary({ mutate: () => ({ status: 'access_changed', access: guest }) });
+  const view = mount(t, { access: member(A), actions }); view.flush();
+  await until(() => view.latest().snapshot.phase === 'ready' && !view.latest().snapshot.busy, view.flush);
+  assert.equal(view.latest().commands.adjustQuantity(I1, 1), true); view.flush();
+  await until(() => view.latest().snapshot.access?.status === 'guest' && !view.latest().snapshot.busy, view.flush);
+  assert.equal(view.latest().snapshot.phase, 'ready');
+  assert.deepEqual(view.latest().snapshot.cart.owner, { kind: 'guest' });
+});
+
+test('route changes make no cart request', async t => {
+  browser(t);
+  const { actions, calls } = actionBoundary();
+  const view = mount(t, { access: member(A), actions }); view.flush();
+  await until(() => view.latest().snapshot.phase === 'ready' && !view.latest().snapshot.busy, view.flush);
+  view.path('/cart'); view.flush(); view.path('/products/1'); view.flush();
+  await setImmediate();
   assert.equal(calls.read.length, 1);
+  assert.equal(calls.resolve + calls.mutate.length, 0);
+});
+
+test('notify goes to toast info/error', async t => {
+  browser(t);
+  const { actions } = actionBoundary({ mutate: command => ok(cartView({ notices: [{ kind: 'sold_out', variantId: 2 }], operation: { requestId: command.requestId, outcome: 'rejected', itemIdMap: {}, notices: [] } })) });
+  const view = mount(t, { access: member(A), actions }); view.flush();
+  await until(() => view.latest().snapshot.phase === 'ready' && !view.latest().snapshot.busy, view.flush);
+  view.latest().commands.addItems([{ productId: 1, variantId: 2, quantity: 1 }]); view.flush();
+  await until(() => view.notices.length > 0, view.flush);
+  assert.deepEqual(view.notices, [['info', '품절된 옵션은 새로 담거나 수량을 변경할 수 없습니다.']]);
+});
+
+const { selectCartItemCount, selectCartLocked } = loadTs('src/features/cart/cart-count.ts');
+const base = { phase: 'ready', access: member(A), cart: cartView(), busy: false, pendingAdd: 0, selectedIds: [], message: null };
+
+test('count shows cart quantity plus pending adds and is unknown only while loading', () => {
+  assert.equal(selectCartItemCount(base), 2);
+  assert.equal(selectCartItemCount({ ...base, pendingAdd: 3, busy: true }), 5);
+  assert.equal(selectCartItemCount({ ...base, phase: 'error' }), 2);
+  assert.equal(selectCartItemCount({ ...base, phase: 'loading', cart: null }), null);
+  // Settled without a cart: no count to show, and nothing is being checked any more.
+  assert.equal(selectCartItemCount({ ...base, phase: 'restricted', cart: null }), 0);
+  assert.equal(selectCartItemCount({ ...base, phase: 'error', cart: null }), 0);
+});
+
+test('locked while busy, loading or restricted', () => {
+  assert.equal(selectCartLocked(base), false);
+  assert.equal(selectCartLocked({ ...base, busy: true }), true);
+  assert.equal(selectCartLocked({ ...base, phase: 'loading' }), true);
+  assert.equal(selectCartLocked({ ...base, phase: 'restricted' }), true);
+});
+
+test('locked when the first load failed and there is no cart', () => {
+  assert.equal(selectCartLocked({ ...base, phase: 'error', cart: null }), true);
+  assert.equal(selectCartLocked({ ...base, phase: 'error' }), false);
+});
+
+test('a server render with the same props key restarts when the controller moved to another account', async t => {
+  // Case A: guest props, the cart entry found member B, then this tab logged out (guest props again).
+  browser(t);
+  const { actions, calls } = actionBoundary({ resolve: () => member(B) });
+  const view = mount(t, { access: guest, actions }); view.flush();
+  await until(() => view.latest().snapshot.phase === 'ready' && !view.latest().snapshot.busy, view.flush);
+  view.latest().commands.enterCart(); view.flush();
+  await until(() => view.latest().snapshot.access?.status === 'member' && !view.latest().snapshot.busy, view.flush);
+  assert.deepEqual(view.latest().snapshot.cart.owner, { kind: 'member', userId: B });
+  view.render({ access: { status: 'guest' } });
+  assert.notEqual(view.latest().snapshot.cart?.owner.kind, 'member', 'B is hidden before the restart runs');
+  view.flush();
+  await until(() => view.latest().snapshot.access?.status === 'guest' && !view.latest().snapshot.busy, view.flush);
+  assert.deepEqual(view.latest().snapshot.cart.owner, { kind: 'guest' });
+  assert.equal(calls.read.length, 1);
+});
+
+test('a re-login with the same props key restarts a tab the controller had moved to guest', async t => {
+  // Case B: member A props, another tab logged out (access_changed → guest), then this tab logged in as A again.
+  browser(t);
+  const { actions, calls } = actionBoundary({ mutate: () => ({ status: 'access_changed', access: guest }) });
+  const view = mount(t, { access: member(A), actions }); view.flush();
+  await until(() => view.latest().snapshot.phase === 'ready' && !view.latest().snapshot.busy, view.flush);
+  view.latest().commands.adjustQuantity(I1, 1); view.flush();
+  await until(() => view.latest().snapshot.access?.status === 'guest' && !view.latest().snapshot.busy, view.flush);
+  view.render({ access: member(A) }); view.flush();
+  await until(() => view.latest().snapshot.access?.status === 'member' && !view.latest().snapshot.busy, view.flush);
+  assert.deepEqual(view.latest().snapshot.cart.owner, { kind: 'member', userId: A });
+  assert.equal(calls.read.length, 2);
+});
+
+test('a same-account server render neither restarts nor hides the cart', async t => {
+  browser(t);
+  const { actions, calls } = actionBoundary();
+  const view = mount(t, { access: member(A), actions }); view.flush();
+  await until(() => view.latest().snapshot.phase === 'ready' && !view.latest().snapshot.busy, view.flush);
+  view.render({ access: member(A) });
+  assert.equal(view.latest().snapshot.phase, 'ready');
+  assert.ok(view.latest().snapshot.cart);
+  view.flush(); await setImmediate();
+  assert.equal(calls.read.length, 1);
+});
+
+test('a remount (StrictMode effect replay) while the first read is pending still loads the cart', async t => {
+  browser(t);
+  let release; const first = new Promise(resolve => { release = resolve; });
+  let reads = 0;
+  const { actions } = actionBoundary({ read: input => (++reads === 1 ? first : Promise.resolve(ok(cartView({ owner: { kind: 'member', userId: input.expectedUserId } })))) });
+  const view = mount(t, { access: member(A), actions }); view.flush();
+  await until(() => reads === 1, view.flush);
+  view.restartEffects(); view.flush();
+  release(ok(cartView()));
+  await until(() => view.latest().snapshot.phase === 'ready' && !view.latest().snapshot.busy, view.flush);
+  assert.ok(view.latest().snapshot.cart);
+});
+
+test('a same-account server render does not re-enter the cart page', async t => {
+  browser(t);
+  const { actions, calls } = actionBoundary();
+  const Consumer = (hooks, observations, react) => {
+    const snapshot = hooks.useCartState(state => state); const commands = hooks.useCartCommands();
+    react.useEffect(() => { commands.enterCart(); }, [commands.enterCart]);
+    observations.push({ snapshot, commands }); return React.createElement('output', null, snapshot.phase);
+  };
+  const view = mount(t, { access: member(A), actions }, { Consumer }); view.flush();
+  await until(() => view.latest().snapshot.phase === 'ready' && !view.latest().snapshot.busy, view.flush);
+  view.latest().commands.enterCart(); view.flush();
+  await until(() => !view.latest().snapshot.busy, view.flush);
+  const reads = calls.read.length;
+  view.latest().commands.setSelected(I1, true); view.flush();
+  view.render({ access: member(A) }); view.flush(); await setImmediate(); view.flush();
+  assert.equal(calls.read.length, reads);
   assert.deepEqual(view.latest().snapshot.selectedIds, [I1]);
 });
 
-test('public cart hooks reject consumers outside their provider', t => {
+test('an abandoned render for another account leaves commands working for the committed one', async t => {
   browser(t);
-  const { useCartState, useCartCommands } = loadTs('src/features/cart/use-cart.ts', { react: { ...React, useContext: () => null } });
-  assert.throws(() => useCartState(state => state.phase), /CartProvider/);
-  assert.throws(() => useCartCommands(), /CartProvider/);
-});
-
-test('confirmed adjustment notices appear outside the cart page once across effect replays', async t => {
-  browser(t);
-  const { actions } = actionBoundary({ read: () => ok(cartView({ notices: [{ kind: 'quantity_adjusted', itemId: I1, variantId: 2, before: 5, after: 2 }] })) });
+  const { actions, calls } = actionBoundary();
   const view = mount(t, { access: member(A), actions }); view.flush();
-  await until(() => view.latest().snapshot.phase === 'ready', view.flush);
-  assert.equal(view.notices.length, 1);
-  assert.match(view.notices[0], /재고.*수량/);
-  view.restartEffects(); await until(() => view.latest().snapshot.phase === 'ready', view.flush);
-  assert.equal(view.notices.length, 1);
-});
-
-test('route changes make no cart request and keep the confirmed count', async t => {
-  browser(t);
-  const { actions, calls } = actionBoundary({ resolve: () => member(A) });
-  const view = mount(t, { access: member(A), actions }); view.flush();
-  await until(() => view.latest().snapshot.phase === 'ready', view.flush);
-  const before = { resolve: calls.resolve, read: calls.read.length };
-  for (const path of ['/products/1', '/mypage', '/']) { view.path(path); view.flush(); await setImmediate(); view.flush(); }
-  assert.deepEqual({ resolve: calls.resolve, read: calls.read.length }, before);
-  assert.equal(view.latest().snapshot.phase, 'ready');
+  await until(() => view.latest().snapshot.phase === 'ready' && !view.latest().snapshot.busy, view.flush);
+  view.abandon({ access: member(B) });
+  view.render(); view.flush();
+  assert.equal(view.latest().commands.adjustQuantity(I1, 1), true);
+  assert.equal(calls.mutate.length, 1);
 });

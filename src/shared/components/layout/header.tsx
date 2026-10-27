@@ -17,12 +17,11 @@ import { CartItemCountBadge, getCartAriaLabel } from './cart-item-count-badge';
 interface HeaderProps {
   mobileContent?: ReactNode;
   cartItemCount?: number | null;
-  cartNeedsCheck?: boolean;
   isLoggedIn?: boolean;
   logoutControl?: ReactNode;
 }
 
-export function Header({ mobileContent, cartItemCount = 0, cartNeedsCheck = false, isLoggedIn = false, logoutControl }: HeaderProps) {
+export function Header({ mobileContent, cartItemCount = 0, isLoggedIn = false, logoutControl }: HeaderProps) {
   const closeOverlayRoute = useCloseOverlayRoute();
   const { activeOverlayRoute } = useOverlayRoute();
   const isOverlayOpen = activeOverlayRoute !== null;
@@ -42,7 +41,7 @@ export function Header({ mobileContent, cartItemCount = 0, cartNeedsCheck = fals
                   href={item.href}
                   aria-label={
                     item.href === '/cart'
-                      ? getCartAriaLabel(cartItemCount, cartNeedsCheck)
+                      ? getCartAriaLabel(cartItemCount)
                       : undefined
                   }
                   variant="ghost"
@@ -53,7 +52,6 @@ export function Header({ mobileContent, cartItemCount = 0, cartNeedsCheck = fals
                   {item.href === '/cart' ? (
                     <CartItemCountBadge
                       count={cartItemCount}
-                      needsCheck={cartNeedsCheck}
                       className="ml-0.5"
                     />
                   ) : null}
@@ -119,7 +117,7 @@ export function Header({ mobileContent, cartItemCount = 0, cartNeedsCheck = fals
           </Link>
           <ButtonLink
             href="/cart"
-            aria-label={getCartAriaLabel(cartItemCount, cartNeedsCheck)}
+            aria-label={getCartAriaLabel(cartItemCount)}
             variant="ghost"
             size="icon-md"
             className="mr-2"
@@ -128,7 +126,6 @@ export function Header({ mobileContent, cartItemCount = 0, cartNeedsCheck = fals
               <ShoppingCart className="size-5.5" />
               <CartItemCountBadge
                 count={cartItemCount}
-                needsCheck={cartNeedsCheck}
                 className="pointer-events-none absolute -right-2 -top-2"
               />
             </span>

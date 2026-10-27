@@ -1,11 +1,10 @@
 import { z } from 'zod';
-import type { CartCommand } from './cart.contract';
+import { maxCartQuantity as maxQuantity, type CartCommand } from './cart.contract';
 import type { CartSnapshotDTO } from './cart.dto';
 
-const maxQuantity = 2147483647;
 const maxRevision = '9223372036854775807';
-const numericIdSchema = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
-const quantitySchema = z.number().int().positive().max(maxQuantity);
+export const numericIdSchema = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
+export const quantitySchema = z.number().int().positive().max(maxQuantity);
 
 export const productInputsSchema = z.array(z.strictObject({
   productId: numericIdSchema,
@@ -70,6 +69,13 @@ const revisionSchema = z.string().regex(/^(0|[1-9]\d*)$/).refine(
   '장바구니 버전이 저장 가능한 범위를 초과했습니다.',
 );
 
+const operationSchema = z.strictObject({
+  requestId: z.uuid(),
+  outcome: z.enum(['applied', 'noop', 'rejected']),
+  itemIdMap: z.record(z.uuid(), z.uuid()),
+  notices: z.array(noticeSchema),
+}).nullable();
+
 const snapshotSchema: z.ZodType<CartSnapshotDTO> = z.strictObject({
   owner_id: z.uuid(),
   cart_id: z.uuid(),
@@ -81,14 +87,23 @@ const snapshotSchema: z.ZodType<CartSnapshotDTO> = z.strictObject({
     quantity: quantitySchema,
   })),
   notices: z.array(noticeSchema),
-  operation: z.strictObject({
-    requestId: z.uuid(),
-    outcome: z.enum(['applied', 'noop', 'rejected']),
-    itemIdMap: z.record(z.uuid(), z.uuid()),
-    notices: z.array(noticeSchema),
-  }).nullable(),
+  operation: operationSchema,
 });
 
 export function parseCartSnapshot(value: unknown): CartSnapshotDTO {
   return snapshotSchema.parse(value);
+}
+
+// The member cart as the browser receives it; product fields are checked by the product response schema.
+const memberCartViewSchema = z.object({
+  owner: z.strictObject({ kind: z.literal('member'), userId: z.uuid() }),
+  cartId: z.uuid(),
+  revision: revisionSchema,
+  items: z.array(z.object({ id: z.uuid(), quantity: quantitySchema, canSelect: z.boolean() })),
+  notices: z.array(noticeSchema),
+  operation: operationSchema,
+});
+
+export function parseMemberCartView(value: unknown): void {
+  memberCartViewSchema.parse(value);
 }

@@ -15,25 +15,24 @@ test('product mapping preserves SKU while cart and option views use numeric IDs'
   assert.ok(product.images.every(image => Number.isSafeInteger(image.id)));
 });
 
-test('cart merges numeric option IDs and explicitly carries UUID selection across option replacements', async () => {
+test('guest cart merges numeric option IDs across adds and option replacements', async () => {
   const store = loadTs('src/domains/cart/cart.store.ts').createCartStore();
   let raw = null; let sequence = 0;
   const newId = () => '40000000-0000-4000-8000-' + String(++sequence).padStart(12,'0');
-  const local = loadTs('src/domains/cart/cart.local.ts').createCartLocalAdapter({storage:{getItem:()=>raw,setItem:(_,value)=>{raw=value;}},locks:{request:async(_,work)=>work()},events:{subscribe:()=>()=>{}},newId});
+  const local = loadTs('src/domains/cart/cart.local.ts').createCartLocalAdapter({storage:{getItem:()=>raw,setItem:(_,value)=>{raw=value;}}});
   const {createCartController} = loadTs('src/features/cart/cart-controller.ts');
-  const controller = createCartController({store,local,newId,actions:{resolveAccess:async()=>({status:'guest'})},loadProducts:async items=>productResponse(items.map(item=>({...item,styleId:1,name:'상품',color:'회색',thumbnailUrl:'/file.svg',price:10000,discountRate:0,priceOffset:0,stock:10,size:'M'})))});
-  await controller.start({status:'guest'});
-  await controller.addItems([{productId:1,variantId:2,quantity:2},{productId:1,variantId:2,quantity:1},{productId:2,variantId:7,quantity:1}]);
-  assert.deepEqual(store.getState().selectedIds,[]);
+  const controller = createCartController({store,local,newId,notify:{info(){},error(){}},actions:{resolveAccess:async()=>({status:'guest'})},loadProducts:async items=>productResponse(items.map(item=>({...item,styleId:1,name:'상품',color:'회색',thumbnailUrl:'/file.svg',price:10000,discountRate:0,priceOffset:0,stock:10,size:'M'})))});
+  controller.start({status:'guest'}); await controller.whenIdle();
+  assert.equal(controller.addItems([{productId:1,variantId:2,quantity:2},{productId:1,variantId:2,quantity:1},{productId:2,variantId:7,quantity:1}]), true); await controller.whenIdle();
+  assert.deepEqual(store.getState().cart.items.map(item=>[item.variantId,item.quantity]),[[2,3],[7,1]]);
   const source = store.getState().cart.items.find(item=>item.variantId===2).id;
-  store.getState().setSelected(source,true);
-  await controller.changeOption(source,2,7);
+  assert.equal(controller.changeOption(source,2,7), true); await controller.whenIdle();
   const target = store.getState().cart.items[0];
-  assert.equal(target.variantId,7); assert.equal(target.quantity,4); assert.deepEqual(store.getState().selectedIds,[target.id]);
-  await controller.changeOption(target.id,4,17);
+  assert.equal(store.getState().cart.items.length,1); assert.equal(target.variantId,7); assert.equal(target.quantity,4);
+  assert.equal(controller.changeOption(target.id,4,17), true); await controller.whenIdle();
   const moved = store.getState().cart.items[0];
-  assert.equal(moved.variantId,17); assert.equal(moved.quantity,4); assert.deepEqual(store.getState().selectedIds,[moved.id]);
-  await controller.removeItems([moved.id]);
+  assert.equal(moved.variantId,17); assert.equal(moved.productId,4); assert.equal(moved.quantity,4);
+  assert.equal(controller.removeItems([moved.id]), true); await controller.whenIdle();
   assert.deepEqual(store.getState().cart.items,[]); assert.deepEqual(store.getState().selectedIds,[]);
   controller.dispose();
 });
