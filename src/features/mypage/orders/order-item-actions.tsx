@@ -11,7 +11,8 @@ import { MoreHorizontal } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/shared/components/ui/button';
-import { useCartStore } from '@/domains/cart';
+import { useCartState, useCartCommands } from '@/features/cart/use-cart';
+import { selectCartLocked } from '@/features/cart/cart-count';
 import type {
   OrderItemActionViewModel,
   OrderItemActionsViewModel,
@@ -51,7 +52,8 @@ export function MypageOrderItemActions({
   orderItemId,
   repurchaseItem,
 }: MypageOrderItemActionsProps) {
-  const addToCart = useCartStore(state => state.addToCart);
+  const { addItems } = useCartCommands();
+  const locked = useCartState(selectCartLocked);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -60,18 +62,16 @@ export function MypageOrderItemActions({
 
   const runAction = (action: OrderItemActionViewModel) => {
     if (action.type === 'repurchase' && repurchaseItem) {
-      addToCart(
-        repurchaseItem.productId,
-        repurchaseItem.variantId,
-        repurchaseItem.quantity,
-      );
-      toast.success('상품을 장바구니에 다시 담았습니다.', {
-        position: 'bottom-center',
-        duration: 3000,
-        action: {
-          label: '보러가기',
-          onClick: () => router.push(getCartHref(returnTo)),
-        },
+      // The cart blocks a second add until the first finishes and reports a failure itself; success waits until saved.
+      addItems([repurchaseItem], () => {
+        toast.success('상품을 장바구니에 다시 담았습니다.', {
+          position: 'bottom-center',
+          duration: 3000,
+          action: {
+            label: '보러가기',
+            onClick: () => router.push(getCartHref(returnTo)),
+          },
+        });
       });
       return;
     }
@@ -94,6 +94,7 @@ export function MypageOrderItemActions({
           orderId={orderId}
           orderItemId={orderItemId}
           returnTo={returnTo}
+          disabled={locked}
           onAction={runAction}
         />
       ) : null}
@@ -103,6 +104,7 @@ export function MypageOrderItemActions({
           orderId={orderId}
           orderItemId={orderItemId}
           returnTo={returnTo}
+          disabled={locked}
           onAction={runAction}
         />
       ) : null}
@@ -130,6 +132,7 @@ export function MypageOrderItemActions({
                   orderId={orderId}
                   orderItemId={orderItemId}
                   returnTo={returnTo}
+                  disabled={locked}
                   onAction={runAction}
                 />
                 {index < actions.more.length - 1 && (
@@ -151,6 +154,7 @@ interface OrderItemActionProps {
   orderId: string;
   orderItemId: string;
   returnTo: string;
+  disabled?: boolean;
   onAction: (action: OrderItemActionViewModel) => void;
 }
 
@@ -184,6 +188,7 @@ function OrderItemActionButton({
   orderItemId,
   returnTo,
   onAction,
+  disabled,
 }: OrderItemActionProps) {
   const href = getOrderItemActionHref(orderId, orderItemId, returnTo, action);
   const className =
@@ -203,6 +208,7 @@ function OrderItemActionButton({
       variant="outline"
       size="sm"
       className={className}
+      disabled={disabled && action.type === 'repurchase'}
       onClick={() => onAction(action)}
     >
       {action.label}
@@ -216,6 +222,7 @@ function OrderItemMenuAction({
   orderItemId,
   returnTo,
   onAction,
+  disabled,
 }: OrderItemActionProps) {
   const href = getOrderItemActionHref(orderId, orderItemId, returnTo, action);
   const className = MYPAGE_ACTION_MENU_CLASS_NAME.item;
@@ -231,6 +238,7 @@ function OrderItemMenuAction({
   return (
     <DropdownMenuItem
       className={className}
+      disabled={disabled && action.type === 'repurchase'}
       onSelect={() => onAction(action)}
     >
       {action.label}

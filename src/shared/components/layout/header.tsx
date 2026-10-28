@@ -16,7 +16,7 @@ import { CartItemCountBadge, getCartAriaLabel } from './cart-item-count-badge';
 
 interface HeaderProps {
   mobileContent?: ReactNode;
-  cartItemCount?: number;
+  cartItemCount?: number | null;
   isLoggedIn?: boolean;
   logoutControl?: ReactNode;
 }

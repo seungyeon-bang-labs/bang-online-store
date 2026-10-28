@@ -4,34 +4,27 @@ import { CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
 import { getProductLinePrice } from '@/domains/product/domain';
 
-interface SelectedProduct {
-  id: number;
-  productId: number;
-  name: string;
-  price: number;
-  discount: number;
-  quantity: number;
-  priceOffset: number;
-}
+import type { CartItemViewModel } from '@/domains/cart/cart.view-model';
 
 interface CartSummaryProps {
-  selectedProducts: SelectedProduct[];
+  selectedProducts: readonly CartItemViewModel[];
 }
 
 export function CartSummary({ selectedProducts }: CartSummaryProps) {
   const orderSummary = useMemo(() => {
-    const itemCount = selectedProducts.reduce(
+    const purchasable = selectedProducts.filter(item => item.canSelect);
+    const itemCount = purchasable.reduce(
       (total, item) => total + item.quantity,
       0,
     );
-    const subtotal = selectedProducts.reduce(
+    const subtotal = purchasable.reduce(
       (total, item) => total + item.price * item.quantity,
       0,
     );
-    const discountAmount = selectedProducts.reduce((total, item) => total
-      + getProductLinePrice(item.price, item.discount, item.priceOffset, item.quantity).discountAmount, 0);
+    const discountAmount = purchasable.reduce((total, item) => total
+      + getProductLinePrice(item.price, item.discountRate, item.priceOffset, item.quantity).discountAmount, 0);
     const shippingFee = 0;
-    const optionsTotal = selectedProducts.reduce(
+    const optionsTotal = purchasable.reduce(
       (total, item) => total + item.priceOffset * item.quantity,
       0,
     );
@@ -57,7 +50,7 @@ export function CartSummary({ selectedProducts }: CartSummaryProps) {
           <Button
             type="button"
             size="lg"
-            disabled={selectedProducts.length === 0}
+            disabled={!selectedProducts.some(item => item.canSelect)}
             className="min-w-28 font-black"
             onClick={handleOrderClick}
           >
@@ -116,7 +109,7 @@ export function CartSummary({ selectedProducts }: CartSummaryProps) {
             type="button"
             variant="outline"
             size="xl"
-            disabled={selectedProducts.length === 0}
+            disabled={!selectedProducts.some(item => item.canSelect)}
             className="w-full text-black font-black flex items-center justify-center gap-3 text-lg tracking-widest"
             onClick={handleOrderClick}
           >

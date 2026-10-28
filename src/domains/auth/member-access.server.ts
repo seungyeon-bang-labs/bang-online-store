@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { cache } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/shared/types/supabase';
 import { createAuthClient } from '@/shared/lib/supabase/auth-server';
@@ -50,10 +51,12 @@ export function createMemberAccessService(
   };
 }
 
-export async function getCurrentMemberAccess(): Promise<MemberAccessResult> {
+// One server render (layouts, pages, cart boundary) shares one auth check. React memoizes only
+// inside a render, so actions and route handlers that sign in or out still check afresh.
+export const getCurrentMemberAccess = cache(async (): Promise<MemberAccessResult> => {
   const client = await createAuthClient();
   return createMemberAccessService(
     client,
     createMemberAccessRepository(client),
   ).findCurrent();
-}
+});

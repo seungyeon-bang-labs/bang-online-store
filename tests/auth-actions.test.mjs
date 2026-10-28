@@ -39,7 +39,7 @@ function setup({ signInError = null, signInThrows = null, otpError = null, acces
   const { toSignupTerms } = loadTs('src/domains/terms/mapper.ts');
   const actions = loadTs('src/app/(auth)/actions.ts', {
     'next/navigation': {
-      RedirectType: { replace: 'replace' },
+      RedirectType: { replace: 'replace', push: 'push' },
       redirect: (href, type) => { throw new Error(`REDIRECT:${href}:${type}`); },
     },
     '@/shared/lib/supabase/auth-server': { createAuthClient: async () => client },
@@ -78,8 +78,8 @@ test('disabled signup and email verification reject before client setup, terms r
       assert.match(result.message, /데모 환경/);
     }
     const { actions: ordinary, calls } = setup();
-    assert.equal((await ordinary.loginAction({ email: 'visitor@example.com', password: 'Password!1' })).status, 'success');
-    assert.deepEqual(await ordinary.retrySignupMemberAction(), { ok: true });
+    await assert.rejects(ordinary.loginAction({ email: 'visitor@example.com', password: 'Password!1' }), { message: 'REDIRECT:/:replace' });
+    await assert.rejects(ordinary.retrySignupMemberAction(), { message: 'REDIRECT:/:replace' });
     await assert.rejects(ordinary.logoutAction(), /REDIRECT:\/:replace/);
     assert.equal(calls.signOut.length, 1);
   } finally {
@@ -109,11 +109,11 @@ test('unavailable and missing members can sign out without a member access looku
   }
 });
 
-test('confirmed login with an active store member returns success without throwing a redirect', async () => {
+test('confirmed login with an active store member ends in a server replace redirect to home', async () => {
   const { actions, calls } = setup();
-  assert.deepEqual(await actions.loginAction({
+  await assert.rejects(actions.loginAction({
     email: 'visitor@example.com', password: 'Password!1',
-  }), { status: 'success' });
+  }), { message: 'REDIRECT:/:replace' });
   assert.equal(calls.access, 1);
 });
 test('unexpected login exceptions propagate to the caller before a member lookup', async () => {
@@ -124,10 +124,11 @@ test('unexpected login exceptions propagate to the caller before a member lookup
   }), error => error === failure);
   assert.equal(calls.access, 0);
 });
-test('unconfirmed login returns an email recovery result, not a password error', async () => {
-  const { actions } = setup({ signInError: { code: 'email_not_confirmed' } });
-  const result = await actions.loginAction({ email: 'visitor@example.com', password: 'Password!1' });
-  assert.deepEqual(result, { status: 'verification_required', email: 'visitor@example.com' });
+test('unconfirmed login redirects to email recovery, not a password error', async () => {
+  for (const config of [{ signInError: { code: 'email_not_confirmed' } }, { access: { status: 'unverified', email: 'visitor@example.com' } }]) {
+    const { actions } = setup(config);
+    await assert.rejects(actions.loginAction({ email: 'visitor@example.com', password: 'Password!1' }), { message: 'REDIRECT:/verify-email?email=visitor%40example.com:push' });
+  }
 });
 test('wrong credentials stay on login and never route into OTP', async () => {
   const { actions } = setup({ signInError: { code: 'invalid_credentials' } });
@@ -213,16 +214,16 @@ test('missing member after OTP is an account error and never runs a completion R
   assert.equal(result.stage, 'member');
   assert.equal(result.retryable, false);
 });
-test('verified OTP and an active member return success without a redirect exception', async () => {
+test('verified OTP and an active member end in a server replace redirect to home', async () => {
   const { actions, calls } = setup();
-  assert.deepEqual(await actions.verifySignupOtpAction({
+  await assert.rejects(actions.verifySignupOtpAction({
     email: 'visitor@example.com', token: '123456',
-  }), { ok: true });
+  }), { message: 'REDIRECT:/:replace' });
   assert.equal(calls.access, 1);
 });
-test('active session retry returns success without validating an OTP again', async () => {
+test('active session retry redirects home without validating an OTP again', async () => {
   const { actions, calls } = setup();
-  assert.deepEqual(await actions.retrySignupMemberAction(), { ok: true });
+  await assert.rejects(actions.retrySignupMemberAction(), { message: 'REDIRECT:/:replace' });
   assert.equal(calls.otp.length, 0);
 });
 test('resend uses the signup endpoint and validates the email first', async () => {

@@ -25,7 +25,7 @@ function MobileProductHeader({
 }: {
   activeHref: string;
   cartHref: string;
-  cartItemCount: number;
+  cartItemCount: number | null;
 }) {
   useEffect(() => {
     let previousScrollY = Math.max(window.scrollY, 0);
@@ -127,7 +127,7 @@ function MobileProductHeader({
 }
 
 interface MainMobileHeaderProps {
-  cartItemCount?: number;
+  cartItemCount?: number | null;
   config: MainMobileHeaderConfig;
   activeHref: string;
   cartHref: string;

@@ -1,259 +1,78 @@
+import { productResponse } from './helpers/cart-products.mjs';
 import assert from 'node:assert/strict';
-import { setImmediate } from 'node:timers/promises';
 import { test } from 'node:test';
-import * as React from 'react';
+import { setImmediate } from 'node:timers/promises';
 import { loadTs } from './helpers/load-ts.mjs';
+import { client } from './helpers/cart-client.mjs';
+import { I1, I2 } from './helpers/cart-fixtures.mjs';
 
-function createCart() {
-  return loadTs('src/domains/cart/cart.store.ts').useCartStore;
+const line=(extra={})=>({id:I1,productId:1,variantId:2,quantity:3,...extra});
+const product=(productId=1,variantId=2,extra={})=>({productId,variantId,styleId:1,name:'상품',color:'회색',thumbnailUrl:'/file.svg',price:10000,discountRate:0,priceOffset:0,stock:10,size:'M',...extra});
+const response=items=>Response.json(productResponse(items));
+async function until(fn){for(let n=0;n<120;n++){if(fn())return;await setImmediate();}assert.fail('Request boundary not reached');}
+async function mountCart(t,items=[line()]){
+  let raw=null;let writes=0;const requests=[];
+  const store=loadTs('src/domains/cart/cart.store.ts').createCartStore();
+  const local=loadTs('src/domains/cart/cart.local.ts').createCartLocalAdapter({storage:{getItem:()=>raw,setItem:(_,value)=>{raw=value;writes++;}}});
+  local.write(items);
+  const previous=globalThis.fetch;
+  const fetchBoundary=(url,options)=>new Promise((resolve,reject)=>requests.push({url,options,resolve,reject}));
+  globalThis.fetch=fetchBoundary;
+  const restore=()=>{if(globalThis.fetch===fetchBoundary)globalThis.fetch=previous;};
+  t.after(restore);
+  const {loadCartProducts}=loadTs('src/features/cart/cart.product-client.ts');
+  const controller=loadTs('src/features/cart/cart-controller.ts').createCartController({store,local,loadProducts:loadCartProducts,newId:()=>I2,notify:{info(){},error(){}},actions:{resolveAccess:async()=>({status:'guest'}),read:async()=>{throw new Error('Member read forbidden');},mutate:async()=>{throw new Error('Member write forbidden');}}});
+  const page=client('src/features/cart/cart-page-client.tsx','CartPageClient',{store,commands:{...controller,setSelected:(...a)=>store.getState().setSelected(...a),selectAll:c=>store.getState().selectAll(c)}});
+  t.after(()=>{controller.dispose();page.dispose();});
+  page.flush();controller.start({status:'guest'});await until(()=>requests.length===1);
+  const idle=async()=>{await controller.whenIdle();page.flush();};
+  return {controller,store,local,page,requests,idle,dispose(){controller.dispose();page.dispose();restore();},writes:()=>writes,async finish(products){requests.at(-1).resolve(response(products));await idle();}};
 }
-
-function reconcile(store, requested, available) {
-  assert.equal(typeof store.getState().reconcileItems, 'function');
-  return store.getState().reconcileItems(requested, available);
-}
-
-test('reconciliation removes unavailable pairs and their selections in one update, preserving remaining quantities and selections', () => {
-  const store = createCart();
-  store.getState().addToCart(1, 2, 3);
-  store.getState().addToCart(2, 7, 2);
-  store.getState().toggleSelected(7, false);
-  const requested = store.getState().items;
-  const changes = [];
-  store.subscribe(state => changes.push({ items: state.items, selectedIds: state.selectedIds }));
-
-  assert.equal(reconcile(store, requested, [{ productId: 2, variantId: 7 }]), 1);
-  assert.deepEqual(changes, [{ items: [{ productId: 2, variantId: 7, quantity: 2 }], selectedIds: [] }]);
+test('reconciliation removes unavailable pairs and their selections while preserving current quantities',async t=>{
+  const cart=await mountCart(t,[line(),line({id:I2,productId:2,variantId:7,quantity:2})]);await cart.finish([product(),product(2,7)]);
+  cart.store.getState().setSelected(I1,true);cart.store.getState().setSelected(I2,true);
+  cart.controller.enterCart();await until(()=>cart.requests.length===2);await cart.finish([product(2,7)]);
+  assert.deepEqual(cart.local.read().items,[line({id:I2,productId:2,variantId:7,quantity:2})]);assert.deepEqual(cart.store.getState().selectedIds,[]);
 });
-
-test('an empty successful result clears all items, selections and the badge count', () => {
-  const store = createCart();
-  const { getCartItemCount } = loadTs('src/domains/cart/cart.domain.ts');
-  store.getState().addToCart(1, 2, 3);
-  assert.equal(reconcile(store, store.getState().items, []), 1);
-  assert.deepEqual(store.getState().items, []);
-  assert.deepEqual(store.getState().selectedIds, []);
-  assert.equal(getCartItemCount(store.getState().items), 0);
+test('an empty successful response clears unavailable items, selections and the badge count',async t=>{
+  const cart=await mountCart(t);await cart.finish([]);
+  assert.deepEqual(cart.local.read().items,[]);assert.deepEqual(cart.store.getState().selectedIds,[]);
+  assert.ok(cart.page.nodes().some(n=>n.props?.isEmpty===true));assert.equal(cart.store.getState().cart.notices[0].kind,'unavailable');assert.equal(cart.requests.length,1);
+  const {getCartItemCount}=loadTs('src/domains/cart/cart.domain.ts');assert.equal(getCartItemCount(cart.store.getState().cart.items),0);
 });
-
-test('matching a variant from another product cannot keep an invalid cart pair', () => {
-  const store = createCart();
-  store.getState().addToCart(1, 2);
-  assert.equal(reconcile(store, store.getState().items, [{ productId: 9, variantId: 2 }]), 1);
-  assert.deepEqual(store.getState().items, []);
+test('a variant from another product cannot preserve an invalid cart pair',async t=>{
+  const cart=await mountCart(t);await cart.finish([product(9,2)]);assert.deepEqual(cart.local.read().items,[line()]);
+  assert.equal(cart.store.getState().phase,'error'); // HTTP boundary rejects unsolicited pairs, preserving durable input.
 });
-
-test('unchanged responses preserve state identity and do not trigger repeat subscriptions', () => {
-  const store = createCart();
-  store.getState().addToCart(1, 2, 3);
-  const original = store.getState();
-  let notifications = 0;
-  store.subscribe(() => notifications++);
-  for (let attempt = 0; attempt < 2; attempt++) {
-    assert.equal(reconcile(store, original.items, [{ productId: 1, variantId: 2 }]), 0);
-    assert.equal(store.getState(), original);
-  }
-  assert.equal(notifications, 0);
+test('unchanged guest responses do not write local storage or trigger a repeat product query',async t=>{
+  const cart=await mountCart(t);const before=cart.writes();await cart.finish([product()]);assert.equal(cart.writes(),before);assert.equal(cart.requests.length,1);
 });
-
-test('a stale snapshot cannot delete additions, changed options, quantities or a re-added pair', () => {
-  const changes = [
-    store => store.getState().addToCart(2, 7),
-    store => store.getState().updateOption(2, 2, 7),
-    store => store.getState().updateQuantity(2, 4),
-    store => { store.getState().removeFromCart(2); store.getState().addToCart(1, 2); },
-  ];
-  for (const change of changes) {
-    const store = createCart();
-    store.getState().addToCart(1, 2);
-    const requested = store.getState().items;
-    change(store);
-    const current = store.getState();
-    assert.equal(reconcile(store, requested, []), 0);
-    assert.equal(store.getState(), current);
+test('stale product snapshots cannot delete additions, changed options, quantities or re-added UUIDs',async t=>{
+  for(const current of [[line(),line({id:I2,productId:2,variantId:7})],[line({productId:2,variantId:7})],[line({quantity:4})],[line({id:I2})]]){
+    const cart=await mountCart(t);cart.local.write(current);cart.requests[0].resolve(response([]));
+    await until(()=>cart.requests.length===2);await cart.finish(current.map(item=>product(item.productId,item.variantId)));
+    assert.deepEqual(cart.local.read().items,current);assert.equal(cart.store.getState().phase,'ready');
+    assert.deepEqual(cart.store.getState().cart.items.map(item=>item.id),current.map(item=>item.id));cart.dispose();
   }
 });
-
-function elements(node) {
-  if (!node || typeof node !== 'object') return [];
-  if (Array.isArray(node)) return node.flatMap(elements);
-  return [node, ...elements(node.props?.children)];
-}
-
-// Run the real page and Zustand store; control React lifecycle and HTTP responses
-// without adding a DOM dependency or contacting Supabase.
-function mountCart(t, seed) {
-  const store = createCart();
-  seed(store.getState());
-  const slots = [];
-  const pendingEffects = [];
-  const requests = [];
-  const notices = [];
-  let cursor = 0;
-  let dirty = true;
-  let tree;
-  const changed = (previous, next) => !previous || previous.some((value, index) => !Object.is(value, next[index]));
-  const memo = (factory, deps) => {
-    const index = cursor++;
-    if (changed(slots[index]?.deps, deps)) slots[index] = { deps, value: factory() };
-    return slots[index].value;
-  };
-  const hooks = {
-    ...React,
-    useMemo: memo,
-    useCallback: (fn, deps) => memo(() => fn, deps),
-    useState: initial => {
-      const index = cursor++;
-      if (!(index in slots)) slots[index] = { value: typeof initial === 'function' ? initial() : initial };
-      return [slots[index].value, next => {
-        const value = typeof next === 'function' ? next(slots[index].value) : next;
-        if (!Object.is(value, slots[index].value)) { slots[index].value = value; dirty = true; }
-      }];
-    },
-    useEffect: (effect, deps) => {
-      const index = cursor++;
-      if (changed(slots[index]?.deps, deps)) {
-        pendingEffects.push(() => {
-          slots[index]?.cleanup?.();
-          slots[index] = { deps, cleanup: effect() };
-        });
-      }
-    },
-  };
-  const useStore = Object.assign(() => store.getState(), { getState: store.getState });
-  const { CartPageClient } = loadTs('src/features/cart/cart-page-client.tsx', {
-    react: hooks,
-    '@/domains/cart': { useCartStore: useStore },
-    sonner: { toast: { info: message => notices.push(message) } },
-  });
-  const originalFetch = globalThis.fetch;
-  globalThis.fetch = (url, options) => new Promise((resolve, reject) => requests.push({ url, options, resolve, reject }));
-  const unsubscribe = store.subscribe(() => { dirty = true; });
-  let disposed = false;
-  const dispose = () => {
-    if (disposed) return;
-    disposed = true;
-    for (const slot of slots) slot.cleanup?.();
-    unsubscribe();
-    globalThis.fetch = originalFetch;
-  };
-  t.after(dispose);
-  const flush = () => {
-    for (let count = 0; dirty; count++) {
-      assert.ok(count < 15, 'cart rendering must settle without a request loop');
-      dirty = false;
-      cursor = 0;
-      tree = CartPageClient();
-      for (const effect of pendingEffects.splice(0)) effect();
-    }
-  };
-  flush();
-  return {
-    store, requests, notices, flush, dispose,
-    nodes: () => elements(tree),
-    async settle() { await setImmediate(); flush(); },
-  };
-}
-
-const product = (productId, variantId, overrides = {}) => ({
-  productId, variantId, styleId: 1, name: `상품 ${productId}`, color: '그레이',
-  thumbnailUrl: '/file.svg', price: 10000, discountRate: 0, stock: 10, size: 'M',
-  priceOffset: 0, ...overrides,
+test('partial cleanup preserves sold-out quantities and removes them from order selection without query loops',async t=>{
+  const cart=await mountCart(t,[line(),line({id:I2,productId:2,variantId:7})]);await cart.finish([product(1,2,{stock:0})]);
+  assert.deepEqual(cart.local.read().items,[line()]);assert.equal(cart.store.getState().cart.items[0].quantity,3);assert.deepEqual(cart.store.getState().selectedIds,[]);
+  const summary=cart.page.nodes().find(n=>n.props?.selectedProducts);assert.deepEqual(summary.props.selectedProducts,[]);assert.equal(cart.requests.length,1);
 });
-const response = cartItems => Response.json({ cartItems, optionGroups: {} });
-
-test('a successful empty page response clears hidden items and shows the empty-cart state with one notice', async t => {
-  const page = mountCart(t, cart => cart.addToCart(1, 2));
-  page.requests[0].resolve(response([]));
-  await page.settle();
-  assert.deepEqual(page.store.getState().items, []);
-  assert.deepEqual(page.store.getState().selectedIds, []);
-  assert.ok(page.nodes().some(node => node.props?.isEmpty === true));
-  assert.equal(page.notices.length, 1);
-  assert.equal(page.requests.length, 1);
-});
-
-test('partial cleanup preserves sold-out rows and quantities and settles after one follow-up query', async t => {
-  const page = mountCart(t, cart => { cart.addToCart(1, 2, 3); cart.addToCart(2, 7); });
-  const soldOut = product(1, 2, { stock: 0 });
-  page.requests[0].resolve(response([soldOut]));
-  await page.settle();
-  assert.deepEqual(page.store.getState().items, [{ productId: 1, variantId: 2, quantity: 3 }]);
-  assert.deepEqual(page.store.getState().selectedIds, [2]);
-  assert.equal(page.notices.length, 1);
-  assert.equal(page.requests.length, 2);
-  page.requests[1].resolve(response([soldOut]));
-  await page.settle();
-  assert.equal(page.requests.length, 2);
-  assert.equal(page.notices.length, 1);
-  const summary = page.nodes().find(node => node.props?.selectedProducts);
-  assert.equal(summary.props.selectedProducts[0].stock, 0);
-  assert.equal(summary.props.selectedProducts[0].quantity, 3);
-});
-
-test('HTTP, network and JSON failures preserve cart state and provide a working retry', async t => {
-  const failures = [
-    request => request.resolve(new Response(null, { status: 500 })),
-    request => request.reject(new Error('NETWORK_FAILURE')),
-    request => request.resolve(new Response('invalid json', { status: 200 })),
-  ];
-  for (const fail of failures) {
-    const page = mountCart(t, cart => cart.addToCart(1, 2, 2));
-    const before = page.store.getState();
-    fail(page.requests[0]);
-    await page.settle();
-    assert.equal(page.store.getState(), before);
-    assert.equal(page.notices.length, 0);
-    assert.ok(page.nodes().some(node => node.props?.role === 'alert'));
-    page.nodes().find(node => node.props?.children === '다시 시도').props.onClick();
-    page.flush();
-    assert.equal(page.requests.length, 2);
-    page.requests[1].resolve(response([product(1, 2)]));
-    await page.settle();
-    assert.ok(!page.nodes().some(node => node.props?.role === 'alert'));
-    assert.equal(page.store.getState(), before);
-    page.dispose();
+test('HTTP, network and JSON failures preserve local source and provide a working page retry',async t=>{
+  for(const fail of [request=>request.resolve(new Response(null,{status:500})),request=>request.reject(new Error('offline')),request=>request.resolve(new Response('invalid',{status:200}))]){
+    const cart=await mountCart(t);const before=cart.local.read();fail(cart.requests[0]);await cart.idle();assert.deepEqual(cart.local.read(),before);assert.ok(cart.page.nodes().some(n=>n.props?.role==='alert'));
+    cart.page.button('다시 시도').props.onClick();await until(()=>cart.requests.length===2);await cart.finish([product()]);
+    assert.equal(cart.store.getState().phase,'ready');assert.deepEqual(cart.local.read(),before);cart.dispose();
   }
 });
-
-test('an old success arriving before effect cleanup cannot delete a newly added item', async t => {
-  const page = mountCart(t, cart => cart.addToCart(1, 2));
-  page.store.getState().addToCart(2, 7);
-  page.requests[0].resolve(response([]));
-  await page.settle();
-  assert.equal(page.store.getState().items.length, 2);
-  assert.equal(page.notices.length, 0);
-  assert.equal(page.requests.length, 2);
-  page.requests[1].resolve(response([product(1, 2), product(2, 7)]));
-  await page.settle();
-  assert.equal(page.store.getState().items.length, 2);
+test('an old success before a page render cannot delete a newly persisted line',async t=>{
+  const cart=await mountCart(t);const next=[line(),line({id:I2,productId:2,variantId:7})];cart.local.write(next);cart.requests[0].resolve(response([]));
+  await until(()=>cart.requests.length===2);await cart.finish([product(),product(2,7)]);
+  assert.deepEqual(cart.local.read().items,next);assert.equal(cart.store.getState().phase,'ready');
 });
-
-test('aborted old success and failure responses cannot overwrite newer product or loading state', async t => {
-  for (const failOld of [false, true]) {
-    const page = mountCart(t, cart => cart.addToCart(1, 2));
-    page.store.getState().updateQuantity(2, 4);
-    page.flush();
-    assert.equal(page.requests[0].options.signal?.aborted, true);
-    if (failOld) page.requests[0].reject(new Error('OLD_FAILURE'));
-    else page.requests[0].resolve(response([]));
-    await page.settle();
-    assert.ok(page.nodes().some(node => node.props?.children === '장바구니 상품을 불러오는 중입니다.'));
-    assert.ok(!page.nodes().some(node => node.props?.role === 'alert'));
-    page.requests[1].resolve(response([product(1, 2)]));
-    await page.settle();
-    assert.equal(page.store.getState().items[0].quantity, 4);
-    assert.equal(page.notices.length, 0);
-    page.dispose();
-  }
-});
-
-test('leaving the page aborts its request and a late result cannot clear cart items', async t => {
-  const page = mountCart(t, cart => cart.addToCart(1, 2));
-  page.dispose();
-  assert.equal(page.requests[0].options.signal?.aborted, true);
-  page.requests[0].resolve(response([]));
-  await setImmediate();
-  assert.equal(page.store.getState().items.length, 1);
-  assert.equal(page.notices.length, 0);
+test('disposing the Provider controller makes late results unable to clear persisted items',async t=>{
+  const cart=await mountCart(t);cart.controller.dispose();cart.requests[0].resolve(response([]));await cart.idle();
+  assert.deepEqual(cart.local.read().items,[line()]);assert.equal(cart.store.getState().cart,null);
 });

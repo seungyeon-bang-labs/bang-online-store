@@ -1,3 +1,4 @@
+import { productResponse } from './helpers/cart-products.mjs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { loadTs } from './helpers/load-ts.mjs';
@@ -14,27 +15,33 @@ test('product mapping preserves SKU while cart and option views use numeric IDs'
   assert.ok(product.images.every(image => Number.isSafeInteger(image.id)));
 });
 
-test('cart merges, replaces and removes numeric option selections without duplicate quantities', () => {
-  const { useCartStore } = loadTs('src/domains/cart/cart.store.ts');
-  const cart = () => useCartStore.getState();
-  cart().addToCart(1, 2, 2);
-  cart().addToCart(1, 2, 1);
-  cart().addToCart(2, 7, 1);
-  assert.deepEqual(cart().selectedIds, [2, 7]);
-  cart().updateOption(2, 2, 7);
-  assert.deepEqual(cart().items, [{ productId: 2, variantId: 7, quantity: 4 }]);
-  assert.deepEqual(cart().selectedIds, [7]);
-  cart().updateOption(7, 4, 17);
-  assert.deepEqual(cart().items, [{ productId: 4, variantId: 17, quantity: 4 }]);
-  assert.deepEqual(cart().selectedIds, [17]);
-  cart().updateQuantity(17, 0);
-  assert.deepEqual(cart().items, []);
-  assert.deepEqual(cart().selectedIds, []);
+test('guest cart merges numeric option IDs across adds and option replacements', async () => {
+  const store = loadTs('src/domains/cart/cart.store.ts').createCartStore();
+  let raw = null; let sequence = 0;
+  const newId = () => '40000000-0000-4000-8000-' + String(++sequence).padStart(12,'0');
+  const local = loadTs('src/domains/cart/cart.local.ts').createCartLocalAdapter({storage:{getItem:()=>raw,setItem:(_,value)=>{raw=value;}}});
+  const {createCartController} = loadTs('src/features/cart/cart-controller.ts');
+  const controller = createCartController({store,local,newId,notify:{info(){},error(){}},actions:{resolveAccess:async()=>({status:'guest'})},loadProducts:async items=>productResponse(items.map(item=>({...item,styleId:1,name:'상품',color:'회색',thumbnailUrl:'/file.svg',price:10000,discountRate:0,priceOffset:0,stock:10,size:'M'})))});
+  controller.start({status:'guest'}); await controller.whenIdle();
+  assert.equal(controller.addItems([{productId:1,variantId:2,quantity:2},{productId:1,variantId:2,quantity:1},{productId:2,variantId:7,quantity:1}]), true); await controller.whenIdle();
+  assert.deepEqual(store.getState().cart.items.map(item=>[item.variantId,item.quantity]),[[2,3],[7,1]]);
+  const source = store.getState().cart.items.find(item=>item.variantId===2).id;
+  assert.equal(controller.changeOption(source,2,7), true); await controller.whenIdle();
+  const target = store.getState().cart.items[0];
+  assert.equal(store.getState().cart.items.length,1); assert.equal(target.variantId,7); assert.equal(target.quantity,4);
+  assert.equal(controller.changeOption(target.id,4,17), true); await controller.whenIdle();
+  const moved = store.getState().cart.items[0];
+  assert.equal(moved.variantId,17); assert.equal(moved.productId,4); assert.equal(moved.quantity,4);
+  assert.equal(controller.removeItems([moved.id]), true); await controller.whenIdle();
+  assert.deepEqual(store.getState().cart.items,[]); assert.deepEqual(store.getState().selectedIds,[]);
+  controller.dispose();
 });
 
-function request(items) {
+// The browser cart client posts same-origin JSON.
+function request(items, headers = {}) {
   return new Request('http://localhost/api/cart/products', {
-    method: 'POST', body: JSON.stringify(items), headers: { 'content-type': 'application/json' },
+    method: 'POST', body: typeof items === 'string' ? items : JSON.stringify(items),
+    headers: { 'content-type': 'application/json', origin: 'http://localhost', host: 'localhost', ...headers },
   });
 }
 
@@ -66,6 +73,21 @@ test('cart API rejects invalid IDs before reading product data', async () => {
     }
   }
   assert.equal(reads, 0);
+});
+
+test('cart API refuses oversized, cross-origin and non-JSON requests before reading product data', async () => {
+  let reads = 0;
+  const { POST } = loadTs('src/app/api/cart/products/route.ts', {
+    '@/domains/product': { productService: { findByIds: async () => { reads++; return []; }, findByStyleId: async () => [] } },
+  });
+  const pairs = count => Array.from({ length: count }, (_, i) => ({ productId: i + 1, variantId: i + 1 }));
+  assert.equal((await POST(request(pairs(500)))).status, 200);
+  assert.equal(reads, 1);
+  assert.equal((await POST(request(pairs(501)))).status, 400);
+  assert.equal((await POST(request('x'.repeat(1_048_577)))).status, 413);
+  assert.equal((await POST(request(pairs(1), { origin: 'https://evil.example' }))).status, 403);
+  assert.equal((await POST(request(pairs(1), { 'content-type': 'text/plain' }))).status, 400);
+  assert.equal(reads, 1);
 });
 
 test('cart API omits inactive products but keeps active sold-out options', async () => {

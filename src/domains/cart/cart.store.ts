@@ -1,163 +1,77 @@
-import { create } from 'zustand';
-import type { CartProductRequestItem } from './cart.api';
+import { createStore } from 'zustand/vanilla';
+import type { CartAccess } from './cart.contract';
+import type { CartViewModel } from './cart.view-model';
+import { reconcileSelection } from './cart.rules';
 
-export interface CartItem {
-  productId: number;
-  variantId: number;
-  quantity: number;
-}
+export type CartPhase = 'loading' | 'ready' | 'error' | 'restricted';
 
-interface CartState {
-  items: CartItem[];
-  selectedIds: number[];
-  addToCart: (productId: number, variantId: number, quantity?: number) => void;
-  updateQuantity: (variantId: number, quantity: number) => void;
-  updateOption: (
-    currentVariantId: number,
-    nextProductId: number,
-    nextVariantId: number,
-  ) => void;
-  setSelectedIds: (variantIds: number[]) => void;
-  toggleSelected: (variantId: number, selected: boolean) => void;
-  selectAll: (variantIds: number[]) => void;
-  removeFromCart: (variantId: number) => void;
-  reconcileItems: (
-    requestedItems: readonly CartItem[],
-    availableItems: readonly CartProductRequestItem[],
-  ) => number;
-  clearCart: () => void;
-}
+export type CartState = {
+  phase: CartPhase;
+  access: CartAccess | null;
+  cart: CartViewModel | null;
+  // A server request (or guest product load) is in flight; only one runs at a time.
+  busy: boolean;
+  // Quantity of adds not yet shown in the cart list.
+  pendingAdd: number;
+  selectedIds: readonly string[];
+  // Shown while phase is error or restricted.
+  message: string | null;
+};
 
-export const useCartStore = create<CartState>(set => ({
-  items: [],
-  selectedIds: [],
-  addToCart: (productId, variantId, quantity = 1) =>
-    set(state => {
-      const existingItemIndex = state.items.findIndex(
-        item => item.variantId === variantId,
-      );
+export type CartSelectionCommands = {
+  setSelected(id: string, checked: boolean): void;
+  selectAll(checked: boolean): void;
+};
 
-      const nextSelectedIds = new Set(state.selectedIds);
-      nextSelectedIds.add(variantId);
-
-      if (existingItemIndex !== -1) {
-        const updatedItems = [...state.items];
-        updatedItems[existingItemIndex].quantity += quantity;
-        return { items: updatedItems, selectedIds: Array.from(nextSelectedIds) };
+export function createCartStore() {
+  return createStore<
+    CartState &
+      CartSelectionCommands & {
+        setStateFromController(next: Partial<CartState>): void;
       }
-
-      return {
-        items: [...state.items, { productId, variantId, quantity }],
-        selectedIds: Array.from(nextSelectedIds),
-      };
-    }),
-  updateQuantity: (variantId, quantity) =>
-    set(state => {
-      if (quantity <= 0) {
+  >((set, get) => ({
+    phase: 'loading',
+    access: null,
+    cart: null,
+    busy: false,
+    pendingAdd: 0,
+    selectedIds: [],
+    message: null,
+    setStateFromController: next =>
+      set(state => {
+        const cart = next.cart === undefined ? state.cart : next.cart;
         return {
-          items: state.items.filter(item => item.variantId !== variantId),
-          selectedIds: state.selectedIds.filter(id => id !== variantId),
-        };
-      }
-
-      return {
-        items: state.items.map(item =>
-          item.variantId === variantId ? { ...item, quantity } : item,
-        ),
-      };
-    }),
-  updateOption: (currentVariantId, nextProductId, nextVariantId) =>
-    set(state => {
-      if (currentVariantId === nextVariantId) {
-        return {
-          items: state.items.map(item =>
-            item.variantId === currentVariantId
-              ? { ...item, productId: nextProductId }
-              : item,
+          ...next,
+          selectedIds: reconcileSelection(
+            next.selectedIds ?? state.selectedIds,
+            cart?.items ?? [],
+            next.cart?.operation?.itemIdMap,
           ),
         };
-      }
-
-      const currentItem = state.items.find(
-        item => item.variantId === currentVariantId,
-      );
-      if (!currentItem) return {};
-
-      const existingIndex = state.items.findIndex(
-        item => item.variantId === nextVariantId,
-      );
-
-      let nextItems = state.items.filter(
-        item => item.variantId !== currentVariantId,
-      );
-
-      if (existingIndex !== -1) {
-        nextItems = nextItems.map(item =>
-          item.variantId === nextVariantId
-            ? { ...item, quantity: item.quantity + currentItem.quantity }
-            : item,
-        );
-      } else {
-        nextItems = [
-          ...nextItems,
-          {
-            ...currentItem,
-            productId: nextProductId,
-            variantId: nextVariantId,
-          },
-        ];
-      }
-
-      const nextSelected = new Set(state.selectedIds);
-      if (nextSelected.has(currentVariantId)) {
-        nextSelected.delete(currentVariantId);
-        nextSelected.add(nextVariantId);
-      }
-
-      return { items: nextItems, selectedIds: Array.from(nextSelected) };
-    }),
-  setSelectedIds: variantIds =>
-    set({ selectedIds: Array.from(new Set(variantIds)) }),
-  toggleSelected: (variantId, selected) =>
-    set(state => {
-      const next = new Set(state.selectedIds);
-      if (selected) {
-        next.add(variantId);
-      } else {
-        next.delete(variantId);
-      }
-      return { selectedIds: Array.from(next) };
-    }),
-  selectAll: variantIds =>
-    set({ selectedIds: Array.from(new Set(variantIds)) }),
-  removeFromCart: variantId =>
-    set(state => ({
-      items: state.items.filter(item => item.variantId !== variantId),
-      selectedIds: state.selectedIds.filter(id => id !== variantId),
-    })),
-  reconcileItems: (requestedItems, availableItems) => {
-    let removedCount = 0;
-
-    set(state => {
-      if (state.items !== requestedItems) return state;
-
-      const availablePairs = new Set(
-        availableItems.map(item => `${item.productId}:${item.variantId}`),
-      );
-      const items = state.items.filter(item =>
-        availablePairs.has(`${item.productId}:${item.variantId}`),
-      );
-      removedCount = state.items.length - items.length;
-      if (removedCount === 0) return state;
-
-      const remainingIds = new Set(items.map(item => item.variantId));
-      return {
-        items,
-        selectedIds: state.selectedIds.filter(id => remainingIds.has(id)),
-      };
-    });
-
-    return removedCount;
-  },
-  clearCart: () => set({ items: [], selectedIds: [] }),
-}));
+      }),
+    setSelected: (id, checked) => {
+      const state = get();
+      if (state.phase !== 'ready') return;
+      set({
+        selectedIds: reconcileSelection(
+          checked
+            ? [...state.selectedIds, id]
+            : state.selectedIds.filter(value => value !== id),
+          state.cart?.items ?? [],
+        ),
+      });
+    },
+    selectAll: checked => {
+      const state = get();
+      if (state.phase !== 'ready') return;
+      set({
+        selectedIds: checked
+          ? reconcileSelection(
+              state.cart?.items.map(item => item.id) ?? [],
+              state.cart?.items ?? [],
+            )
+          : [],
+      });
+    },
+  }));
+}

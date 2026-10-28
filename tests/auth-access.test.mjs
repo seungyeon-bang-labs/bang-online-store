@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createElement } from 'react';
-import { loadTs } from './helpers/load-ts.mjs';
+import { loadTs as baseLoadTs } from './helpers/load-ts.mjs';
+const loadTs = (file, mocks = {}) => baseLoadTs(file, mocks);
 
 process.env.AUTH_FEATURES_ENABLED = 'true';
 
@@ -19,7 +20,7 @@ test('restricted auth forms keep inputs available, show the restriction and disa
     ['reset-password-form', 'ResetPasswordForm', { resetAction: unexpected, onResult() {} }, recoveryRestriction],
   ]) {
     const Component = loadTs(`src/features/auth/${file}.tsx`, {
-      'next/navigation': { useRouter: () => ({ push() {}, replace() {} }) },
+      'next/navigation': { useRouter: () => ({ push() {}, replace() {}, refresh() {} }) },
       '@/shared/lib/supabase/server': { supabase: {} },
     })[name];
     const html = renderToStaticMarkup(createElement(Component, { ...props, restriction }));
@@ -48,7 +49,7 @@ test('restricted auth pages forward feature-specific restrictions while keeping 
       const Page = loadTs(`src/app/(auth)/${route}/page.tsx`, {
         '@/domains/auth/member-access.server': { getCurrentMemberAccess: async () => ({ status: 'unauthenticated' }) },
         '@/domains/terms': { termRepository: { findEffective: async () => [] }, toSignupTerms },
-        'next/navigation': { useRouter: () => ({ push() {}, replace() {} }), redirect: href => { throw new Error(`REDIRECT:${href}`); } },
+        'next/navigation': { useRouter: () => ({ push() {}, replace() {}, refresh() {} }), redirect: href => { throw new Error(`REDIRECT:${href}`); } },
       }).default;
       const html = renderToStaticMarkup(await Page(props));
       assert.ok(html.includes(message), route);
@@ -110,6 +111,18 @@ test('request-bound client setup lets Next.js control-flow exceptions propagate'
   });
   await assert.rejects(getCurrentMemberAccess(), error => error === bailout);
 });
+test('one render shares one auth check across layouts, pages and the cart boundary', async () => {
+  let clients = 0;
+  const memo = fn => { let value; return () => (value ??= fn()); };
+  const { getCurrentMemberAccess } = loadTs('src/domains/auth/member-access.server.ts', {
+    react: { cache: memo },
+    '@/shared/lib/supabase/auth-server': { createAuthClient: async () => { clients++; return { auth: { getUser: async () => ({ data: { user: null }, error: null }) } }; } },
+    '@/domains/member/supabase-repository.server': { createMemberAccessRepository: () => ({ findById: async () => null }) },
+  });
+  await getCurrentMemberAccess();
+  await getCurrentMemberAccess();
+  assert.equal(clients, 1);
+});
 test('guard redirects unverified accounts to recovery and never accepts a missing member', async () => {
   for (const [access, destination] of [
     [{ status: 'unauthenticated' }, '/login'],
@@ -159,7 +172,7 @@ function loadLoginPage(access) {
     },
     'next/navigation': {
       redirect: href => { throw new Error(`REDIRECT:${href}`); },
-      useRouter: () => ({ push() {}, replace() {} }),
+      useRouter: () => ({ push() {}, replace() {}, refresh() {} }),
     },
   }).default;
 }
@@ -167,7 +180,7 @@ function loadLoginPage(access) {
 test('demo login defaults are real editable values and leave login enabled', () => {
   const { LoginForm } = loadTs('src/features/auth/login-form.tsx', {
     '@/app/(auth)/actions': { loginAction: async () => { throw new Error('Unexpected login during render'); } },
-    'next/navigation': { useRouter: () => ({ push() {}, replace() {} }) },
+    'next/navigation': { useRouter: () => ({ push() {}, replace() {}, refresh() {} }) },
   });
   const html = renderToStaticMarkup(createElement(LoginForm, {
     demoAccount: { email: 'demo@example.com', password: 'PublicDemo!234' },
@@ -182,7 +195,7 @@ test('demo login defaults are real editable values and leave login enabled', () 
 test('ordinary login starts with blank credentials and no demo notice', () => {
   const { LoginForm } = loadTs('src/features/auth/login-form.tsx', {
     '@/app/(auth)/actions': { loginAction: async () => { throw new Error('Unexpected login during render'); } },
-    'next/navigation': { useRouter: () => ({ push() {}, replace() {} }) },
+    'next/navigation': { useRouter: () => ({ push() {}, replace() {}, refresh() {} }) },
   });
   const html = renderToStaticMarkup(createElement(LoginForm));
   assert.match(html, /name="email"[^>]*value=""/);

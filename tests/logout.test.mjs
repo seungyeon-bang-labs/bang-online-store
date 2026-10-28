@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { loadTs } from './helpers/load-ts.mjs';
+import { loadTs as baseLoadTs } from './helpers/load-ts.mjs';
+const loadTs = (file, mocks = {}) => baseLoadTs(file, mocks);
 
 function storefront(access) {
   return loadTs('src/app/(storefront)/layout.tsx', {

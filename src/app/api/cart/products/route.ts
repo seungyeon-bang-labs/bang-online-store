@@ -1,36 +1,16 @@
 import { NextResponse } from 'next/server';
-import {
-  productService,
-  toProductCartItemViewModel,
-  toProductOptionViewModel,
-  type ProductOptionViewModel,
-} from '@/domains/product';
-import type {
-  CartProductRequestItem,
-  CartProductResponse,
-} from '@/domains/cart';
-
-const isRequestItem = (value: unknown): value is CartProductRequestItem =>
-  typeof value === 'object' &&
-  value !== null &&
-  Number.isSafeInteger((value as CartProductRequestItem).productId) &&
-  (value as CartProductRequestItem).productId > 0 &&
-  Number.isSafeInteger((value as CartProductRequestItem).variantId) &&
-  (value as CartProductRequestItem).variantId > 0;
+import { productService } from '@/domains/product';
+import { findCartProducts } from '@/domains/cart/cart.products';
+import { cartProductRequestSchema } from '@/domains/cart/cart.schema';
+import { readCartPost } from '../http';
 
 export async function POST(request: Request) {
-  let items: unknown;
+  // Same-origin JSON up to the cart body limit, like the other cart routes.
+  const body = await readCartPost(request);
+  if (!body.ok) return body.response;
 
-  try {
-    items = await request.json();
-  } catch {
-    return NextResponse.json(
-      { message: '잘못된 요청입니다.' },
-      { status: 400 },
-    );
-  }
-
-  if (!Array.isArray(items) || !items.every(isRequestItem)) {
+  const items = cartProductRequestSchema.safeParse(body.value);
+  if (!items.success) {
     return NextResponse.json(
       { message: '잘못된 요청입니다.' },
       { status: 400 },
@@ -38,35 +18,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    const options = { now: new Date() };
-    const cartProducts = await productService.findByIds([
-      ...new Set(items.map(item => item.productId)),
-    ], options);
-    const styleProducts = await Promise.all(
-      [...new Set(cartProducts.map(product => product.styleId))].map(styleId =>
-        productService.findByStyleId(styleId, options),
-      ),
+    return NextResponse.json(
+      await findCartProducts(productService, items.data, new Date()),
     );
-    const products = styleProducts.flat();
-    const productById = new Map(
-      cartProducts.map(product => [product.id, product]),
-    );
-    const cartItems = items.flatMap(item => {
-      const product = productById.get(item.productId);
-      const viewModel = product
-        ? toProductCartItemViewModel(product, item.variantId)
-        : null;
-      return viewModel ? [viewModel] : [];
-    });
-    const optionGroups = products.reduce<
-      Record<number, ProductOptionViewModel[]>
-    >((groups, product) => {
-      (groups[product.styleId] ??= []).push(toProductOptionViewModel(product));
-      return groups;
-    }, {});
-
-    const response: CartProductResponse = { cartItems, optionGroups };
-    return NextResponse.json(response);
   } catch {
     return NextResponse.json(
       { message: '장바구니 상품을 불러오지 못했습니다.' },

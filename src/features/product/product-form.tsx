@@ -13,7 +13,8 @@ import {
   SelectItem,
 } from '@/shared/components/ui/select';
 import type { ProductVariantModel } from '@/domains/product';
-import { useCartStore } from '@/domains/cart';
+import { useCartState, useCartCommands } from '@/features/cart/use-cart';
+import { selectCartLocked } from '@/features/cart/cart-count';
 import { toast } from 'sonner';
 import { QuantitySelector } from '@/features/product/quantity-selector';
 import { ColorChip } from '@/shared/components/ui/color-chip';
@@ -48,13 +49,16 @@ export function ProductForm({
   const searchParams = useSearchParams();
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
   const [selectedSizeId, setSelectedSizeId] = useState<number | null>(null);
-  const { addToCart } = useCartStore();
+  const { addItems, retry } = useCartCommands();
+  const phase = useCartState(state => state.phase);
+  const message = useCartState(state => state.message);
+  const cartLocked = useCartState(selectCartLocked);
   const isAllSoldOut = variants.every(variant => variant.stock <= 0);
   const discountedPrice = getDiscountedPrice(price, discount);
 
   const handleSizeSelect = (value: string) => {
     const variant = variants.find(v => String(v.id) === value);
-    if (!variant) return;
+    if (!variant || variant.stock <= 0) return;
 
     setSelectedItems(prev => {
       const isExist = prev.find(item => item.id === variant.id);
@@ -104,21 +108,22 @@ export function ProductForm({
     0,
   );
 
+  // The cart reports a failure itself; success and clearing wait until the add is saved, so a failed add keeps the selections.
   const handleAddToCart = () => {
-    selectedItems.forEach(item => {
-      addToCart(productId, item.id, item.count);
-    });
-    setSelectedItems([]);
-    toast.success('상품이 장바구니에 담겼습니다.', {
-      position: 'bottom-center',
-      action: {
-        label: '보러가기',
-        onClick: () => {
-          const search = searchParams.toString();
-          router.push(getCartHref(search ? `${pathname}?${search}` : pathname));
+    if (cartLocked || selectedItems.length === 0) return;
+    addItems(selectedItems.map(item => ({ productId, variantId: item.id, quantity: item.count })), () => {
+      setSelectedItems([]);
+      toast.success('상품이 장바구니에 담겼습니다.', {
+        position: 'bottom-center',
+        action: {
+          label: '보러가기',
+          onClick: () => {
+            const search = searchParams.toString();
+            router.push(getCartHref(search ? `${pathname}?${search}` : pathname));
+          },
         },
-      },
-      duration: 3000,
+        duration: 3000,
+      });
     });
   };
 
@@ -263,7 +268,7 @@ export function ProductForm({
         <Button
           variant="outline"
           size="xl"
-          disabled={selectedItems.length === 0}
+          disabled={selectedItems.length === 0 || cartLocked}
           className="min-w-0 px-3 md:flex-1 md:px-8"
           onClick={handleAddToCart}
         >
@@ -278,6 +283,12 @@ export function ProductForm({
           구매하기
         </Button>
       </div>
+      {(phase === 'error' || phase === 'restricted') && (
+        <div role={phase === 'error' ? 'alert' : 'status'} className="text-sm text-gray-600">
+          <p>{message}</p>
+          {phase === 'error' && <Button type="button" variant="outline" onClick={() => retry()}>다시 시도</Button>}
+        </div>
+      )}
     </div>
   );
 }

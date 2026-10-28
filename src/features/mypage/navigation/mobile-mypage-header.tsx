@@ -15,7 +15,8 @@ import {
   getMypageInquiryWriteHref,
 } from '@/shared/lib/mypage-routes';
 import { getCartHref } from '@/shared/lib/cart-routes';
-import { getCartItemCount, useCartStore } from '@/domains/cart';
+import { useCartState } from '@/features/cart/use-cart';
+import { selectCartItemCount } from '@/features/cart/cart-count';
 import { getMypageCurrentLabel } from './mypage-menu';
 import {
   CartItemCountBadge,
@@ -173,7 +174,7 @@ export function MypageMobileHeader() {
   );
   const receiptDocumentTitle = getReceiptDocumentTitle(pathname);
   const HeaderActionIcon = headerAction?.icon;
-  const cartItemCount = useCartStore(state => getCartItemCount(state.items));
+  const cartItemCount = useCartState(selectCartItemCount);
   const isCartAction = headerAction?.ariaLabel === '장바구니';
 
   const backHref = backHeader?.backHref ?? (pathname === '/mypage' ? null : '/mypage');

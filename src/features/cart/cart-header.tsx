@@ -1,7 +1,8 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { getCartItemCount, useCartStore } from '@/domains/cart';
+import { useCartState } from '@/features/cart/use-cart';
+import { selectCartItemCount } from '@/features/cart/cart-count';
 import { Header } from '@/shared/components/layout/header';
 
 interface CartAwareHeaderProps {
@@ -11,7 +12,7 @@ interface CartAwareHeaderProps {
 }
 
 export function CartAwareHeader({ mobileContent, isLoggedIn, logoutControl }: CartAwareHeaderProps) {
-  const cartItemCount = useCartStore(state => getCartItemCount(state.items));
+  const cartItemCount = useCartState(selectCartItemCount);
 
   return (
     <Header

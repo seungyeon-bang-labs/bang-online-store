@@ -21,6 +21,8 @@ import type {
   MypageHomeOrderCommandAction,
 } from '@/domains/mypage';
 import { useOrderActionCommand } from './hooks/use-order-action-command';
+import { useCartState } from '@/features/cart/use-cart';
+import { selectCartLocked } from '@/features/cart/cart-count';
 
 interface MypageHomeOrderActionsProps {
   actions: MypageHomeOrderActions;
@@ -37,21 +39,26 @@ export function MypageHomeOrderActions({
   orderTitle,
 }: MypageHomeOrderActionsProps) {
   const runCommand = useOrderActionCommand();
+  // Repurchase waits while the cart saves or before any cart was shown.
+  const commandDisabled = useCartState(selectCartLocked);
 
   return (
     <div className="flex w-full items-center gap-2 lg:w-auto">
       <MypageHomeOrderActionButton
         action={actions.primary}
         onCommand={runCommand}
+        commandDisabled={commandDisabled}
       />
       <MypageHomeOrderActionButton
         action={actions.secondary}
         onCommand={runCommand}
+        commandDisabled={commandDisabled}
       />
       <MypageHomeOrderActionMenu
         actions={actions.more}
         orderTitle={orderTitle}
         onCommand={runCommand}
+        commandDisabled={commandDisabled}
       />
     </div>
   );
@@ -60,11 +67,13 @@ export function MypageHomeOrderActions({
 interface MypageHomeOrderActionButtonProps {
   action: MypageHomeOrderAction | null;
   onCommand: (action: MypageHomeOrderCommandAction) => void;
+  commandDisabled: boolean;
 }
 
 function MypageHomeOrderActionButton({
   action,
   onCommand,
+  commandDisabled,
 }: MypageHomeOrderActionButtonProps) {
   if (!action) return null;
 
@@ -102,6 +111,7 @@ function MypageHomeOrderActionButton({
       variant="outline"
       size="sm"
       className={className}
+      disabled={commandDisabled}
       onClick={() => onCommand(action)}
     >
       {action.label}
@@ -113,12 +123,14 @@ interface MypageHomeOrderActionMenuProps {
   actions: MypageHomeOrderAction[];
   orderTitle: string;
   onCommand: (action: MypageHomeOrderCommandAction) => void;
+  commandDisabled: boolean;
 }
 
 function MypageHomeOrderActionMenu({
   actions,
   orderTitle,
   onCommand,
+  commandDisabled,
 }: MypageHomeOrderActionMenuProps) {
   if (actions.length === 0) return null;
 
@@ -144,6 +156,7 @@ function MypageHomeOrderActionMenu({
             <MypageHomeOrderActionMenuItem
               action={action}
               onCommand={onCommand}
+              commandDisabled={commandDisabled}
             />
             {index < actions.length - 1 && (
               <DropdownMenuSeparator
@@ -160,11 +173,13 @@ function MypageHomeOrderActionMenu({
 interface MypageHomeOrderActionMenuItemProps {
   action: MypageHomeOrderAction;
   onCommand: (action: MypageHomeOrderCommandAction) => void;
+  commandDisabled: boolean;
 }
 
 function MypageHomeOrderActionMenuItem({
   action,
   onCommand,
+  commandDisabled,
 }: MypageHomeOrderActionMenuItemProps) {
   const className = `${MYPAGE_ACTION_MENU_CLASS_NAME.item} h-11 font-medium md:h-10 md:font-bold`;
 
@@ -178,7 +193,7 @@ function MypageHomeOrderActionMenuItem({
 
   if (action.behavior === 'command') {
     return (
-      <DropdownMenuItem className={className} onSelect={() => onCommand(action)}>
+      <DropdownMenuItem className={className} disabled={commandDisabled} onSelect={() => onCommand(action)}>
         {action.label}
       </DropdownMenuItem>
     );
