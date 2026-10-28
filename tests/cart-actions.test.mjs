@@ -41,9 +41,9 @@ test('access resolution returns only cart identity and preserves every auth rest
   for (const [access, expected] of [
     [{ status: 'active', member: { id: A, email: 'PRIVATE_PROFILE' } }, { status: 'member', userId: A }],
     [{ status: 'unauthenticated' }, { status: 'guest' }],
-    [{ status: 'unverified', email: 'PRIVATE_EMAIL' }, { status: 'restricted', reason: 'unverified' }],
-    [{ status: 'unavailable' }, { status: 'restricted', reason: 'unavailable' }],
-    [{ status: 'missing' }, { status: 'restricted', reason: 'missing' }],
+    [{ status: 'unverified', email: 'PRIVATE_EMAIL' }, { status: 'restricted' }],
+    [{ status: 'unavailable' }, { status: 'restricted' }],
+    [{ status: 'missing' }, { status: 'restricted' }],
   ]) assert.deepEqual(await setup({ access: [access] }).actions.resolveCartAccess(), expected);
   const { actions } = setup({ access: [{ status: 'error' }] });
   assert.equal((await actions.resolveCartAccess()).status, 'error');

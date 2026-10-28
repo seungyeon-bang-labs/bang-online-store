@@ -2,15 +2,16 @@ import type { CartViewModel } from './cart.view-model';
 
 // Largest quantity the database column holds (int4).
 export const maxCartQuantity = 2147483647;
-// A cart request with no answer by then is cut off and handled as a lost reply, so one stuck request cannot lock the cart.
-export const cartRequestTimeoutMs = 15_000;
+// The server's answer to a malformed cart request (bad body, size or origin, or a command the RPC rejects).
+export const cartInvalidMessage = '장바구니 요청 형식을 확인해주세요.';
 export const cartRetryMessage =
   '장바구니를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.';
 
 export type CartAccess =
   | { status: 'guest' }
   | { status: 'member'; userId: string }
-  | { status: 'restricted'; reason: 'unverified' | 'missing' | 'unavailable' }
+  // Unverified email, missing profile or suspended member: the cart shows one message for all of them.
+  | { status: 'restricted' }
   | { status: 'error'; message: string };
 
 export type CartLine = {

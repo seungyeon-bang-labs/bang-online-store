@@ -62,15 +62,16 @@ export function MypageOrderItemActions({
 
   const runAction = (action: OrderItemActionViewModel) => {
     if (action.type === 'repurchase' && repurchaseItem) {
-      // The cart blocks a second add until the first finishes and reports a failure itself.
-      if (!addItems([repurchaseItem])) return;
-      toast.success('상품을 장바구니에 다시 담았습니다.', {
-        position: 'bottom-center',
-        duration: 3000,
-        action: {
-          label: '보러가기',
-          onClick: () => router.push(getCartHref(returnTo)),
-        },
+      // The cart blocks a second add until the first finishes and reports a failure itself; success waits until saved.
+      addItems([repurchaseItem], () => {
+        toast.success('상품을 장바구니에 다시 담았습니다.', {
+          position: 'bottom-center',
+          duration: 3000,
+          action: {
+            label: '보러가기',
+            onClick: () => router.push(getCartHref(returnTo)),
+          },
+        });
       });
       return;
     }

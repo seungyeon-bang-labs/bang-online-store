@@ -1,12 +1,11 @@
 import { z } from 'zod';
 import type { CartProductRequestItem, CartProductResponse } from '@/domains/cart/cart.api';
-import { cartRequestTimeoutMs } from '@/domains/cart/cart.contract';
-import { numericIdSchema as id } from '@/domains/cart/cart.schema';
-import { pairKey } from './guest-cart';
+import { cartProductRequestSchema, numericIdSchema as id } from '@/domains/cart/cart.schema';
+import { pairKey } from '@/domains/cart/cart.guest';
+import { cartRequestTimeoutMs } from './cart.http-client';
 
 const stock = z.number().int().nonnegative().max(2147483647);
 const money = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
-const pair = z.object({ productId: id, variantId: id });
 const responseSchema: z.ZodType<CartProductResponse> = z.object({
   cartItems: z.array(z.object({
     productId: id, variantId: id, styleId: id, name: z.string(), color: z.string(), thumbnailUrl: z.string().min(1),
@@ -41,7 +40,7 @@ export function parseGuestCartProductResponse(value: unknown): CartProductRespon
 }
 
 export async function loadCartProducts(items: readonly CartProductRequestItem[], timeoutMs = cartRequestTimeoutMs): Promise<CartProductResponse> {
-  const input = z.array(pair).parse(items);
+  const input = cartProductRequestSchema.parse(items);
   const reply = await fetch('/api/cart/products', {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(input), cache: 'no-store', signal: AbortSignal.timeout(timeoutMs),
   });

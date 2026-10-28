@@ -4,7 +4,7 @@ import { unstable_rethrow } from 'next/navigation';
 import { getCurrentMemberAccess, type MemberAccessResult } from '@/domains/auth/member-access.server';
 import { createAuthClient } from '@/shared/lib/supabase/auth-server';
 import { productService } from '@/domains/product';
-import { cartRetryMessage as retryMessage, type CartAccess, type CartReply } from '@/domains/cart/cart.contract';
+import { cartInvalidMessage as invalidMessage, cartRetryMessage as retryMessage, type CartAccess, type CartReply } from '@/domains/cart/cart.contract';
 import type { CartViewModel } from '@/domains/cart/cart.view-model';
 import { CartRepositoryError } from '@/domains/cart/cart.repository';
 import { createCartRepository } from '@/domains/cart/cart.supabase-repository.server';
@@ -16,9 +16,9 @@ function toCartAccess(access: MemberAccessResult): CartAccess {
   switch (access.status) {
     case 'active': return { status: 'member', userId: access.member.id };
     case 'unauthenticated': return { status: 'guest' };
-    case 'unverified': return { status: 'restricted', reason: 'unverified' };
-    case 'missing': return { status: 'restricted', reason: 'missing' };
-    case 'unavailable': return { status: 'restricted', reason: 'unavailable' };
+    case 'unverified':
+    case 'missing':
+    case 'unavailable': return { status: 'restricted' };
     case 'error': return { status: 'error', message: retryMessage };
   }
 }
@@ -54,7 +54,7 @@ async function execute(expectedUserId: string, run: (service: CartService) => Pr
         const sameMember = access.status === 'member' && access.userId.toLowerCase() === expectedUserId.toLowerCase();
         return access.status === 'error' || sameMember ? { status: 'retryable', message: retryMessage } : { status: 'access_changed', access };
       }
-      if (error.kind === 'invalid') return { status: 'invalid', message: '장바구니 요청 형식을 확인해주세요.' };
+      if (error.kind === 'invalid') return { status: 'invalid', message: invalidMessage };
       if (error.kind === 'conflict') return { status: 'conflict', message: '기존 요청 내용과 일치하지 않습니다.' };
     }
     return { status: 'retryable', message: retryMessage };
@@ -63,12 +63,12 @@ async function execute(expectedUserId: string, run: (service: CartService) => Pr
 
 export async function readCart(input: unknown): Promise<CartReply> {
   const parsed = cartReadSchema.safeParse(input);
-  if (!parsed.success) return { status: 'invalid', message: '장바구니 요청 형식을 확인해주세요.' };
+  if (!parsed.success) return { status: 'invalid', message: invalidMessage };
   return execute(parsed.data.expectedUserId, service => service.read(parsed.data.expectedUserId));
 }
 
 export async function mutateCart(input: unknown): Promise<CartReply> {
   const parsed = cartCommandSchema.safeParse(input);
-  if (!parsed.success) return { status: 'invalid', message: '장바구니 요청 형식을 확인해주세요.' };
+  if (!parsed.success) return { status: 'invalid', message: invalidMessage };
   return execute(parsed.data.expectedUserId, service => service.apply(parsed.data));
 }

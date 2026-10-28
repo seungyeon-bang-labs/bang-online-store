@@ -1,11 +1,9 @@
 import 'server-only';
 
-import type { CartAccess, CartReply } from '@/domains/cart/cart.contract';
+import { cartInvalidMessage as invalidMessage, type CartAccess, type CartReply } from '@/domains/cart/cart.contract';
 
 // Same ceiling as the Server Action default this transport replaces.
 export const CART_BODY_LIMIT = 1_048_576;
-
-const invalidMessage = '장바구니 요청 형식을 확인해주세요.';
 
 const replyStatus: Record<CartReply['status'], number> = {
   ok: 200,

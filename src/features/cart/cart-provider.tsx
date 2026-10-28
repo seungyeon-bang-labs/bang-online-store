@@ -1,6 +1,7 @@
 'use client';
 
-import { createContext, useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useEffect, useState, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import type { StoreApi } from 'zustand/vanilla';
 import type { CartAccess, CartActionPort } from '@/domains/cart/cart.contract';
@@ -20,80 +21,78 @@ type CartContextValue = {
 
 // Context holds no account state outside an individual Provider instance.
 export const CartContext = createContext<CartContextValue | null>(null);
-const accessKey = (access: CartAccess) => access.status === 'member' ? `member:${access.userId}`
-  : access.status === 'restricted' ? `restricted:${access.reason}` : access.status;
-const hidden: CartState = { phase: 'loading', access: null, cart: null, busy: false, pendingAdd: 0, selectedIds: [], message: null };
+// A refresh replaced by a navigation keeps the root layout, so the new access may never arrive: reload instead.
+const refreshTimeoutMs = 5_000;
+const accessKey = (access: CartAccess) => access.status === 'member' ? `member:${access.userId}` : access.status;
 
-function createRuntime(actions: CartActionPort) {
-  // The server access this Provider last applied; restarts inside the controller do not change it.
-  let applied: CartAccess | null = null;
-  // The access of the latest committed render; the stable commands below act for it.
-  let rendered: CartAccess | null = null;
-  const shownKey = () => { const shown = store.getState().access; return shown ? accessKey(shown) : null; };
+function createRuntime(actions: CartActionPort, refresh: () => void, reload: () => void) {
   const store = createCartStore();
+  // Waiting for an access to start with: from mount (or an effect replay), and again after the cart found
+  // another account and asked the server to render the page for it.
+  let waiting = true;
+  let fallback: ReturnType<typeof setTimeout> | undefined;
+  const settle = () => { clearTimeout(fallback); fallback = undefined; };
   const controller = createCartController({
     store, local: createCartLocalAdapter(), loadProducts: loadCartProducts,
     newId: () => globalThis.crypto.randomUUID(),
     notify: { info: message => { toast.info(message); }, error: message => { toast.error(message); } },
+    onAccessChanged: () => {
+      waiting = true;
+      refresh();
+      settle();
+      fallback = setTimeout(reload, refreshTimeoutMs);
+    },
     actions,
   });
-
-  const visible = (access: CartAccess | null) => access !== null && (applied === access || shownKey() === accessKey(access));
-  const current = () => visible(rendered);
-  // One commands object for the Provider's lifetime, so a same-account server render does not look like a cart entry.
   const commands: CartCommands = {
-    enterCart: () => { if (current()) controller.enterCart(); },
-    retry: () => { if (current()) controller.retry(); },
-    addItems: items => current() && controller.addItems(items),
-    adjustQuantity: (itemId, delta) => current() && controller.adjustQuantity(itemId, delta),
-    changeOption: (itemId, productId, variantId) => current() && controller.changeOption(itemId, productId, variantId),
-    removeItems: itemIds => current() && controller.removeItems(itemIds),
-    setSelected: (id, checked) => { if (current()) store.getState().setSelected(id, checked); },
-    selectAll: checked => { if (current()) store.getState().selectAll(checked); },
+    enterCart: () => controller.enterCart(),
+    retry: () => controller.retry(),
+    addItems: (items, onSaved) => controller.addItems(items, onSaved),
+    adjustQuantity: (itemId, delta) => controller.adjustQuantity(itemId, delta),
+    changeOption: (itemId, productId, variantId) => controller.changeOption(itemId, productId, variantId),
+    removeItems: itemIds => controller.removeItems(itemIds),
+    setSelected: (id, checked) => store.getState().setSelected(id, checked),
+    selectAll: checked => store.getState().selectAll(checked),
   };
 
   return {
-    // Set on commit, so a render React throws away cannot point the commands at another account.
-    commit(access: CartAccess) { rendered = access; },
-    // Each server render brings a new access object; restart only when the cart shows another account,
-    // or on the first activation after a dispose (an effect replay disowned the earlier start).
+    context: { state: store, commands } satisfies CartContextValue,
+    // A server render for the same account starts nothing, unless the cart is waiting for one.
     activate(access: CartAccess) {
-      const fresh = applied === null;
-      applied = access;
-      if (fresh || shownKey() !== accessKey(access)) controller.start(access);
+      if (!waiting) return;
+      waiting = false;
+      settle();
+      controller.start(access);
     },
     dispose() {
-      applied = null;
+      settle();
+      waiting = true;
       controller.dispose();
-    },
-    // Between a server render for another account and its start effect, the shown cart stays hidden.
-    view(access: CartAccess): CartContextValue {
-      let source: ReturnType<typeof store.getState> | undefined;
-      let cached: CartState;
-      const getState = (): CartState => {
-        if (!visible(access)) return hidden;
-        const next = store.getState();
-        if (next !== source) {
-          source = next;
-          cached = { phase: next.phase, access: next.access, cart: next.cart, busy: next.busy, pendingAdd: next.pendingAdd, selectedIds: next.selectedIds, message: next.message };
-        }
-        return cached;
-      };
-      return { state: { getState, getInitialState: () => hidden, subscribe: store.subscribe }, commands };
     },
   };
 }
 
+// One cart per account: a server render for another account gets a fresh runtime in that same render, so no
+// earlier account's cart can show, while the page under it (toasts, dialogs, form input) stays mounted.
 // The actions given at mount (tests inject them; the app uses the browser HTTP port) serve the Provider's lifetime.
 export function CartProvider({ access, actions, children }: {
   access: CartAccess; actions?: CartActionPort; children: ReactNode;
 }) {
-  const [runtime] = useState(() => createRuntime(actions ?? createCartHttpClient()));
-  const context = useMemo(() => runtime.view(access), [runtime, access]);
+  const router = useRouter();
+  const [port] = useState(() => actions ?? createCartHttpClient());
+  const create = () => createRuntime(port, () => router.refresh(), () => globalThis.location.reload());
+  const key = accessKey(access);
+  const [current, setCurrent] = useState(() => ({ key, runtime: create() }));
+  let { runtime } = current;
+  // State derived from this render's props, as React allows: this render already uses the new runtime,
+  // and the effect below disposes the previous one.
+  if (current.key !== key) {
+    runtime = create();
+    setCurrent({ key, runtime });
+  }
 
-  useLayoutEffect(() => { runtime.commit(access); }, [runtime, access]);
   useEffect(() => () => runtime.dispose(), [runtime]);
   useEffect(() => { runtime.activate(access); }, [runtime, access]);
 
-  return <CartContext.Provider value={context}>{children}</CartContext.Provider>;
+  return <CartContext.Provider value={runtime.context}>{children}</CartContext.Provider>;
 }

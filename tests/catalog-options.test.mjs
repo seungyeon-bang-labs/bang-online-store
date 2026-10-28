@@ -37,9 +37,11 @@ test('guest cart merges numeric option IDs across adds and option replacements',
   controller.dispose();
 });
 
-function request(items) {
+// The browser cart client posts same-origin JSON.
+function request(items, headers = {}) {
   return new Request('http://localhost/api/cart/products', {
-    method: 'POST', body: JSON.stringify(items), headers: { 'content-type': 'application/json' },
+    method: 'POST', body: typeof items === 'string' ? items : JSON.stringify(items),
+    headers: { 'content-type': 'application/json', origin: 'http://localhost', host: 'localhost', ...headers },
   });
 }
 
@@ -71,6 +73,21 @@ test('cart API rejects invalid IDs before reading product data', async () => {
     }
   }
   assert.equal(reads, 0);
+});
+
+test('cart API refuses oversized, cross-origin and non-JSON requests before reading product data', async () => {
+  let reads = 0;
+  const { POST } = loadTs('src/app/api/cart/products/route.ts', {
+    '@/domains/product': { productService: { findByIds: async () => { reads++; return []; }, findByStyleId: async () => [] } },
+  });
+  const pairs = count => Array.from({ length: count }, (_, i) => ({ productId: i + 1, variantId: i + 1 }));
+  assert.equal((await POST(request(pairs(500)))).status, 200);
+  assert.equal(reads, 1);
+  assert.equal((await POST(request(pairs(501)))).status, 400);
+  assert.equal((await POST(request('x'.repeat(1_048_577)))).status, 413);
+  assert.equal((await POST(request(pairs(1), { origin: 'https://evil.example' }))).status, 403);
+  assert.equal((await POST(request(pairs(1), { 'content-type': 'text/plain' }))).status, 400);
+  assert.equal(reads, 1);
 });
 
 test('cart API omits inactive products but keeps active sold-out options', async () => {

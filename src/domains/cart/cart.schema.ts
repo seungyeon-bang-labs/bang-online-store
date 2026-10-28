@@ -55,6 +55,12 @@ export const cartCommandSchema: z.ZodType<CartCommand> = z.strictObject({
 
 export const cartReadSchema = z.strictObject({ expectedUserId: z.uuid() });
 
+// Product and option pairs whose current product data a guest cart asks for. The whole catalog has 135 options
+// today; the cap only stops oversized anonymous requests.
+export const maxCartProductRequestItems = 500;
+export const cartProductRequestSchema = z.array(z.object({ productId: numericIdSchema, variantId: numericIdSchema }))
+  .max(maxCartProductRequestItems);
+
 const noticeSchema = z.strictObject({
   kind: z.enum(['quantity_adjusted', 'unavailable', 'sold_out', 'item_missing', 'option_rejected']),
   variantId: numericIdSchema.optional(),

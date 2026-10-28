@@ -16,7 +16,7 @@ const deferred = () => { let resolve, reject; const promise = new Promise((yes, 
 const itemOf = (quantity, overrides = {}) => ({ ...cartView().items[0], quantity, ...overrides });
 const okFor = (command, cart = cartView(), outcome = 'applied', extra = {}) => ({ status: 'ok', cart: { ...cart, operation: { requestId: command.requestId, outcome, itemIdMap: {}, notices: [], ...extra } } });
 
-function setup({ guestItems = [], products = [product()], storage: storageOverride } = {}) {
+function setup({ guestItems = [], products = [product()], storage: storageOverride, makeId } = {}) {
   const store = loadTs('src/domains/cart/cart.store.ts').createCartStore();
   const data = new Map();
   const storage = storageOverride === undefined ? { getItem: key => data.get(key) ?? null, setItem: (key, value) => { data.set(key, value); } } : storageOverride;
@@ -26,11 +26,14 @@ function setup({ guestItems = [], products = [product()], storage: storageOverri
   const replies = { read: [], mutate: [], access: [], products: [] };
   const take = (queue, fallback) => { const next = queue.shift(); return next === undefined ? fallback() : typeof next === 'function' ? next() : next; };
   const notes = { info: [], error: [] };
+  // Each time the cart found another account and asked the server to render the page again.
+  let refreshes = 0;
   let id = 0;
-  const newId = () => R(++id);
+  const newId = makeId ?? (() => R(++id));
   const controller = loadTs('src/features/cart/cart-controller.ts').createCartController({
     store, local, newId,
     notify: { info: message => notes.info.push(message), error: message => notes.error.push(message) },
+    onAccessChanged: () => { refreshes++; },
     loadProducts: async pairs => { calls.products.push(pairs); return take(replies.products, () => productResponse(products)); },
     actions: {
       resolveAccess: async () => { calls.access++; return take(replies.access, () => guest); },
@@ -39,7 +42,7 @@ function setup({ guestItems = [], products = [product()], storage: storageOverri
     },
   });
   const state = () => store.getState();
-  return { store, local, data, calls, replies, notes, controller, state, idle: () => controller.whenIdle() };
+  return { store, local, data, calls, replies, notes, controller, state, idle: () => controller.whenIdle(), refreshes: () => refreshes };
 }
 
 async function startedMember(options) {
@@ -170,15 +173,48 @@ test('failure with failed re-read restores serverCart and shows error', async ()
   assert.equal(cart.state().phase, 'ready');
 });
 
-test('access_changed restarts with the new access', async () => {
+// The cart found another account: it drops this account's view, stays locked and asks the server once.
+function assertWaitingForServer(cart) {
+  assert.deepEqual([cart.state().phase, cart.state().access, cart.state().cart, cart.state().busy], ['loading', null, null, false]);
+  assert.equal(cart.refreshes(), 1);
+  assert.equal(cart.controller.adjustQuantity(I1, 1), false);
+  assert.equal(cart.controller.addItems([{ productId: 1, variantId: 2, quantity: 1 }]), false);
+}
+
+test('access_changed hides this account and asks the server to render the new one', async () => {
   const cart = await startedMember();
   cart.replies.mutate.push({ status: 'access_changed', access: guest });
   cart.controller.adjustQuantity(I1, 1);
   await cart.idle();
-  assert.deepEqual(cart.state().access, guest);
-  assert.equal(cart.state().phase, 'ready');
-  assert.equal(cart.state().cart.owner.kind, 'guest');
-  assert.deepEqual(cart.state().cart.items, []);
+  assertWaitingForServer(cart);
+  assert.deepEqual(cart.notes.error, ['수량 변경을 저장하지 못했습니다.'], 'the change was not saved for any account');
+  // The Provider starts again with the access of that server render.
+  cart.controller.start(guest);
+  await cart.idle();
+  assert.deepEqual([cart.state().phase, cart.state().cart.owner.kind], ['ready', 'guest']);
+});
+
+test('an add refused because the account changed says it was not added', async () => {
+  const cart = await startedMember();
+  cart.replies.mutate.push({ status: 'access_changed', access: guest });
+  assert.equal(cart.controller.addItems([{ productId: 1, variantId: 2, quantity: 1 }]), true);
+  await cart.idle();
+  assertWaitingForServer(cart);
+  assert.deepEqual(cart.notes.error, ['장바구니에 담지 못했습니다.']);
+});
+
+test('a member change whose request ID cannot be made leaves the cart as it was', async () => {
+  let ids = 0;
+  // The start needs no ID; the first change does, and the browser cannot make one (e.g. a non-secure origin).
+  const cart = setup({ makeId: () => { ids++; throw new TypeError('crypto.randomUUID is not a function'); } });
+  cart.controller.start(member());
+  await cart.idle();
+  assert.equal(cart.controller.adjustQuantity(I1, 1), false);
+  assert.equal(cart.controller.addItems([{ productId: 1, variantId: 2, quantity: 1 }]), false);
+  assert.equal(ids, 2);
+  assert.deepEqual([cart.state().cart.items[0].quantity, cart.state().pendingAdd, cart.state().busy], [2, 0, false]);
+  assert.deepEqual(cart.calls.mutate, []);
+  assert.deepEqual(cart.notes.error, ['수량 변경을 저장하지 못했습니다.', '장바구니에 담지 못했습니다.']);
 });
 
 test('stale reply after restart changes nothing', async () => {
@@ -262,13 +298,12 @@ test('merge without a reply keeps the guest cart and resends the same id next st
   assert.deepEqual(cart.local.read().items, []);
 });
 
-test('merge refused because the account changed restarts as that account and keeps the guest cart', async () => {
+test('merge refused because the account changed waits for the server and keeps the guest cart', async () => {
   const cart = setup({ guestItems: [line()] });
   cart.replies.mutate.push({ status: 'access_changed', access: guest });
   cart.controller.start(member());
   await cart.idle();
-  assert.deepEqual(cart.state().access, guest);
-  assert.equal(cart.state().phase, 'ready');
+  assertWaitingForServer(cart);
   assert.deepEqual(cart.calls.read, []);
   assert.deepEqual(cart.local.read().items, [line()]);
   assert.ok(cart.local.read().mergeId, 'the merge id is kept for the next member start');
@@ -415,13 +450,17 @@ test('guest cleanup saves and reports adjusted and unavailable items', async () 
   assert.deepEqual(cart.notes.info, ['현재 재고에 맞게 수량을 조정했습니다.', '현재 이용할 수 없는 상품을 장바구니에서 제외했습니다.']);
 });
 
-test('guest entry detects login and merges', async () => {
+test('guest entry that detects a login asks the server, then merges once started as that member', async () => {
   const cart = await startedGuest({ guestItems: [line()] });
   cart.replies.access.push(member());
   cart.controller.enterCart();
   assert.equal(cart.state().busy, true);
   await cart.idle();
   assert.equal(cart.calls.access, 1);
+  assertWaitingForServer(cart);
+  assert.equal(cart.calls.mutate.length, 0);
+  cart.controller.start(member());
+  await cart.idle();
   assert.deepEqual(cart.state().access, member());
   assert.equal(cart.calls.mutate[0].operation.kind, 'merge_guest');
   assert.deepEqual(cart.local.read().items, []);
@@ -557,8 +596,17 @@ test('an access error start recovers through retry', async () => {
   cart.controller.retry();
   await cart.idle();
   assert.equal(cart.calls.access, 1);
-  assert.deepEqual(cart.state().access, member());
-  assert.equal(cart.state().phase, 'ready');
+  assertWaitingForServer(cart);
+});
+
+test('a retry that still cannot check the account stays in error without asking the server', async () => {
+  const cart = setup();
+  cart.controller.start({ status: 'error', message: '확인 실패' });
+  cart.replies.access.push({ status: 'error', message: '다시 실패' });
+  cart.controller.retry();
+  await cart.idle();
+  assert.deepEqual([cart.state().phase, cart.state().message, cart.state().busy], ['error', '다시 실패', false]);
+  assert.equal(cart.refreshes(), 0);
 });
 
 test('guest rebuild gives up after three loads when another tab keeps saving', async () => {
@@ -581,12 +629,50 @@ test('guest rebuild uses the newer lines another tab saved during the load', asy
   assert.equal(cart.state().cart.items[0].quantity, 3);
 });
 
-test('guest cart entry that finds a restricted account restarts as restricted', async () => {
+test('guest cart entry that finds a restricted account asks the server and keeps the guest cart', async () => {
   const cart = await startedGuest({ guestItems: [line()] });
-  cart.replies.access.push({ status: 'restricted', reason: 'unverified' });
+  cart.replies.access.push({ status: 'restricted' });
   cart.controller.enterCart();
   await cart.idle();
-  assert.deepEqual([cart.state().phase, cart.state().cart, cart.state().message], ['restricted', null, '이메일 인증과 회원 상태를 확인해주세요.']);
+  assertWaitingForServer(cart);
   assert.equal(cart.calls.mutate.length, 0);
   assert.deepEqual(cart.local.read().items, [line()]);
+});
+
+// --- saved callback (callers report success only once the add is saved) ---
+
+test('member add reports saved only after the server applies it', async () => {
+  const cart = await startedMember();
+  const reply = deferred();
+  cart.replies.mutate.push(() => reply.promise);
+  let saved = 0;
+  assert.equal(cart.controller.addItems([{ productId: 1, variantId: 2, quantity: 1 }], () => saved++), true);
+  assert.equal(saved, 0, 'not before the reply');
+  reply.resolve(okFor(cart.calls.mutate[0], cartView({ items: [itemOf(2)] })));
+  await cart.idle();
+  assert.equal(saved, 1);
+});
+
+test('member add is not reported saved when the server does not save it', async () => {
+  for (const reply of [
+    command => okFor(command, cartView(), 'rejected'),
+    () => ({ status: 'access_changed', access: guest }),
+    () => ({ status: 'conflict', message: '재고가 부족합니다.' }),
+    () => { throw new Error('offline'); },
+  ]) {
+    const cart = await startedMember();
+    cart.replies.mutate.push(() => reply(cart.calls.mutate[0]));
+    let saved = 0;
+    assert.equal(cart.controller.addItems([{ productId: 1, variantId: 2, quantity: 1 }], () => saved++), true);
+    await cart.idle();
+    assert.equal(saved, 0);
+    assert.equal(cart.notes.error.at(-1), '장바구니에 담지 못했습니다.');
+  }
+});
+
+test('guest add reports saved at once', async () => {
+  const cart = await startedGuest({ guestItems: [line()] });
+  let saved = 0;
+  assert.equal(cart.controller.addItems([{ productId: 1, variantId: 2, quantity: 1 }], () => saved++), true);
+  assert.equal(saved, 1);
 });

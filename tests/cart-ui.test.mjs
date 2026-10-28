@@ -34,15 +34,19 @@ for(const saved of [false,true])test(`delete confirmation stays open until ${sav
 
 const ready = (view, patch) => { view.store.getState().setStateFromController(patch); view.flush(); };
 
-test('product add shows the success toast only when accepted', t => {
+test('product add shows the success toast and clears selections only once saved', t => {
   for (const accepted of [true, false]) {
-    const sent = [];
-    const view = client('src/features/product/product-form.tsx', 'ProductForm', { props: productProps, commands: { addItems: items => { sent.push(items); return accepted; } } }); t.after(() => view.dispose());
+    const sent = [], saves = [];
+    const view = client('src/features/product/product-form.tsx', 'ProductForm', { props: productProps, commands: { addItems: (items, onSaved) => { sent.push(items); saves.push(onSaved); return accepted; } } }); t.after(() => view.dispose());
     select(view, 2); select(view, 3);
     view.button('장바구니').props.onClick(); view.flush();
     assert.deepEqual(sent, [[{ productId: 1, variantId: 2, quantity: 1 }, { productId: 1, variantId: 3, quantity: 1 }]]);
-    assert.equal(view.calls.success.length, accepted ? 1 : 0);
-    assert.equal(view.nodes().some(n => n.props?.count === 1), !accepted, 'selections clear only when accepted');
+    assert.equal(view.calls.success.length, 0, 'not before the cart saves it');
+    assert.equal(view.nodes().some(n => n.props?.count === 1), true, 'selections stay until saved');
+    if (!accepted) continue;
+    saves[0](); view.flush();
+    assert.equal(view.calls.success.length, 1);
+    assert.equal(view.nodes().some(n => n.props?.count === 1), false, 'selections clear once saved');
   }
 });
 
@@ -115,26 +119,30 @@ test('headers show nothing while loading and the cart quantity plus pending adds
   const { CartItemCountBadge, getCartAriaLabel } = loadTs('src/shared/components/layout/cart-item-count-badge.tsx'); assert.equal(CartItemCountBadge({ count: null }), null); assert.notEqual(getCartAriaLabel(null), getCartAriaLabel(0));
 });
 
-test('home repurchase shows success only when accepted and keeps demo source records', t => {
+test('home repurchase shows success only once saved and keeps demo source records', t => {
   for (const accepted of [true, false]) {
-    const action = { cartItem: { productId: 1, variantId: 2, quantity: 2 } }; const original = structuredClone(action); const sent = [];
-    const view = client('src/features/mypage/home/hooks/use-order-action-command.ts', 'useOrderActionCommand', { commands: { addItems: items => { sent.push(items); return accepted; } } }); t.after(() => view.dispose());
+    const action = { cartItem: { productId: 1, variantId: 2, quantity: 2 } }; const original = structuredClone(action); const sent = [], saves = [];
+    const view = client('src/features/mypage/home/hooks/use-order-action-command.ts', 'useOrderActionCommand', { commands: { addItems: (items, onSaved) => { sent.push(items); saves.push(onSaved); return accepted; } } }); t.after(() => view.dispose());
     view.tree()(action);
     assert.deepEqual(sent, [[action.cartItem]]);
+    assert.equal(view.calls.success.length, 0, 'not before the cart saves it');
+    if (accepted) saves[0]();
     assert.equal(view.calls.success.length, accepted ? 1 : 0);
     assert.deepEqual(action, original);
     assert.equal(view.calls.info.length, 0, 'no cart-check gate');
   }
 });
 
-test('repurchase is disabled while locked and has no cart-check gate', t => {
-  const sent = [];
-  const view = client('src/features/mypage/orders/order-item-actions.tsx', 'MypageOrderItemActions', { phase: 'loading', cart: null, props: { actions: { primary: { type: 'repurchase', label: '다시 담기' }, secondary: null, more: [] }, productName: '상품', orderId: 'demo-order', orderItemId: 'demo-item', repurchaseItem: { productId: 1, variantId: 2, quantity: 2 } }, commands: { addItems: items => { sent.push(items); return true; } } }); t.after(() => view.dispose());
+test('repurchase is disabled while locked, reports success once saved and has no cart-check gate', t => {
+  const sent = [], saves = [];
+  const view = client('src/features/mypage/orders/order-item-actions.tsx', 'MypageOrderItemActions', { phase: 'loading', cart: null, props: { actions: { primary: { type: 'repurchase', label: '다시 담기' }, secondary: null, more: [] }, productName: '상품', orderId: 'demo-order', orderItemId: 'demo-item', repurchaseItem: { productId: 1, variantId: 2, quantity: 2 } }, commands: { addItems: (items, onSaved) => { sent.push(items); saves.push(onSaved); return true; } } }); t.after(() => view.dispose());
   let action = view.nodes().find(n => n.props?.action?.type === 'repurchase'); assert.equal(action.type(action.props).props.disabled, true);
   ready(view, { phase: 'ready', cart: cartView() });
   action = view.nodes().find(n => n.props?.action?.type === 'repurchase'); assert.equal(action.type(action.props).props.disabled, false);
   action.props.onAction(action.props.action);
   assert.deepEqual(sent, [[{ productId: 1, variantId: 2, quantity: 2 }]]);
+  assert.equal(view.calls.success.length, 0, 'not before the cart saves it');
+  saves[0]();
   assert.equal(view.calls.success.length, 1);
   assert.equal(view.calls.info.length, 0);
 });

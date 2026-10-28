@@ -1,5 +1,5 @@
 import type { CartNotice } from '@/domains/cart/cart.contract';
-import type { CartChange } from './guest-cart';
+import type { CartChange } from '@/domains/cart/cart.guest';
 
 export type CartActionKind = CartChange['kind'];
 

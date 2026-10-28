@@ -4,7 +4,7 @@ import { loadTs } from './helpers/load-ts.mjs';
 import { I1, I2, cartView } from './helpers/cart-fixtures.mjs';
 import { productResponse } from './helpers/cart-products.mjs';
 
-const { applyGuestChange, buildGuestCart } = loadTs('src/features/cart/guest-cart.ts');
+const { applyGuestChange, buildGuestCart } = loadTs('src/domains/cart/cart.guest.ts');
 const { previewChange } = loadTs('src/features/cart/cart-preview.ts');
 const { noticeMessage, failureMessage, messages } = loadTs('src/features/cart/cart-messages.ts');
 const I3 = '10000000-0000-4000-8000-000000000003';

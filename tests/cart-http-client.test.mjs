@@ -95,7 +95,7 @@ test('access failures become CartAccess errors, while a 200 error access passes 
   }
   const passthrough = { status: 'error', message: '서버 확인 실패' };
   assert.deepEqual(await client(() => reply(passthrough)).port.resolveAccess(), passthrough);
-  for (const access of [{ status: 'guest' }, { status: 'restricted', reason: 'unverified' }]) {
+  for (const access of [{ status: 'guest' }, { status: 'restricted' }]) {
     assert.deepEqual(await client(() => reply(access)).port.resolveAccess(), access);
   }
 });

@@ -108,21 +108,22 @@ export function ProductForm({
     0,
   );
 
-  // The cart shows the add at once and reports a failure itself; false means nothing was taken.
+  // The cart reports a failure itself; success and clearing wait until the add is saved, so a failed add keeps the selections.
   const handleAddToCart = () => {
     if (cartLocked || selectedItems.length === 0) return;
-    if (!addItems(selectedItems.map(item => ({ productId, variantId: item.id, quantity: item.count })))) return;
-    setSelectedItems([]);
-    toast.success('상품이 장바구니에 담겼습니다.', {
-      position: 'bottom-center',
-      action: {
-        label: '보러가기',
-        onClick: () => {
-          const search = searchParams.toString();
-          router.push(getCartHref(search ? `${pathname}?${search}` : pathname));
+    addItems(selectedItems.map(item => ({ productId, variantId: item.id, quantity: item.count })), () => {
+      setSelectedItems([]);
+      toast.success('상품이 장바구니에 담겼습니다.', {
+        position: 'bottom-center',
+        action: {
+          label: '보러가기',
+          onClick: () => {
+            const search = searchParams.toString();
+            router.push(getCartHref(search ? `${pathname}?${search}` : pathname));
+          },
         },
-      },
-      duration: 3000,
+        duration: 3000,
+      });
     });
   };
 

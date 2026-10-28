@@ -187,7 +187,7 @@ test('cart lookup and every style lookup share one clock and preserve option own
     ...mapping,productService:{findByIds:async(ids,opts)=>{assert.deepEqual(ids,[2,1]);options.push(opts);return [a,b];},
       findByStyleId:async(id,opts)=>{options.push(opts);return [a,b].filter(product=>product.styleId===id);}},
   }});
-  const response=await POST(new Request('http://localhost/api/cart/products',{method:'POST',
+  const response=await POST(new Request('http://localhost/api/cart/products',{method:'POST',headers:{'content-type':'application/json',origin:'http://localhost',host:'localhost'},
     body:JSON.stringify([{productId:2,variantId:77},{productId:1,variantId:2},{productId:1,variantId:77}])}));
   assert.equal(response.status,200);
   assert.deepEqual((await response.json()).cartItems.map(p=>[p.productId,p.variantId,p.discountRate,p.stock]),[[2,77,35,0],[1,2,35,a.variants.find(v=>v.id===2).stock]]);

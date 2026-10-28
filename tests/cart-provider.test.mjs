@@ -50,7 +50,8 @@ function actionBoundary({ resolve, read, mutate } = {}) {
 function mount(t, props, { Consumer, path = '/products' } = {}) {
   const instances = new Map(); const contexts = new Map(); const providers = new Map();
   const pending = []; const layout = []; const subscriptions = []; const observations = [];
-  const notices = [];
+  const notices = []; const refreshes = [];
+  let touched = new Set();
   let current; let cursor = 0; let dirty = false; let pathname = path; let rootProps = props;
   function effectHook(queue, effect, deps) {
     const instance = current; const index = cursor++;
@@ -78,13 +79,20 @@ function mount(t, props, { Consumer, path = '/products' } = {}) {
     // Layout effects run first in a commit, as in React.
     useLayoutEffect: (effect, deps) => effectHook(layout, effect, deps),
     useEffect: (effect, deps) => effectHook(pending, effect, deps),
+    // Resubscribes when the store changes, as React does.
     useSyncExternalStore: (subscribe, getSnapshot) => {
       const index = cursor++;
-      if (!current.slots[index]) { const unsubscribe = subscribe(() => { dirty = true; }); subscriptions.push(unsubscribe); current.slots[index] = {}; }
+      const slot = current.slots[index];
+      if (slot?.subscribe !== subscribe) {
+        slot?.unsubscribe();
+        const unsubscribe = subscribe(() => { dirty = true; }); subscriptions.push(unsubscribe);
+        current.slots[index] = { subscribe, unsubscribe };
+      }
       return getSnapshot();
     },
   };
-  const mocks = { react, 'next/navigation': { usePathname: () => pathname }, sonner: { toast: { info: message => notices.push(['info', message]), error: message => notices.push(['error', message]) } },
+  const router = { refresh: () => { refreshes.push(rootProps.access); } };
+  const mocks = { react, 'next/navigation': { usePathname: () => pathname, useRouter: () => router }, sonner: { toast: { info: message => notices.push(['info', message]), error: message => notices.push(['error', message]) } },
     zustand: { ...Zustand, useStore: (store, selector) => react.useSyncExternalStore(store.subscribe, () => selector(store.getState()), () => selector(store.getInitialState())) } };
   const provider = loadTs('src/features/cart/cart-provider.tsx', mocks);
   const hooks = loadTs('src/features/cart/use-cart.ts', { ...mocks, './cart-provider': provider });
@@ -103,14 +111,27 @@ function mount(t, props, { Consumer, path = '/products' } = {}) {
       return result;
     }
     if (typeof node.type === 'function') {
-      if (!instances.has(location)) instances.set(location, { slots: [] });
-      const previous = current; const previousCursor = cursor; current = instances.get(location); cursor = 0;
+      // A new key is a new instance, as in React.
+      const at = node.key == null ? location : `${location}#${node.key}`;
+      touched.add(at);
+      if (!instances.has(at)) instances.set(at, { slots: [] });
+      const previous = current; const previousCursor = cursor; current = instances.get(at); cursor = 0;
       const result = node.type(node.props); current = previous; cursor = previousCursor;
-      return renderNode(result, `${location}.child`);
+      return renderNode(result, `${at}.child`);
     }
     return { ...node, props: { ...node.props, children: renderNode(node.props?.children, `${location}.children`) } };
   }
-  function render(next = {}) { rootProps = { ...rootProps, ...next }; tree = renderNode(React.createElement(provider.CartProvider, rootProps), 'root'); dirty = false; return tree; }
+  function render(next = {}) {
+    rootProps = { ...rootProps, ...next }; touched = new Set();
+    tree = renderNode(React.createElement(provider.CartProvider, rootProps), 'root');
+    // Instances left out of this render unmount on commit: their effect cleanups run.
+    for (const [at, instance] of instances) if (!touched.has(at)) layout.push(() => {
+      if (instances.get(at) !== instance) return;
+      for (const slot of instance.slots) slot?.cleanup?.();
+      instances.delete(at);
+    });
+    dirty = false; return tree;
+  }
   function commitLayout() { for (const effect of layout.splice(0)) effect(); }
   function commit() { commitLayout(); for (const effect of pending.splice(0)) effect(); }
   function flush() {
@@ -122,7 +143,7 @@ function mount(t, props, { Consumer, path = '/products' } = {}) {
   mountedViews.get(t).push(dispose);
   t.after(dispose);
   render();
-  return { render, commit, commitLayout, flush, dispose, observations, notices, latest: () => observations.at(-1), tree: () => tree,
+  return { render, commit, commitLayout, flush, dispose, observations, notices, refreshes, latest: () => observations.at(-1), tree: () => tree,
     path: value => { pathname = value; render(); },
     // A concurrent render React throws away: hooks and effects fall back to the committed tree.
     abandon(next) {
@@ -140,7 +161,7 @@ function mount(t, props, { Consumer, path = '/products' } = {}) {
 }
 
 test('server boundary passes only serializable access and children, never server function props', async () => {
-  for (const access of [member(A), guest, { status: 'restricted', reason: 'unverified' }, { status: 'error', message: 'Try again' }]) {
+  for (const access of [member(A), guest, { status: 'restricted' }, { status: 'error', message: 'Try again' }]) {
     const resolveCartAccess = async () => access; const readCart = async () => {}; const mutateCart = async () => {};
     const { CartBoundary } = loadTs('src/app/cart-boundary.tsx', {
       './cart-actions': { resolveCartAccess, readCart, mutateCart },
@@ -157,7 +178,7 @@ test('server boundary passes only serializable access and children, never server
 test('server rendering never accesses browser storage and retains children without cart reads', t => {
   for (const name of ['window', 'localStorage', 'navigator']) replaceGlobal(t, name, { get: () => { throw new Error(`SSR touched ${name}`); } });
   const { actions, calls } = actionBoundary();
-  const { CartProvider } = loadTs('src/features/cart/cart-provider.tsx', { 'next/navigation': { usePathname: () => '/products' } });
+  const { CartProvider } = loadTs('src/features/cart/cart-provider.tsx', { 'next/navigation': { usePathname: () => '/products', useRouter: () => ({ refresh() {} }) } });
   const html = renderToString(React.createElement(CartProvider, { access: member(A), actions }, child));
   assert.ok(html.includes('상품 탐색'));
   assert.equal(calls.resolve + calls.read.length + calls.mutate.length, 0);
@@ -192,6 +213,26 @@ test('provider starts the controller with the server access and restarts on acco
   assert.deepEqual(view.latest().snapshot.cart.owner, { kind: 'member', userId: B });
 });
 
+test('an account change gives a fresh cart but keeps the page under it mounted', async t => {
+  // Toasts, dialogs and form input below the cart must survive the switch.
+  browser(t);
+  const { actions, calls } = actionBoundary();
+  let mounts = 0;
+  const Consumer = (hooks, observations, react) => {
+    const [mark] = react.useState(() => ++mounts);
+    const snapshot = hooks.useCartState(state => state); const commands = hooks.useCartCommands();
+    observations.push({ snapshot, commands, mark }); return React.createElement('output', null, snapshot.phase);
+  };
+  const view = mount(t, { access: member(A), actions }, { Consumer }); view.flush();
+  await until(() => view.latest().snapshot.phase === 'ready' && !view.latest().snapshot.busy, view.flush);
+  view.render({ access: member(B) });
+  assert.deepEqual([view.latest().snapshot.phase, view.latest().snapshot.cart], ['loading', null], 'A is never shown under B');
+  view.flush();
+  await until(() => calls.read.length === 2 && !view.latest().snapshot.busy, view.flush);
+  assert.deepEqual(view.latest().snapshot.cart.owner, { kind: 'member', userId: B });
+  assert.deepEqual([mounts, view.latest().mark], [1, 1]);
+});
+
 test('a new account never sees the previous cart before its start runs', async t => {
   browser(t);
   const { actions } = actionBoundary();
@@ -205,15 +246,18 @@ test('a new account never sees the previous cart before its start runs', async t
   assert.equal(masked.commands.addItems([{ productId: 1, variantId: 2, quantity: 1 }]), false);
 });
 
-test('an internal restart keeps the cart visible under the same props', async t => {
+test('an account change found by the cart asks the server to render the page, which starts a fresh cart for that account', async t => {
   browser(t);
   const { actions } = actionBoundary({ mutate: () => ({ status: 'access_changed', access: guest }) });
   const view = mount(t, { access: member(A), actions }); view.flush();
   await until(() => view.latest().snapshot.phase === 'ready' && !view.latest().snapshot.busy, view.flush);
   assert.equal(view.latest().commands.adjustQuantity(I1, 1), true); view.flush();
-  await until(() => view.latest().snapshot.access?.status === 'guest' && !view.latest().snapshot.busy, view.flush);
-  assert.equal(view.latest().snapshot.phase, 'ready');
+  await until(() => view.refreshes.length === 1, view.flush);
+  assert.deepEqual([view.latest().snapshot.phase, view.latest().snapshot.cart], ['loading', null], 'A is hidden while the server renders');
+  view.render({ access: guest }); view.flush();
+  await until(() => view.latest().snapshot.phase === 'ready' && !view.latest().snapshot.busy, view.flush);
   assert.deepEqual(view.latest().snapshot.cart.owner, { kind: 'guest' });
+  assert.equal(view.refreshes.length, 1);
 });
 
 test('route changes make no cart request', async t => {
@@ -262,31 +306,62 @@ test('locked when the first load failed and there is no cart', () => {
   assert.equal(selectCartLocked({ ...base, phase: 'error' }), false);
 });
 
-test('a server render with the same props key restarts when the controller moved to another account', async t => {
-  // Case A: guest props, the cart entry found member B, then this tab logged out (guest props again).
+test('a guest cart entry that finds a login asks the server, then the member render starts that member', async t => {
   browser(t);
   const { actions, calls } = actionBoundary({ resolve: () => member(B) });
   const view = mount(t, { access: guest, actions }); view.flush();
   await until(() => view.latest().snapshot.phase === 'ready' && !view.latest().snapshot.busy, view.flush);
   view.latest().commands.enterCart(); view.flush();
-  await until(() => view.latest().snapshot.access?.status === 'member' && !view.latest().snapshot.busy, view.flush);
+  await until(() => view.refreshes.length === 1, view.flush);
+  assert.equal(calls.read.length, 0, 'B is not read before the server names B');
+  view.render({ access: member(B) }); view.flush();
+  await until(() => view.latest().snapshot.phase === 'ready' && !view.latest().snapshot.busy, view.flush);
   assert.deepEqual(view.latest().snapshot.cart.owner, { kind: 'member', userId: B });
-  view.render({ access: { status: 'guest' } });
-  assert.notEqual(view.latest().snapshot.cart?.owner.kind, 'member', 'B is hidden before the restart runs');
-  view.flush();
-  await until(() => view.latest().snapshot.access?.status === 'guest' && !view.latest().snapshot.busy, view.flush);
-  assert.deepEqual(view.latest().snapshot.cart.owner, { kind: 'guest' });
-  assert.equal(calls.read.length, 1);
+  assert.deepEqual(calls.read, [{ expectedUserId: B }]);
 });
 
-test('a re-login with the same props key restarts a tab the controller had moved to guest', async t => {
-  // Case B: member A props, another tab logged out (access_changed → guest), then this tab logged in as A again.
+test('a cart still waiting for the server render after a few seconds reloads the page', async t => {
+  // A navigation can replace the refresh and keep the root layout, so the new access never arrives.
+  browser(t);
+  let reloads = 0;
+  replaceGlobal(t, 'location', { value: { reload: () => { reloads++; } } });
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const { actions } = actionBoundary({ mutate: () => ({ status: 'access_changed', access: guest }) });
+  const view = mount(t, { access: member(A), actions }); view.flush();
+  await until(() => view.latest().snapshot.phase === 'ready' && !view.latest().snapshot.busy, view.flush);
+  view.latest().commands.adjustQuantity(I1, 1); view.flush();
+  await until(() => view.refreshes.length === 1, view.flush);
+  t.mock.timers.tick(4999);
+  assert.equal(reloads, 0);
+  t.mock.timers.tick(1);
+  assert.equal(reloads, 1);
+});
+
+for (const [name, next] of [['the same account (restart in place)', member(A)], ['another account (fresh cart)', guest]]) {
+  test(`a server render for ${name} that arrives in time cancels the reload`, async t => {
+    browser(t);
+    let reloads = 0;
+    replaceGlobal(t, 'location', { value: { reload: () => { reloads++; } } });
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { actions } = actionBoundary({ mutate: () => ({ status: 'access_changed', access: guest }) });
+    const view = mount(t, { access: member(A), actions }); view.flush();
+    await until(() => view.latest().snapshot.phase === 'ready' && !view.latest().snapshot.busy, view.flush);
+    view.latest().commands.adjustQuantity(I1, 1); view.flush();
+    await until(() => view.refreshes.length === 1, view.flush);
+    view.render({ access: next }); view.flush();
+    t.mock.timers.tick(10_000);
+    assert.equal(reloads, 0);
+  });
+}
+
+test('a server render that still names the same account restarts a cart waiting for it', async t => {
+  // Another tab logged out (access_changed), but by the time the server renders, A is logged in again.
   browser(t);
   const { actions, calls } = actionBoundary({ mutate: () => ({ status: 'access_changed', access: guest }) });
   const view = mount(t, { access: member(A), actions }); view.flush();
   await until(() => view.latest().snapshot.phase === 'ready' && !view.latest().snapshot.busy, view.flush);
   view.latest().commands.adjustQuantity(I1, 1); view.flush();
-  await until(() => view.latest().snapshot.access?.status === 'guest' && !view.latest().snapshot.busy, view.flush);
+  await until(() => view.refreshes.length === 1, view.flush);
   view.render({ access: member(A) }); view.flush();
   await until(() => view.latest().snapshot.access?.status === 'member' && !view.latest().snapshot.busy, view.flush);
   assert.deepEqual(view.latest().snapshot.cart.owner, { kind: 'member', userId: A });

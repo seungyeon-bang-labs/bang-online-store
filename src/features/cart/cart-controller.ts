@@ -19,7 +19,7 @@ import {
   buildGuestCart,
   pairKey,
   type CartChange,
-} from './guest-cart';
+} from '@/domains/cart/cart.guest';
 import { selectCartLocked as locked } from './cart-count';
 import { previewChange } from './cart-preview';
 import { failureMessage, messages, noticeMessage } from './cart-messages';
@@ -33,7 +33,8 @@ export interface CartController {
   start(access: CartAccess): void;
   enterCart(): void;
   retry(): void;
-  addItems(items: readonly CartProductInput[]): boolean;
+  // True when the add was taken; onSaved runs once it is actually saved (at once for a guest, on the server's reply for a member).
+  addItems(items: readonly CartProductInput[], onSaved?: () => void): boolean;
   adjustQuantity(itemId: string, delta: 1 | -1): boolean;
   changeOption(itemId: string, productId: number, variantId: number): boolean;
   removeItems(itemIds: readonly string[]): boolean;
@@ -60,6 +61,7 @@ export function createCartController({
   loadProducts,
   newId,
   notify,
+  onAccessChanged,
 }: {
   store: ReturnType<typeof createCartStore>;
   local: CartLocalAdapter;
@@ -67,6 +69,8 @@ export function createCartController({
   loadProducts: typeof loadCartProducts;
   newId: () => string;
   notify: CartNotify;
+  // Asks the server to render the page again; the Provider then starts for the account the server names.
+  onAccessChanged: () => void;
 }): CartController {
   let generation = 0;
   let serverCart: CartViewModel | null = null;
@@ -116,19 +120,49 @@ export function createCartController({
     cart.owner.kind === 'member' &&
     cart.owner.userId.toLowerCase() === userId.toLowerCase();
 
-  // 'stale' means the flow was replaced (restart or newer generation) and must stop.
+  // Every member request ends in one of these:
+  // - stale: the flow was replaced (restart or newer generation) and must stop
+  // - changed: the server refused it for another account; the server was asked to render that account
+  // - ok: this account's cart, answering this exact request when one is given
+  // - refused: the server ruled on the request (invalid or conflict)
+  // - unknown: no reply, a malformed one, or one for another request or account
+  async function ask(
+    live: () => boolean,
+    userId: string,
+    request: () => Promise<CartReply>,
+    requestId?: string,
+  ): Promise<
+    | { kind: 'ok'; cart: CartViewModel }
+    | { kind: 'stale' | 'changed' | 'refused' | 'unknown' }
+  > {
+    const reply = await safe(request);
+    if (!live()) return { kind: 'stale' };
+    if (reply.status === 'access_changed') {
+      accessChanged();
+      return { kind: 'changed' };
+    }
+    if (reply.status === 'invalid' || reply.status === 'conflict')
+      return { kind: 'refused' };
+    if (
+      reply.status !== 'ok' ||
+      !owns(reply.cart, userId) ||
+      (requestId !== undefined &&
+        reply.cart.operation?.requestId !== requestId)
+    )
+      return { kind: 'unknown' };
+    return { kind: 'ok', cart: reply.cart };
+  }
+
   async function readMember(
     live: () => boolean,
     userId: string,
   ): Promise<'ok' | 'failed' | 'stale'> {
-    const reply = await safe(() => actions.read({ expectedUserId: userId }));
-    if (!live()) return 'stale';
-    if (reply.status === 'access_changed') {
-      start(reply.access);
-      return 'stale';
-    }
-    if (reply.status !== 'ok' || !owns(reply.cart, userId)) return 'failed';
-    show(reply.cart);
+    const answer = await ask(live, userId, () =>
+      actions.read({ expectedUserId: userId }),
+    );
+    if (answer.kind === 'stale' || answer.kind === 'changed') return 'stale';
+    if (answer.kind !== 'ok') return 'failed';
+    show(answer.cart);
     return 'ok';
   }
 
@@ -173,27 +207,25 @@ export function createCartController({
       expectedUserId: userId,
       operation: { kind: 'merge_guest', items },
     };
-    const reply = await safe(() => actions.mutate(command));
-    if (!live()) return false;
-    if (reply.status === 'access_changed') {
-      start(reply.access);
-      return false;
-    }
-    if (
-      reply.status === 'ok' &&
-      owns(reply.cart, userId) &&
-      reply.cart.operation?.requestId === requestId
-    ) {
+    const answer = await ask(
+      live,
+      userId,
+      () => actions.mutate(command),
+      requestId,
+    );
+    // Account changed: the guest cart and its merge ID stay for the account the server names.
+    if (answer.kind === 'stale' || answer.kind === 'changed') return false;
+    if (answer.kind === 'ok') {
       clearMerge(requestId);
       // A rejected merge is reported with one reason of its own, not the server notices as well.
-      if (reply.cart.operation.outcome === 'rejected') {
-        show({ ...reply.cart, notices: [] });
+      if (answer.cart.operation?.outcome === 'rejected') {
+        show({ ...answer.cart, notices: [] });
         notify.error(messages.mergeRejected);
-      } else show(reply.cart);
+      } else show(answer.cart);
       return false;
     }
     // The server ruled on this exact request; resending gives the same answer.
-    if (reply.status === 'invalid' || reply.status === 'conflict') {
+    if (answer.kind === 'refused') {
       clearMerge(requestId);
       notify.error(messages.mergeFailed);
     }
@@ -269,6 +301,14 @@ export function createCartController({
     show(built.cart);
   }
 
+  // Another account was found: drop this one's view and wait locked for the server render of the new one.
+  function accessChanged() {
+    generation++;
+    serverCart = null;
+    set({ access: null, cart: null, busy: false, pendingAdd: 0, selectedIds: [], message: null, phase: 'loading' });
+    onAccessChanged();
+  }
+
   function start(access: CartAccess) {
     generation++;
     serverCart = null;
@@ -297,7 +337,7 @@ export function createCartController({
     run(live => rebuildGuest(live));
   }
 
-  function change(next: CartChange): boolean {
+  function change(next: CartChange, onSaved?: () => void): boolean {
     const current = state();
     if (locked(current)) return false;
     if (
@@ -309,15 +349,23 @@ export function createCartController({
     )
       return false;
     const access = current.access;
-    if (access?.status === 'guest') return changeGuest(current, next);
+    if (access?.status === 'guest') return changeGuest(current, next, onSaved);
     if (access?.status !== 'member') return false;
     const userId = access.userId;
+    // The ID comes first: a browser that cannot make one (non-secure origin) must not leave a preview behind.
+    let requestId: string;
+    try {
+      requestId = newId();
+    } catch {
+      notify.error(failureMessage[next.kind]);
+      return false;
+    }
     if (next.kind === 'add_items')
       set({ pendingAdd: current.pendingAdd + quantityOf(next.items) });
     else if (current.cart) set({ cart: previewChange(current.cart, next) });
     const command: CartCommand = {
       version: 1,
-      requestId: newId(),
+      requestId,
       expectedUserId: userId,
       operation: next,
     };
@@ -325,26 +373,26 @@ export function createCartController({
     return true;
 
     async function save(live: () => boolean) {
-      const reply = await safe(() => actions.mutate(command));
-      if (!live()) return;
-      if (reply.status === 'access_changed') {
-        start(reply.access);
+      const answer = await ask(
+        live,
+        userId,
+        () => actions.mutate(command),
+        command.requestId,
+      );
+      if (answer.kind === 'stale') return;
+      // Not saved for any account: the page moves on to the other one, so say this change did not happen.
+      if (answer.kind === 'changed') {
+        notify.error(failureMessage[next.kind]);
         return;
       }
-      if (
-        reply.status === 'ok' &&
-        owns(reply.cart, userId) &&
-        reply.cart.operation?.requestId === command.requestId
-      ) {
-        show(reply.cart);
-        if (
-          reply.cart.operation.outcome === 'rejected' &&
-          !reply.cart.notices.length
-        )
+      if (answer.kind === 'ok') {
+        show(answer.cart);
+        if (answer.cart.operation?.outcome !== 'rejected') onSaved?.();
+        else if (!answer.cart.notices.length)
           notify.error(failureMessage[next.kind]);
         return;
       }
-      // Unknown whether it was saved: the server cart decides.
+      // Refused, or unknown whether it was saved: the server cart decides.
       const result = await readMember(live, userId);
       if (result === 'stale') return;
       if (result === 'failed')
@@ -360,7 +408,11 @@ export function createCartController({
 
   // Saves to storage at once (the latest stored lines, not this tab's copy), then rebuilds the view while busy.
   // False when nothing was saved, so callers do not report success.
-  function changeGuest(current: CartState, next: CartChange): boolean {
+  function changeGuest(
+    current: CartState,
+    next: CartChange,
+    onSaved?: () => void,
+  ): boolean {
     let saved = false;
     try {
       const result = applyGuestChange(local.read().items, next, newId);
@@ -393,6 +445,7 @@ export function createCartController({
       else if (current.cart) set({ cart: previewChange(current.cart, next) });
     }
     run(live => rebuildGuest(live));
+    if (saved) onSaved?.();
     return saved;
   }
 
@@ -415,7 +468,7 @@ export function createCartController({
     const access = await resolveAccess();
     if (!live()) return;
     if (access.status === 'member' || access.status === 'restricted') {
-      start(access);
+      accessChanged();
       return;
     }
     await rebuildGuest(live);
@@ -437,7 +490,9 @@ export function createCartController({
       if (current.access?.status === 'error') {
         run(async live => {
           const access = await resolveAccess();
-          if (live()) start(access);
+          if (!live()) return;
+          if (access.status === 'error') set({ phase: 'error', message: access.message });
+          else accessChanged();
         });
         return;
       }
@@ -447,7 +502,7 @@ export function createCartController({
       )
         run(live => reread(live, current.access));
     },
-    addItems: items => change({ kind: 'add_items', items }),
+    addItems: (items, onSaved) => change({ kind: 'add_items', items }, onSaved),
     adjustQuantity: (itemId, delta) =>
       change({ kind: 'adjust_quantity', itemId, delta }),
     changeOption: (itemId, productId, variantId) =>
