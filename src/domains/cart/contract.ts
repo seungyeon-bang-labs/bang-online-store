@@ -37,8 +37,9 @@ export type CartProductResponse = {
   optionGroups: Record<number, readonly ProductOptionViewModel[]>;
 };
 
-export type CartOperation =
-  | { kind: 'merge_guest' | 'add_items'; items: readonly CartProductInput[] }
+// A change the cart page asks for, whether the cart is a guest's or a member's.
+export type CartChange =
+  | { kind: 'add_items'; items: readonly CartProductInput[] }
   | { kind: 'adjust_quantity'; itemId: string; delta: 1 | -1 }
   | {
       kind: 'change_option';
@@ -47,6 +48,11 @@ export type CartOperation =
       variantId: number;
     }
   | { kind: 'remove_items'; itemIds: readonly string[] };
+
+// What a member command carries: any change, or the guest cart merged in at login.
+export type CartOperation =
+  | CartChange
+  | { kind: 'merge_guest'; items: readonly CartProductInput[] };
 
 export type CartCommand = {
   version: 1;

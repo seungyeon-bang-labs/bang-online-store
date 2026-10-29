@@ -12,7 +12,7 @@ export const text = node => node === null || node === undefined || typeof node =
 
 // Real TSX and vanilla Store; replace React scheduling and public UI ports only.
 export function client(file, name, { props = {}, phase = 'ready', cart = cartView(), store: providedStore, commands: overrides = {}, mocks = {} } = {}) {
-  const store = providedStore ?? loadTs('src/domains/cart/store.ts').createCartStore();
+  const store = providedStore ?? loadTs('src/features/cart/cart-store.ts').createCartStore();
   if (!providedStore) store.getState().setStateFromController({ phase, cart, access: cart?.owner.kind === 'member' ? { status: 'member', userId: cart.owner.userId } : { status: 'guest' } });
   const calls = { add: [], adjust: [], option: [], remove: [], enter: 0, retry: 0, success: [], info: [], error: [], navigation: [] };
   const commands = {

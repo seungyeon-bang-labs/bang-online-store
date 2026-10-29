@@ -1,19 +1,19 @@
 import { z } from 'zod';
 import type { CartProductRequestItem, CartProductResponse } from '@/domains/cart/contract';
-import { cartProductRequestSchema, numericIdSchema as id } from '@/domains/cart/schema';
+import { cartProductRequestSchema, numericIdSchema } from '@/domains/cart/schema';
 import { pairKey } from '@/domains/cart/guest';
-import { cartRequestTimeoutMs } from './cart.http-client';
+import { cartRequestTimeoutMs } from './cart-http-client';
 
 const stock = z.number().int().nonnegative().max(2147483647);
 const money = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 const responseSchema: z.ZodType<CartProductResponse> = z.object({
   cartItems: z.array(z.object({
-    productId: id, variantId: id, styleId: id, name: z.string(), color: z.string(), thumbnailUrl: z.string().min(1),
+    productId: numericIdSchema, variantId: numericIdSchema, styleId: numericIdSchema, name: z.string(), color: z.string(), thumbnailUrl: z.string().min(1),
     price: money, discountRate: z.number().min(0).max(100), priceOffset: money, stock, size: z.string().min(1),
   })),
   optionGroups: z.record(z.string().regex(/^[1-9]\d*$/), z.array(z.object({
-    productId: id, styleId: id, color: z.object({ id, label: z.string(), hex: z.string() }),
-    variants: z.array(z.object({ id, size: z.string().min(1), stock, priceOffset: money })),
+    productId: numericIdSchema, styleId: numericIdSchema, color: z.object({ id: numericIdSchema, label: z.string(), hex: z.string() }),
+    variants: z.array(z.object({ id: numericIdSchema, size: z.string().min(1), stock, priceOffset: money })),
   }))),
 });
 

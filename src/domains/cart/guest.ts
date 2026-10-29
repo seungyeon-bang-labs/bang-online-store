@@ -1,12 +1,6 @@
-import { maxCartQuantity as maxQuantity, type CartLine, type CartNotice, type CartProductInput, type CartProductResponse } from './contract';
+import { maxCartQuantity, type CartChange, type CartLine, type CartNotice, type CartProductResponse } from './contract';
 import type { CartViewModel } from './view-model';
 import { getAdjustedQuantity } from './domain';
-
-export type CartChange =
-  | { kind: 'add_items'; items: readonly CartProductInput[] }
-  | { kind: 'adjust_quantity'; itemId: string; delta: 1 | -1 }
-  | { kind: 'change_option'; itemId: string; productId: number; variantId: number }
-  | { kind: 'remove_items'; itemIds: readonly string[] };
 
 export const pairKey = (item: { productId: number; variantId: number }) => `${item.productId}:${item.variantId}`;
 
@@ -20,7 +14,7 @@ export function applyGuestChange(
   if (change.kind === 'add_items') {
     for (const input of change.items) {
       const existing = next.find(item => item.variantId === input.variantId);
-      if (existing) existing.quantity = Math.min(existing.quantity + input.quantity, maxQuantity);
+      if (existing) existing.quantity = Math.min(existing.quantity + input.quantity, maxCartQuantity);
       else next.push({ id: newId(), productId: input.productId, variantId: input.variantId, quantity: input.quantity });
     }
     return { status: 'saved', lines: next };
@@ -32,13 +26,13 @@ export function applyGuestChange(
   const source = next.find(item => item.id === change.itemId);
   if (!source) return { status: 'missing' };
   if (change.kind === 'adjust_quantity') {
-    source.quantity = Math.min(Math.max(1, source.quantity + change.delta), maxQuantity);
+    source.quantity = Math.min(Math.max(1, source.quantity + change.delta), maxCartQuantity);
     return { status: 'saved', lines: next };
   }
   if (source.variantId === change.variantId) return { status: 'saved', lines: next };
   const target = next.find(item => item.variantId === change.variantId);
   if (target) {
-    target.quantity = Math.min(target.quantity + source.quantity, maxQuantity);
+    target.quantity = Math.min(target.quantity + source.quantity, maxCartQuantity);
     return { status: 'saved', lines: next.filter(item => item.id !== source.id), itemIdMap: { [source.id]: target.id } };
   }
   source.productId = change.productId;

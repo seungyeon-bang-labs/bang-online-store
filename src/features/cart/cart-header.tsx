@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { useCartState } from '@/features/cart/use-cart';
-import { selectCartItemCount } from '@/features/cart/cart-count';
+import { selectCartItemCount } from '@/features/cart/cart-selectors';
 import { Header } from '@/shared/components/layout/header';
 
 interface CartAwareHeaderProps {

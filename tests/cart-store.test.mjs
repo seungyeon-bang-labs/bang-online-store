@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { loadTs } from './helpers/load-ts.mjs';
 import { A, I1, I2, cartView } from './helpers/cart-fixtures.mjs';
 
-const createStore = () => loadTs('src/domains/cart/store.ts').createCartStore();
+const createStore = () => loadTs('src/features/cart/cart-store.ts').createCartStore();
 const soldOut = () => ({ ...cartView().items[0], id: I2, variantId: 3, stock: 0, canSelect: false });
 
 test('new store starts loading with nothing shown', () => {

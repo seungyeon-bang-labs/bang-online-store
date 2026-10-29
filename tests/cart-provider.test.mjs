@@ -281,7 +281,7 @@ test('notify goes to toast info/error', async t => {
   assert.deepEqual(view.notices, [['info', '품절된 옵션은 새로 담거나 수량을 변경할 수 없습니다.']]);
 });
 
-const { selectCartItemCount, selectCartLocked } = loadTs('src/features/cart/cart-count.ts');
+const { selectCartItemCount, selectCartLocked } = loadTs('src/features/cart/cart-selectors.ts');
 const base = { phase: 'ready', access: member(A), cart: cartView(), busy: false, pendingAdd: 0, selectedIds: [], message: null };
 
 test('count shows cart quantity plus pending adds and is unknown only while loading', () => {

@@ -12,7 +12,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/shared/components/ui/button';
 import { useCartState, useCartCommands } from '@/features/cart/use-cart';
-import { selectCartLocked } from '@/features/cart/cart-count';
+import { selectCartLocked } from '@/features/cart/cart-selectors';
 import type {
   OrderItemActionViewModel,
   OrderItemActionsViewModel,

@@ -29,7 +29,7 @@ import {
 } from '@/shared/components/ui/select';
 import { cn } from '@/shared/lib/utils';
 import { useCartState, useCartCommands } from './use-cart';
-import { selectCartLocked } from './cart-count';
+import { selectCartLocked } from './cart-selectors';
 import type { ProductOptionViewModel } from '@/domains/product';
 
 interface OptionChangeModalProps {
@@ -51,7 +51,7 @@ export function OptionChangeModal({
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const [mounted, setMounted] = React.useState(false);
 
-  // 1. 해당 그룹의 모든 컬러 옵션 데이터 추출
+  // 그룹 안의 컬러를 중복 없이 모은다.
   const groupColors = React.useMemo(() => {
     const options = new Map<
       number,
@@ -69,7 +69,6 @@ export function OptionChangeModal({
     return Array.from(options.values());
   }, [productOptionViewModels]);
 
-  // 2. 현재 선택된 컬러/사이즈 상태 관리
   const [selectedColorId, setSelectedColorId] = React.useState<number | null>(
     null,
   );
@@ -77,7 +76,6 @@ export function OptionChangeModal({
     null,
   );
 
-  // 3. 선택된 컬러에 따른 실시간 사이즈 옵션 목록 계산
   const sizeOptions = React.useMemo(() => {
     if (!selectedColorId) return [];
     const targetProduct = productOptionViewModels.find(
@@ -103,29 +101,23 @@ export function OptionChangeModal({
     productOptionViewModels,
   ]);
 
-  // 컬러 변경 시 처리 로직
   const handleColorChange = (colorId: number) => {
     if (pending) return;
-    // 1. 우선 클릭한 컬러로 상태 업데이트
     setSelectedColorId(colorId);
-
-    // 2. 새 컬러의 상품 정보 가져오기
     const targetProduct = productOptionViewModels.find(
       product => product.color.id === colorId,
     );
 
-    // 3. [중요] '장바구니 기준'이 아닌 '현재 화면에서 선택된 사이즈의 명칭' 찾기
-    // 현재 선택된 사이즈 ID(selectedSizeId)를 가진 variant를 전체 상품 데이터에서 찾아서 그 이름(S, M, L 등)을 가져옵니다.
+    // 장바구니에 담긴 사이즈가 아니라 화면에서 지금 고른 사이즈의 이름(S, M, L 등)을 기준으로,
+    // 새 컬러에서 같은 이름이면서 재고가 있는 사이즈를 고른다. 없으면 비워 두고 사용자가 고르게 한다.
     const currentSelectedSizeName = productOptionViewModels
       .flatMap(product => product.variants)
       .find(v => v.id === selectedSizeId)?.size;
 
-    // 4. 새 컬러 상품(targetProduct)에서 방금 그 이름(L 등)과 똑같고 재고가 있는 옵션 찾기
     const matchedVariant = targetProduct?.variants.find(
       v => v.size === currentSelectedSizeName && v.stock > 0,
     );
 
-    // 5. 매칭 성공하면 해당 ID로 변경, 실패하면 미선택 상태로 두어 사용자 선택 유도
     setSelectedSizeId(matchedVariant?.id ?? null);
   };
 
@@ -144,10 +136,19 @@ export function OptionChangeModal({
   const isAllSoldOut =
     sizeOptions.length > 0 && sizeOptions.every(v => v.stock <= 0);
 
-  // 공통 UI: 컬러칩과 사이즈 선택 영역
+  const trigger = (
+    <Button
+      disabled={pending}
+      variant="outline"
+      size="xs"
+      className="font-bold rounded-sm tracking-widest"
+    >
+      옵션 변경
+    </Button>
+  );
+
   const ModalInnerContent = (
     <div className="flex flex-col gap-8 py-4 px-4 sm:px-0">
-      {/* 1. 컬러 선택 섹션 */}
       <section className="space-y-3">
         <h4 className="font-black text-base mb-2 flex items-center">색상</h4>
         <div className="grid grid-cols-4 sm:grid-cols-5 gap-y-6 gap-x-2">
@@ -167,7 +168,6 @@ export function OptionChangeModal({
         </div>
       </section>
 
-      {/* 2. 사이즈 선택 섹션 */}
       <section className="space-y-3">
         <h4 className="font-black text-base mb-2 flex items-center">사이즈</h4>
         <Select
@@ -232,16 +232,7 @@ export function OptionChangeModal({
   if (isDesktop) {
     return (
       <Dialog open={open} onOpenChange={next => { if (!pending) setOpen(next); }}>
-        <DialogTrigger asChild>
-          <Button
-            disabled={pending}
-            variant="outline"
-            size="xs"
-            className="font-bold rounded-sm tracking-widest"
-          >
-            옵션 변경
-          </Button>
-        </DialogTrigger>
+        <DialogTrigger asChild>{trigger}</DialogTrigger>
         <DialogContent className="sm:max-w-sm rounded-md p-6 [&>button]:hidden">
           <DialogHeader>
             <DialogTitle className="font-black text-2xl tracking-tighter">
@@ -271,16 +262,7 @@ export function OptionChangeModal({
   // 모바일 버전 (Drawer)
   return (
     <Drawer open={open} onOpenChange={next => { if (!pending) setOpen(next); }}>
-      <DrawerTrigger asChild>
-        <Button
-          disabled={pending}
-          variant="outline"
-          size="xs"
-          className="font-bold rounded-sm tracking-widest"
-        >
-          옵션 변경
-        </Button>
-      </DrawerTrigger>
+      <DrawerTrigger asChild>{trigger}</DrawerTrigger>
       <DrawerContent>
         <DrawerHeader className="text-left border-b border-gray-100 pb-4">
           <DrawerTitle className="font-black text-xl tracking-tighter px-4">

@@ -12,7 +12,7 @@ function client(respond, timeoutMs) {
     if (result instanceof Error) throw result;
     return result;
   };
-  const { createCartHttpClient } = loadTs('src/features/cart/cart.http-client.ts');
+  const { createCartHttpClient } = loadTs('src/features/cart/cart-http-client.ts');
   return { port: createCartHttpClient(fetcher, timeoutMs), sent };
 }
 // Never answers; settles only when the request is aborted.
@@ -119,6 +119,6 @@ test('a product load with no answer is cut off after the timeout', async t => {
   const previous = globalThis.fetch;
   t.after(() => { globalThis.fetch = previous; });
   globalThis.fetch = hang;
-  const { loadCartProducts } = loadTs('src/features/cart/cart.product-client.ts');
+  const { loadCartProducts } = loadTs('src/features/cart/cart-product-client.ts');
   await assert.rejects(loadCartProducts([{ productId: 1, variantId: 2 }], 20));
 });
