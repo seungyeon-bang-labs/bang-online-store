@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { cartInvalidMessage as invalidMessage, type CartAccess, type CartReply } from '@/domains/cart/contract';
+import { cartInvalidMessage, type CartAccess, type CartReply } from '@/domains/cart/contract';
 
 // Same ceiling as the Server Action default this transport replaces.
 export const CART_BODY_LIMIT = 1_048_576;
@@ -21,7 +21,7 @@ export function cartReplyJson(reply: CartReply): Response {
   return cartJson(reply, replyStatus[reply.status]);
 }
 
-const invalid = (status: number) => cartJson({ status: 'invalid', message: invalidMessage }, status);
+const invalid = (status: number) => cartJson({ status: 'invalid', message: cartInvalidMessage }, status);
 
 // Compare against the host the browser addressed (as Next's Server Action
 // origin check does), not request.url, which is internal behind a proxy.

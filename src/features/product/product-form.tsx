@@ -14,7 +14,7 @@ import {
 } from '@/shared/components/ui/select';
 import type { ProductVariantModel } from '@/domains/product';
 import { useCartState, useCartCommands } from '@/features/cart/use-cart';
-import { selectCartLocked } from '@/features/cart/cart-count';
+import { selectCartLocked } from '@/features/cart/cart-selectors';
 import { toast } from 'sonner';
 import { QuantitySelector } from '@/features/product/quantity-selector';
 import { ColorChip } from '@/shared/components/ui/color-chip';

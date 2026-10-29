@@ -54,7 +54,7 @@ test('logout button is a plain form without cart commands',async t=>{
 });
 
 test('same-path logout switches the controller to guest and discards a late member response',async()=>{
-  const {createCartStore}=loadTs('src/domains/cart/store.ts');const {createCartLocalAdapter}=loadTs('src/domains/cart/local.ts');const {createCartController}=loadTs('src/features/cart/cart-controller.ts');
+  const {createCartStore}=loadTs('src/features/cart/cart-store.ts');const {createCartLocalAdapter}=loadTs('src/domains/cart/local.ts');const {createCartController}=loadTs('src/features/cart/cart-controller.ts');
   let raw=null;const store=createCartStore();const local=createCartLocalAdapter({storage:{getItem:()=>raw,setItem:(_,value)=>{raw=value;}}});
   let finish;const late=new Promise(resolve=>{finish=resolve;});let sent;
   const controller=createCartController({store,local,newId:()=> '40000000-0000-4000-8000-000000000002',notify:{info(){},error(){}},loadProducts:async()=>({cartItems:[],optionGroups:{}}),actions:{resolveAccess:async()=>({status:'guest'}),read:async()=>({status:'ok',cart:cartView()}),mutate:command=>{sent=command;return late;}}});

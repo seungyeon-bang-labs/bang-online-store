@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { cartRetryMessage as retryMessage, type CartAccess, type CartActionPort, type CartReply } from '@/domains/cart/contract';
+import { cartRetryMessage, type CartAccess, type CartActionPort, type CartReply } from '@/domains/cart/contract';
 
 // A cart request with no answer by then is cut off and handled as a lost reply, so one stuck request cannot lock the cart.
 export const cartRequestTimeoutMs = 15_000;
@@ -47,14 +47,14 @@ export function createCartHttpClient(fetcher: typeof fetch = (...args) => global
       const response = await request(url, body);
       const parsed = replySchema.safeParse(await readJson(response));
       if (!parsed.success || !allowedStatus[parsed.data.status].includes(response.status)) {
-        return { status: 'retryable', message: retryMessage };
+        return { status: 'retryable', message: cartRetryMessage };
       }
       // Origin and body-size refusals are transport problems, not a server verdict on the request.
-      if (response.status === 403 || response.status === 413) return { status: 'retryable', message: retryMessage };
+      if (response.status === 403 || response.status === 413) return { status: 'retryable', message: cartRetryMessage };
       return parsed.data as CartReply;
     } catch {
       // Network loss, abort and the timeout all arrive as a lost reply.
-      return { status: 'retryable', message: retryMessage };
+      return { status: 'retryable', message: cartRetryMessage };
     }
   }
 
@@ -63,10 +63,10 @@ export function createCartHttpClient(fetcher: typeof fetch = (...args) => global
       try {
         const response = await request('/api/cart/access');
         const parsed = accessSchema.safeParse(await readJson(response));
-        if (response.status !== 200 || !parsed.success) return { status: 'error', message: retryMessage };
+        if (response.status !== 200 || !parsed.success) return { status: 'error', message: cartRetryMessage };
         return parsed.data;
       } catch {
-        return { status: 'error', message: retryMessage };
+        return { status: 'error', message: cartRetryMessage };
       }
     },
     read: input => post('/api/cart/read', input),

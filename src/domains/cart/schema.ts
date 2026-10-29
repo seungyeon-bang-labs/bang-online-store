@@ -1,10 +1,10 @@
 import { z } from 'zod';
-import { maxCartQuantity as maxQuantity, type CartCommand } from './contract';
+import { maxCartQuantity, type CartCommand } from './contract';
 import type { CartSnapshotDTO } from './dto';
 
 const maxRevision = '9223372036854775807';
 export const numericIdSchema = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
-export const quantitySchema = z.number().int().positive().max(maxQuantity);
+export const quantitySchema = z.number().int().positive().max(maxCartQuantity);
 
 export const productInputsSchema = z.array(z.strictObject({
   productId: numericIdSchema,
@@ -14,7 +14,7 @@ export const productInputsSchema = z.array(z.strictObject({
   const quantities = new Map<number, number>();
   for (const [index, item] of items.entries()) {
     const sum = (quantities.get(item.variantId) ?? 0) + item.quantity;
-    if (sum > maxQuantity) {
+    if (sum > maxCartQuantity) {
       ctx.addIssue({
         code: 'custom',
         path: [index, 'quantity'],
@@ -65,8 +65,8 @@ const noticeSchema = z.strictObject({
   kind: z.enum(['quantity_adjusted', 'unavailable', 'sold_out', 'item_missing', 'option_rejected']),
   variantId: numericIdSchema.optional(),
   itemId: z.uuid().optional(),
-  before: z.number().int().nonnegative().max(maxQuantity).optional(),
-  after: z.number().int().nonnegative().max(maxQuantity).optional(),
+  before: z.number().int().nonnegative().max(maxCartQuantity).optional(),
+  after: z.number().int().nonnegative().max(maxCartQuantity).optional(),
 });
 
 const revisionSchema = z.string().regex(/^(0|[1-9]\d*)$/).refine(

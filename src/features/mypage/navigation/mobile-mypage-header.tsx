@@ -16,7 +16,7 @@ import {
 } from '@/shared/lib/mypage-routes';
 import { getCartHref } from '@/shared/lib/cart-routes';
 import { useCartState } from '@/features/cart/use-cart';
-import { selectCartItemCount } from '@/features/cart/cart-count';
+import { selectCartItemCount } from '@/features/cart/cart-selectors';
 import { getMypageCurrentLabel } from './mypage-menu';
 import {
   CartItemCountBadge,

@@ -12,7 +12,7 @@ const response=items=>Response.json(productResponse(items));
 async function until(fn){for(let n=0;n<120;n++){if(fn())return;await setImmediate();}assert.fail('Request boundary not reached');}
 async function mountCart(t,items=[line()]){
   let raw=null;let writes=0;const requests=[];
-  const store=loadTs('src/domains/cart/store.ts').createCartStore();
+  const store=loadTs('src/features/cart/cart-store.ts').createCartStore();
   const local=loadTs('src/domains/cart/local.ts').createCartLocalAdapter({storage:{getItem:()=>raw,setItem:(_,value)=>{raw=value;writes++;}}});
   local.write(items);
   const previous=globalThis.fetch;
@@ -20,7 +20,7 @@ async function mountCart(t,items=[line()]){
   globalThis.fetch=fetchBoundary;
   const restore=()=>{if(globalThis.fetch===fetchBoundary)globalThis.fetch=previous;};
   t.after(restore);
-  const {loadCartProducts}=loadTs('src/features/cart/cart.product-client.ts');
+  const {loadCartProducts}=loadTs('src/features/cart/cart-product-client.ts');
   const controller=loadTs('src/features/cart/cart-controller.ts').createCartController({store,local,loadProducts:loadCartProducts,newId:()=>I2,notify:{info(){},error(){}},actions:{resolveAccess:async()=>({status:'guest'}),read:async()=>{throw new Error('Member read forbidden');},mutate:async()=>{throw new Error('Member write forbidden');}}});
   const page=client('src/features/cart/cart-page-client.tsx','CartPageClient',{store,commands:{...controller,setSelected:(...a)=>store.getState().setSelected(...a),selectAll:c=>store.getState().selectAll(c)}});
   t.after(()=>{controller.dispose();page.dispose();});

@@ -22,7 +22,7 @@ import type {
 } from '@/domains/mypage';
 import { useOrderActionCommand } from './hooks/use-order-action-command';
 import { useCartState } from '@/features/cart/use-cart';
-import { selectCartLocked } from '@/features/cart/cart-count';
+import { selectCartLocked } from '@/features/cart/cart-selectors';
 
 interface MypageHomeOrderActionsProps {
   actions: MypageHomeOrderActions;

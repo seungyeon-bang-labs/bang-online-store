@@ -2,7 +2,7 @@
 
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useCartState } from '@/features/cart/use-cart';
-import { selectCartItemCount } from '@/features/cart/cart-count';
+import { selectCartItemCount } from '@/features/cart/cart-selectors';
 import type { CategoryGroupViewModel } from '@/domains/category';
 import { MainMobileHeader } from '@/shared/components/layout/main-mobile-header';
 import { getCartHref } from '@/shared/lib/cart-routes';

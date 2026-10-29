@@ -6,10 +6,10 @@ import { toast } from 'sonner';
 import type { StoreApi } from 'zustand/vanilla';
 import type { CartAccess, CartActionPort } from '@/domains/cart/contract';
 import { createCartLocalAdapter } from '@/domains/cart/local';
-import { createCartStore, type CartSelectionCommands, type CartState } from '@/domains/cart/store';
+import { createCartStore, type CartSelectionCommands, type CartState } from './cart-store';
 import { createCartController, type CartController } from './cart-controller';
-import { createCartHttpClient } from './cart.http-client';
-import { loadCartProducts } from './cart.product-client';
+import { createCartHttpClient } from './cart-http-client';
+import { loadCartProducts } from './cart-product-client';
 
 export type CartCommands = Pick<CartController,
   'enterCart' | 'retry' | 'addItems' | 'adjustQuantity' | 'changeOption' | 'removeItems'

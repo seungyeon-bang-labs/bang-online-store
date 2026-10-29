@@ -16,7 +16,7 @@ test('product mapping preserves SKU while cart and option views use numeric IDs'
 });
 
 test('guest cart merges numeric option IDs across adds and option replacements', async () => {
-  const store = loadTs('src/domains/cart/store.ts').createCartStore();
+  const store = loadTs('src/features/cart/cart-store.ts').createCartStore();
   let raw = null; let sequence = 0;
   const newId = () => '40000000-0000-4000-8000-' + String(++sequence).padStart(12,'0');
   const local = loadTs('src/domains/cart/local.ts').createCartLocalAdapter({storage:{getItem:()=>raw,setItem:(_,value)=>{raw=value;}}});

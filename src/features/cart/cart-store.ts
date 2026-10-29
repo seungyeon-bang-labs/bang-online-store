@@ -1,7 +1,7 @@
 import { createStore } from 'zustand/vanilla';
-import type { CartAccess } from './contract';
-import type { CartViewModel } from './view-model';
-import { reconcileSelection } from './domain';
+import type { CartAccess } from '@/domains/cart/contract';
+import type { CartViewModel } from '@/domains/cart/view-model';
+import { reconcileSelection } from '@/domains/cart/domain';
 
 export type CartPhase = 'loading' | 'ready' | 'error' | 'restricted';
 

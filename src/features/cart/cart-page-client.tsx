@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCartState, useCartCommands } from './use-cart';
-import { selectCartLocked } from './cart-count';
+import { selectCartLocked } from './cart-selectors';
 import { PageTitle } from '@/shared/components/common/page-title';
 import { Checkbox } from '@/shared/components/ui/checkbox';
 import { Label } from '@/shared/components/ui/label';
@@ -26,15 +26,14 @@ export function CartPageClient() {
   const error = phase === 'error' || phase === 'restricted' ? message : null;
   const cartProducts = cart?.items ?? [];
   const purchasable = cartProducts.filter(item => item.canSelect);
-  const validSelectedIds = new Set(selectedIds.filter(id => purchasable.some(item => item.id === id)));
-  const selectedProducts = ready ? purchasable.filter(item => validSelectedIds.has(item.id)) : [];
-  const allSelected = purchasable.length > 0 && validSelectedIds.size === purchasable.length;
-  const isIndeterminate = validSelectedIds.size > 0 && !allSelected;
+  // The store keeps only selectable items of the current cart selected.
+  const selected = new Set(selectedIds);
+  const selectedProducts = ready ? purchasable.filter(item => selected.has(item.id)) : [];
+  const allSelected = purchasable.length > 0 && selected.size === purchasable.length;
+  const isIndeterminate = selected.size > 0 && !allSelected;
   const isInitialLoading = cart === null && !error;
-  const handleToggleSelectAll = (checked: boolean) => { if (ready) selectAll(checked); };
-  const handleToggleItem = (id: string, checked: boolean) => { if (ready) setSelected(id, checked); };
   // Results are reported by the cart itself; true only means the change was taken.
-  const handleDeleteSelected = () => !locked && validSelectedIds.size > 0 && removeItems([...validSelectedIds]);
+  const handleDeleteSelected = () => !locked && selected.size > 0 && removeItems([...selected]);
   const handleDeleteItem = (id: string) => !locked && removeItems([id]);
   const handleUpdateCount = (id: string, delta: 1 | -1) => {
     if (!locked && cartProducts.some(item => item.id === id && item.canSelect)) adjustQuantity(id, delta);
@@ -100,9 +99,7 @@ export function CartPageClient() {
                           ? 'indeterminate'
                           : false
                     }
-                    onCheckedChange={checked =>
-                      handleToggleSelectAll(Boolean(checked))
-                    }
+                    onCheckedChange={checked => selectAll(Boolean(checked))}
                     className="size-4 border border-black transition-all duration-200 data-[state=checked]:bg-black data-[state=checked]:text-white"
                     disabled={!ready || purchasable.length === 0}
                   />
@@ -116,7 +113,7 @@ export function CartPageClient() {
                 <DeleteConfirmModal
                   onConfirm={handleDeleteSelected}
                   type="selected"
-                  disableTrigger={locked || validSelectedIds.size === 0}
+                  disableTrigger={locked || selected.size === 0}
                 />
               </div>
 
@@ -130,9 +127,9 @@ export function CartPageClient() {
                   <Checkbox
                     aria-label={`${item.name} 선택`}
                     disabled={!ready || !item.canSelect}
-                    checked={validSelectedIds.has(item.id)}
+                    checked={selected.has(item.id)}
                     onCheckedChange={checked =>
-                      handleToggleItem(item.id, Boolean(checked))
+                      setSelected(item.id, Boolean(checked))
                     }
                     className="size-4 border border-black data-[state=checked]:bg-black data-[state=checked]:text-white transition-all duration-200 self-start"
                   />

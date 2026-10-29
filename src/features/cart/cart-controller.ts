@@ -1,26 +1,22 @@
 import type {
   CartAccess,
   CartActionPort,
+  CartChange,
   CartCommand,
   CartProductInput,
   CartReply,
 } from '@/domains/cart/contract';
 import type { CartLocalAdapter } from '@/domains/cart/local';
 import type { CartViewModel } from '@/domains/cart/view-model';
-import type { CartState, createCartStore } from '@/domains/cart/store';
+import type { CartState, createCartStore } from './cart-store';
 import { parseMemberCartView } from '@/domains/cart/schema';
 import {
   parseCartProductResponse,
   type loadCartProducts,
-} from './cart.product-client';
-import { getCartItemCount as quantityOf } from '@/domains/cart';
-import {
-  applyGuestChange,
-  buildGuestCart,
-  pairKey,
-  type CartChange,
-} from '@/domains/cart/guest';
-import { selectCartLocked as locked } from './cart-count';
+} from './cart-product-client';
+import { getCartItemCount } from '@/domains/cart';
+import { applyGuestChange, buildGuestCart, pairKey } from '@/domains/cart/guest';
+import { selectCartLocked } from './cart-selectors';
 import { previewChange } from './cart-preview';
 import { failureMessage, messages, noticeMessage } from './cart-messages';
 
@@ -79,6 +75,8 @@ export function createCartController({
   const set = (next: Partial<CartState>) =>
     state().setStateFromController(next);
 
+  // --- Shared by both carts ---
+
   async function safe(request: () => Promise<CartReply>): Promise<CartReply> {
     try {
       return checked(await request());
@@ -116,9 +114,85 @@ export function createCartController({
       notify.info(message);
   }
 
-  const owns = (cart: CartViewModel, userId: string) =>
-    cart.owner.kind === 'member' &&
-    cart.owner.userId.toLowerCase() === userId.toLowerCase();
+  // A new generation disowns every request still in flight; the view waits empty for the next cart.
+  function reset(access: CartAccess | null) {
+    generation++;
+    serverCart = null;
+    set({
+      access,
+      cart: null,
+      busy: false,
+      pendingAdd: 0,
+      selectedIds: [],
+      message: null,
+      phase: 'loading',
+    });
+  }
+
+  // Another account was found: drop this one's view and wait locked for the server render of the new one.
+  function accessChanged() {
+    reset(null);
+    onAccessChanged();
+  }
+
+  function start(access: CartAccess) {
+    reset(access);
+    if (access.status === 'restricted') {
+      set({ phase: 'restricted', message: messages.restricted });
+      return;
+    }
+    if (access.status === 'error') {
+      set({ phase: 'error', message: access.message });
+      return;
+    }
+    if (access.status === 'member') {
+      const { userId } = access;
+      run(live => startMember(live, userId));
+      return;
+    }
+    run(live => rebuildGuest(live));
+  }
+
+  function change(next: CartChange, onSaved?: () => void): boolean {
+    const current = state();
+    if (selectCartLocked(current)) return false;
+    if (
+      next.kind === 'add_items' &&
+      (!next.items.length ||
+        next.items.some(
+          item => !Number.isInteger(item.quantity) || item.quantity < 1,
+        ))
+    )
+      return false;
+    const access = current.access;
+    if (access?.status === 'guest') return changeGuest(current, next, onSaved);
+    if (access?.status === 'member')
+      return changeMember(current, access.userId, next, onSaved);
+    return false;
+  }
+
+  async function reread(live: () => boolean, access: CartAccess | null) {
+    if (access?.status === 'guest') return rebuildGuest(live);
+    if (access?.status !== 'member') return;
+    await readMemberOrFail(live, access.userId);
+  }
+
+  async function resolveAccess(): Promise<CartAccess> {
+    try {
+      return await actions.resolveAccess();
+    } catch {
+      return { status: 'error', message: messages.loadFailed };
+    }
+  }
+
+  // --- Member cart: the server owns it ---
+
+  function owns(cart: CartViewModel, userId: string) {
+    return (
+      cart.owner.kind === 'member' &&
+      cart.owner.userId.toLowerCase() === userId.toLowerCase()
+    );
+  }
 
   // Every member request ends in one of these:
   // - stale: the flow was replaced (restart or newer generation) and must stop
@@ -240,6 +314,69 @@ export function createCartController({
     }
   }
 
+  // Shows the change at once, then lets the server's reply (or a fresh read) decide what is saved.
+  function changeMember(
+    current: CartState,
+    userId: string,
+    next: CartChange,
+    onSaved?: () => void,
+  ): boolean {
+    // The ID comes first: a browser that cannot make one (non-secure origin) must not leave a preview behind.
+    let requestId: string;
+    try {
+      requestId = newId();
+    } catch {
+      notify.error(failureMessage[next.kind]);
+      return false;
+    }
+    if (next.kind === 'add_items')
+      set({ pendingAdd: current.pendingAdd + getCartItemCount(next.items) });
+    else if (current.cart) set({ cart: previewChange(current.cart, next) });
+    const command: CartCommand = {
+      version: 1,
+      requestId,
+      expectedUserId: userId,
+      operation: next,
+    };
+    run(save);
+    return true;
+
+    async function save(live: () => boolean) {
+      const answer = await ask(
+        live,
+        userId,
+        () => actions.mutate(command),
+        command.requestId,
+      );
+      if (answer.kind === 'stale') return;
+      // Not saved for any account: the page moves on to the other one, so say this change did not happen.
+      if (answer.kind === 'changed') {
+        notify.error(failureMessage[next.kind]);
+        return;
+      }
+      if (answer.kind === 'ok') {
+        show(answer.cart);
+        if (answer.cart.operation?.outcome !== 'rejected') onSaved?.();
+        else if (!answer.cart.notices.length)
+          notify.error(failureMessage[next.kind]);
+        return;
+      }
+      // Refused, or unknown whether it was saved: the server cart decides.
+      const result = await readMember(live, userId);
+      if (result === 'stale') return;
+      if (result === 'failed')
+        set({
+          cart: serverCart,
+          pendingAdd: 0,
+          phase: 'error',
+          message: messages.loadFailed,
+        });
+      notify.error(failureMessage[next.kind]);
+    }
+  }
+
+  // --- Guest cart: this browser's storage owns it ---
+
   function readGuest() {
     try {
       return local.read().items;
@@ -301,111 +438,6 @@ export function createCartController({
     show(built.cart);
   }
 
-  // Another account was found: drop this one's view and wait locked for the server render of the new one.
-  function accessChanged() {
-    generation++;
-    serverCart = null;
-    set({ access: null, cart: null, busy: false, pendingAdd: 0, selectedIds: [], message: null, phase: 'loading' });
-    onAccessChanged();
-  }
-
-  function start(access: CartAccess) {
-    generation++;
-    serverCart = null;
-    set({
-      access,
-      cart: null,
-      busy: false,
-      pendingAdd: 0,
-      selectedIds: [],
-      message: null,
-      phase: 'loading',
-    });
-    if (access.status === 'restricted') {
-      set({ phase: 'restricted', message: messages.restricted });
-      return;
-    }
-    if (access.status === 'error') {
-      set({ phase: 'error', message: access.message });
-      return;
-    }
-    if (access.status === 'member') {
-      const { userId } = access;
-      run(live => startMember(live, userId));
-      return;
-    }
-    run(live => rebuildGuest(live));
-  }
-
-  function change(next: CartChange, onSaved?: () => void): boolean {
-    const current = state();
-    if (locked(current)) return false;
-    if (
-      next.kind === 'add_items' &&
-      (!next.items.length ||
-        next.items.some(
-          item => !Number.isInteger(item.quantity) || item.quantity < 1,
-        ))
-    )
-      return false;
-    const access = current.access;
-    if (access?.status === 'guest') return changeGuest(current, next, onSaved);
-    if (access?.status !== 'member') return false;
-    const userId = access.userId;
-    // The ID comes first: a browser that cannot make one (non-secure origin) must not leave a preview behind.
-    let requestId: string;
-    try {
-      requestId = newId();
-    } catch {
-      notify.error(failureMessage[next.kind]);
-      return false;
-    }
-    if (next.kind === 'add_items')
-      set({ pendingAdd: current.pendingAdd + quantityOf(next.items) });
-    else if (current.cart) set({ cart: previewChange(current.cart, next) });
-    const command: CartCommand = {
-      version: 1,
-      requestId,
-      expectedUserId: userId,
-      operation: next,
-    };
-    run(save);
-    return true;
-
-    async function save(live: () => boolean) {
-      const answer = await ask(
-        live,
-        userId,
-        () => actions.mutate(command),
-        command.requestId,
-      );
-      if (answer.kind === 'stale') return;
-      // Not saved for any account: the page moves on to the other one, so say this change did not happen.
-      if (answer.kind === 'changed') {
-        notify.error(failureMessage[next.kind]);
-        return;
-      }
-      if (answer.kind === 'ok') {
-        show(answer.cart);
-        if (answer.cart.operation?.outcome !== 'rejected') onSaved?.();
-        else if (!answer.cart.notices.length)
-          notify.error(failureMessage[next.kind]);
-        return;
-      }
-      // Refused, or unknown whether it was saved: the server cart decides.
-      const result = await readMember(live, userId);
-      if (result === 'stale') return;
-      if (result === 'failed')
-        set({
-          cart: serverCart,
-          pendingAdd: 0,
-          phase: 'error',
-          message: messages.loadFailed,
-        });
-      notify.error(failureMessage[next.kind]);
-    }
-  }
-
   // Saves to storage at once (the latest stored lines, not this tab's copy), then rebuilds the view while busy.
   // False when nothing was saved, so callers do not report success.
   function changeGuest(
@@ -441,26 +473,12 @@ export function createCartController({
     }
     if (saved) {
       if (next.kind === 'add_items')
-        set({ pendingAdd: current.pendingAdd + quantityOf(next.items) });
+        set({ pendingAdd: current.pendingAdd + getCartItemCount(next.items) });
       else if (current.cart) set({ cart: previewChange(current.cart, next) });
     }
     run(live => rebuildGuest(live));
     if (saved) onSaved?.();
     return saved;
-  }
-
-  async function reread(live: () => boolean, access: CartAccess | null) {
-    if (access?.status === 'guest') return rebuildGuest(live);
-    if (access?.status !== 'member') return;
-    await readMemberOrFail(live, access.userId);
-  }
-
-  async function resolveAccess(): Promise<CartAccess> {
-    try {
-      return await actions.resolveAccess();
-    } catch {
-      return { status: 'error', message: messages.loadFailed };
-    }
   }
 
   // A guest tab asks the server first, so a login made in another tab is picked up here.
