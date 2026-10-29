@@ -12,7 +12,7 @@ function memory(initial = {}) {
   const data = new Map(Object.entries(initial));
   return { data, storage: { getItem: key => data.has(key) ? data.get(key) : null, setItem: (key, value) => { data.set(key, value); } } };
 }
-const adapter = storage => loadTs('src/domains/cart/cart.local.ts').createCartLocalAdapter({ storage });
+const adapter = storage => loadTs('src/domains/cart/local.ts').createCartLocalAdapter({ storage });
 
 test('empty or malformed storage reads as an empty v2 document', () => {
   for (const raw of [undefined, '{', JSON.stringify({ version: 1, authEpoch: 0, guest: { revision: 0, items: [] }, pendingByAccount: {} })]) {

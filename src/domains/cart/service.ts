@@ -1,12 +1,12 @@
 import 'server-only';
 
 import type { ProductModel } from '../product/model';
-import type { CartRepository } from './cart.repository';
-import type { CartCommand } from './cart.contract';
-import type { CartSnapshotDTO } from './cart.dto';
-import type { CartViewModel } from './cart.view-model';
-import { cartCommandSchema } from './cart.schema';
-import { CartDisplayMismatchError, toCartViewModel } from './cart.mapper';
+import type { CartRepository } from './repository';
+import type { CartCommand } from './contract';
+import type { CartSnapshotDTO } from './dto';
+import type { CartViewModel } from './view-model';
+import { cartCommandSchema } from './schema';
+import { CartDisplayMismatchError, toCartViewModel } from './mapper';
 
 export type CartProductPort = {
   findByIds(ids: readonly number[], options: { now: Date }): Promise<readonly ProductModel[]>;

@@ -1,4 +1,4 @@
-import type { CartViewModel } from './cart.view-model';
+import type { CartViewModel } from './view-model';
 
 // Largest quantity the database column holds (int4).
 export const maxCartQuantity = 2147483647;

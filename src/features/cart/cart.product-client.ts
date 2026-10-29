@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import type { CartProductRequestItem, CartProductResponse } from '@/domains/cart/cart.api';
-import { cartProductRequestSchema, numericIdSchema as id } from '@/domains/cart/cart.schema';
-import { pairKey } from '@/domains/cart/cart.guest';
+import type { CartProductRequestItem, CartProductResponse } from '@/domains/cart/api';
+import { cartProductRequestSchema, numericIdSchema as id } from '@/domains/cart/schema';
+import { pairKey } from '@/domains/cart/guest';
 import { cartRequestTimeoutMs } from './cart.http-client';
 
 const stock = z.number().int().nonnegative().max(2147483647);

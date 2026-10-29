@@ -1,5 +1,5 @@
-import type { CartCommand } from './cart.contract';
-import type { CartSnapshotDTO } from './cart.dto';
+import type { CartCommand } from './contract';
+import type { CartSnapshotDTO } from './dto';
 
 export interface CartRepository {
   read(expectedUserId: string): Promise<CartSnapshotDTO>;

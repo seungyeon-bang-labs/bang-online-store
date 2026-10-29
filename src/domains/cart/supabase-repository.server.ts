@@ -2,12 +2,12 @@ import 'server-only';
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database, Json } from '@/shared/types/supabase';
-import { CartRepositoryError, type CartRepository } from './cart.repository';
+import { CartRepositoryError, type CartRepository } from './repository';
 import {
   cartCommandSchema,
   cartReadSchema,
   parseCartSnapshot,
-} from './cart.schema';
+} from './schema';
 
 function decode(value: unknown, ownerId: string, requestId?: string) {
   try {

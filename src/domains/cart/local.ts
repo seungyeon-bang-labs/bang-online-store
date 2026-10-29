@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import type { CartLine } from './cart.contract';
-import { numericIdSchema, quantitySchema } from './cart.schema';
+import type { CartLine } from './contract';
+import { numericIdSchema, quantitySchema } from './schema';
 
 const storageKey = 'bang-cart:v2';
 const idSchema = z.uuid();

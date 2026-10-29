@@ -3,8 +3,8 @@ import { test } from 'node:test';
 import { loadTs } from './helpers/load-ts.mjs';
 import { A, I1, I2, REQUEST1, cartDto, cartView, command } from './helpers/cart-fixtures.mjs';
 
-const rules = () => loadTs('src/domains/cart/cart.rules.ts');
-const schemas = () => loadTs('src/domains/cart/cart.schema.ts');
+const rules = () => loadTs('src/domains/cart/domain.ts');
+const schemas = () => loadTs('src/domains/cart/schema.ts');
 const add = items => command({ operation: { kind: 'add_items', items } });
 
 test('positive stock caps but zero preserves', () => {

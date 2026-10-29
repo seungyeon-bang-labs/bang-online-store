@@ -2,7 +2,7 @@
 
 import { useContext } from 'react';
 import { useStore } from 'zustand';
-import type { CartState } from '@/domains/cart/cart.store';
+import type { CartState } from '@/domains/cart/store';
 import { CartContext, type CartCommands } from './cart-provider';
 
 export type { CartCommands };

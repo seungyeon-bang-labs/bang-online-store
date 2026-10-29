@@ -4,7 +4,7 @@ import { CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
 import { getProductLinePrice } from '@/domains/product/domain';
 
-import type { CartItemViewModel } from '@/domains/cart/cart.view-model';
+import type { CartItemViewModel } from '@/domains/cart/view-model';
 
 interface CartSummaryProps {
   selectedProducts: readonly CartItemViewModel[];

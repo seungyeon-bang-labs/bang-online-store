@@ -4,12 +4,12 @@ import { unstable_rethrow } from 'next/navigation';
 import { getCurrentMemberAccess, type MemberAccessResult } from '@/domains/auth/member-access.server';
 import { createAuthClient } from '@/shared/lib/supabase/auth-server';
 import { productService } from '@/domains/product';
-import { cartInvalidMessage as invalidMessage, cartRetryMessage as retryMessage, type CartAccess, type CartReply } from '@/domains/cart/cart.contract';
-import type { CartViewModel } from '@/domains/cart/cart.view-model';
-import { CartRepositoryError } from '@/domains/cart/cart.repository';
-import { createCartRepository } from '@/domains/cart/cart.supabase-repository.server';
-import { createCartService } from '@/domains/cart/cart.service';
-import { cartCommandSchema, cartReadSchema } from '@/domains/cart/cart.schema';
+import { cartInvalidMessage as invalidMessage, cartRetryMessage as retryMessage, type CartAccess, type CartReply } from '@/domains/cart/contract';
+import type { CartViewModel } from '@/domains/cart/view-model';
+import { CartRepositoryError } from '@/domains/cart/repository';
+import { createCartRepository } from '@/domains/cart/supabase-repository.server';
+import { createCartService } from '@/domains/cart/service';
+import { cartCommandSchema, cartReadSchema } from '@/domains/cart/schema';
 
 
 function toCartAccess(access: MemberAccessResult): CartAccess {

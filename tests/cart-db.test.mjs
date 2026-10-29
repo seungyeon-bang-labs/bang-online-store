@@ -204,7 +204,7 @@ const mutateRpc = (operation, requestId = REQUEST1, expected = A) =>
   `select public.apply_cart_operation('${expected}','${requestId}',${jsonSql({ version: 1, operation })});`;
 const sessionSql = (userId, statement) => `set role authenticated; set request.jwt.claim.sub='${userId}'; ${statement}`;
 function snapshot(text) {
-  return loadTs('src/domains/cart/cart.schema.ts').parseCartSnapshot(JSON.parse(text));
+  return loadTs('src/domains/cart/schema.ts').parseCartSnapshot(JSON.parse(text));
 }
 const getCart = (db, user = A) => snapshot(db.as(user, readRpc(user)));
 const apply = (db, operation, requestId = REQUEST1, user = A) => snapshot(db.as(user, mutateRpc(operation, requestId, user)));

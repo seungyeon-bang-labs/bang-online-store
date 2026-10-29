@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { cartInvalidMessage as invalidMessage, type CartAccess, type CartReply } from '@/domains/cart/cart.contract';
+import { cartInvalidMessage as invalidMessage, type CartAccess, type CartReply } from '@/domains/cart/contract';
 
 // Same ceiling as the Server Action default this transport replaces.
 export const CART_BODY_LIMIT = 1_048_576;

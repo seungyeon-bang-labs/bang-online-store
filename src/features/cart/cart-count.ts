@@ -1,5 +1,5 @@
 import { getCartItemCount } from '@/domains/cart';
-import type { CartState } from '@/domains/cart/cart.store';
+import type { CartState } from '@/domains/cart/store';
 
 // Adds still waiting for the cart list count at once, so the header rises when the button is pressed.
 // Null (still checking) only while loading; a settled cart with nothing to show counts as 0.

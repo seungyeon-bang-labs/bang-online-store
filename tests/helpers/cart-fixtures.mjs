@@ -6,7 +6,7 @@ export const REQUEST1 = '20000000-0000-4000-8000-000000000001';
 export const CART_A = '30000000-0000-4000-8000-000000000001';
 export const CART_B = '30000000-0000-4000-8000-000000000002';
 
-/** @param {Partial<import('../../src/domains/cart/cart.dto.ts').CartSnapshotDTO>} overrides */
+/** @param {Partial<import('../../src/domains/cart/dto.ts').CartSnapshotDTO>} overrides */
 export function cartDto(overrides = {}) {
   return {
     owner_id: A,
@@ -19,7 +19,7 @@ export function cartDto(overrides = {}) {
   };
 }
 
-/** @param {Partial<import('../../src/domains/cart/cart.view-model.ts').CartViewModel>} overrides */
+/** @param {Partial<import('../../src/domains/cart/view-model.ts').CartViewModel>} overrides */
 export function cartView(overrides = {}) {
   return {
     owner: { kind: 'member', userId: A },
@@ -57,7 +57,7 @@ export function productModel(overrides = {}) {
   };
 }
 
-/** @param {Partial<import('../../src/domains/cart/cart.contract.ts').CartCommand>} overrides */
+/** @param {Partial<import('../../src/domains/cart/contract.ts').CartCommand>} overrides */
 export function command(overrides = {}) {
   return {
     version: 1, requestId: REQUEST1, expectedUserId: A,

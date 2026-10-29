@@ -1,4 +1,7 @@
-import type { CartItemViewModel } from './cart.view-model';
+import type { CartItemViewModel } from './view-model';
+
+export const getCartItemCount = (items: readonly { quantity: number }[]): number =>
+  items.reduce((total, item) => total + item.quantity, 0);
 
 export function getAdjustedQuantity(quantity: number, stock: number): number {
   return stock === 0 ? quantity : Math.min(quantity, stock);

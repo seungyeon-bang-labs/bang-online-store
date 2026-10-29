@@ -17,10 +17,10 @@ const itemOf = (quantity, overrides = {}) => ({ ...cartView().items[0], quantity
 const okFor = (command, cart = cartView(), outcome = 'applied', extra = {}) => ({ status: 'ok', cart: { ...cart, operation: { requestId: command.requestId, outcome, itemIdMap: {}, notices: [], ...extra } } });
 
 function setup({ guestItems = [], products = [product()], storage: storageOverride, makeId } = {}) {
-  const store = loadTs('src/domains/cart/cart.store.ts').createCartStore();
+  const store = loadTs('src/domains/cart/store.ts').createCartStore();
   const data = new Map();
   const storage = storageOverride === undefined ? { getItem: key => data.get(key) ?? null, setItem: (key, value) => { data.set(key, value); } } : storageOverride;
-  const local = loadTs('src/domains/cart/cart.local.ts').createCartLocalAdapter({ storage });
+  const local = loadTs('src/domains/cart/local.ts').createCartLocalAdapter({ storage });
   if (guestItems.length) local.write(guestItems);
   const calls = { read: [], mutate: [], access: 0, products: [] };
   const replies = { read: [], mutate: [], access: [], products: [] };
