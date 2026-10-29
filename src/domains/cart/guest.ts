@@ -1,5 +1,4 @@
-import type { CartProductResponse } from './api';
-import { maxCartQuantity as maxQuantity, type CartLine, type CartNotice, type CartProductInput } from './contract';
+import { maxCartQuantity as maxQuantity, type CartLine, type CartNotice, type CartProductInput, type CartProductResponse } from './contract';
 import type { CartViewModel } from './view-model';
 import { getAdjustedQuantity } from './domain';
 

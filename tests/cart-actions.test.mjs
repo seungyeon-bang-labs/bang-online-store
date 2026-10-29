@@ -8,7 +8,6 @@ function setup({ access = [{ status: 'active', member: { id: A } }], repositoryE
   const calls = { access: 0, clients: [], repositories: [], read: [], apply: [] };
   const contract = loadTs('src/domains/cart/repository.ts');
   const actions = loadTs('src/app/cart-actions.ts', {
-    '@/domains/cart/repository': contract,
     '@/domains/auth/member-access.server': { getCurrentMemberAccess: async () => {
       if (accessError) throw accessError;
       return access[Math.min(calls.access++, access.length - 1)];
@@ -18,7 +17,7 @@ function setup({ access = [{ status: 'active', member: { id: A } }], repositoryE
       const client = { session: calls.clients.length + 1 };
       calls.clients.push(client); return client;
     } },
-    '@/domains/cart/supabase-repository.server': { createCartRepository: client => {
+    '@/domains/cart/repository': { ...contract, createCartRepository: client => {
       calls.repositories.push(client);
       const fail = () => {
         if (repositoryError) throw new contract.CartRepositoryError(repositoryError);

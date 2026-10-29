@@ -6,8 +6,7 @@ import { createAuthClient } from '@/shared/lib/supabase/auth-server';
 import { productService } from '@/domains/product';
 import { cartInvalidMessage as invalidMessage, cartRetryMessage as retryMessage, type CartAccess, type CartReply } from '@/domains/cart/contract';
 import type { CartViewModel } from '@/domains/cart/view-model';
-import { CartRepositoryError } from '@/domains/cart/repository';
-import { createCartRepository } from '@/domains/cart/supabase-repository.server';
+import { CartRepositoryError, createCartRepository } from '@/domains/cart/repository';
 import { createCartService } from '@/domains/cart/service';
 import { cartCommandSchema, cartReadSchema } from '@/domains/cart/schema';
 

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { CartProductRequestItem, CartProductResponse } from '@/domains/cart/api';
+import type { CartProductRequestItem, CartProductResponse } from '@/domains/cart/contract';
 import { cartProductRequestSchema, numericIdSchema as id } from '@/domains/cart/schema';
 import { pairKey } from '@/domains/cart/guest';
 import { cartRequestTimeoutMs } from './cart.http-client';

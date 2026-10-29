@@ -16,7 +16,7 @@ function setup({ data = cartDto(), error, token = 'session-A' } = {}) {
       });
     } },
   });
-  const { createCartRepository } = loadTs('src/domains/cart/supabase-repository.server.ts');
+  const { createCartRepository } = loadTs('src/domains/cart/repository.ts');
   return { requests, repository: createCartRepository(client) };
 }
 

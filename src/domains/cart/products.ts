@@ -3,7 +3,7 @@ import {
   toProductOptionViewModel,
 } from '../product/mapper';
 import type { ProductOptionViewModel } from '../product/view-model';
-import type { CartProductRequestItem, CartProductResponse } from './api';
+import type { CartProductRequestItem, CartProductResponse } from './contract';
 import type { CartProductPort } from './service';
 
 // Current product data for guest cart lines: each requested pair that still exists, and every option of their styles.
