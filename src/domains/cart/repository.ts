@@ -2,12 +2,31 @@ import 'server-only';
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database, Json } from '@/shared/types/supabase';
-import { CartRepositoryError, type CartRepository } from './cart.repository';
+import type { CartCommand } from './contract';
+import type { CartSnapshotDTO } from './dto';
 import {
   cartCommandSchema,
   cartReadSchema,
   parseCartSnapshot,
-} from './cart.schema';
+} from './schema';
+
+export interface CartRepository {
+  read(expectedUserId: string): Promise<CartSnapshotDTO>;
+  apply(command: CartCommand): Promise<CartSnapshotDTO>;
+}
+
+export type CartRepositoryFailure =
+  | 'access_changed'
+  | 'invalid'
+  | 'conflict'
+  | 'retryable';
+
+export class CartRepositoryError extends Error {
+  constructor(public readonly kind: CartRepositoryFailure) {
+    super('장바구니 요청을 처리하지 못했습니다.');
+    this.name = 'CartRepositoryError';
+  }
+}
 
 function decode(value: unknown, ownerId: string, requestId?: string) {
   try {
@@ -51,7 +70,7 @@ export function createCartRepository(
     },
     async apply(input) {
       const command = cartCommandSchema.parse(input);
-      
+
       const payload: Json = JSON.parse(
         JSON.stringify({
           version: command.version,

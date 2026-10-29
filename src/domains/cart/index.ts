@@ -1,5 +1,5 @@
-export * from './cart.domain';
-export { createCartStore } from './cart.store';
-export type { CartState, CartSelectionCommands } from './cart.store';
-export type { CartProductRequestItem, CartProductResponse } from './cart.api';
-export type { CartItemViewModel, CartViewModel } from './cart.view-model';
+export * from './domain';
+export { createCartStore } from './store';
+export type { CartState, CartSelectionCommands } from './store';
+export type { CartProductRequestItem, CartProductResponse } from './contract';
+export type { CartItemViewModel, CartViewModel } from './view-model';

@@ -1,5 +1,5 @@
-import type { CartViewModel } from '@/domains/cart/cart.view-model';
-import type { CartChange } from '@/domains/cart/cart.guest';
+import type { CartViewModel } from '@/domains/cart/view-model';
+import type { CartChange } from '@/domains/cart/guest';
 
 // Immediate member display only; the server reply replaces it, so merging and prices are left to the server.
 export function previewChange(

@@ -16,10 +16,10 @@ test('product mapping preserves SKU while cart and option views use numeric IDs'
 });
 
 test('guest cart merges numeric option IDs across adds and option replacements', async () => {
-  const store = loadTs('src/domains/cart/cart.store.ts').createCartStore();
+  const store = loadTs('src/domains/cart/store.ts').createCartStore();
   let raw = null; let sequence = 0;
   const newId = () => '40000000-0000-4000-8000-' + String(++sequence).padStart(12,'0');
-  const local = loadTs('src/domains/cart/cart.local.ts').createCartLocalAdapter({storage:{getItem:()=>raw,setItem:(_,value)=>{raw=value;}}});
+  const local = loadTs('src/domains/cart/local.ts').createCartLocalAdapter({storage:{getItem:()=>raw,setItem:(_,value)=>{raw=value;}}});
   const {createCartController} = loadTs('src/features/cart/cart-controller.ts');
   const controller = createCartController({store,local,newId,notify:{info(){},error(){}},actions:{resolveAccess:async()=>({status:'guest'})},loadProducts:async items=>productResponse(items.map(item=>({...item,styleId:1,name:'상품',color:'회색',thumbnailUrl:'/file.svg',price:10000,discountRate:0,priceOffset:0,stock:10,size:'M'})))});
   controller.start({status:'guest'}); await controller.whenIdle();

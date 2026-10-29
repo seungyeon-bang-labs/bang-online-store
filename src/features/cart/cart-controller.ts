@@ -4,11 +4,11 @@ import type {
   CartCommand,
   CartProductInput,
   CartReply,
-} from '@/domains/cart/cart.contract';
-import type { CartLocalAdapter } from '@/domains/cart/cart.local';
-import type { CartViewModel } from '@/domains/cart/cart.view-model';
-import type { CartState, createCartStore } from '@/domains/cart/cart.store';
-import { parseMemberCartView } from '@/domains/cart/cart.schema';
+} from '@/domains/cart/contract';
+import type { CartLocalAdapter } from '@/domains/cart/local';
+import type { CartViewModel } from '@/domains/cart/view-model';
+import type { CartState, createCartStore } from '@/domains/cart/store';
+import { parseMemberCartView } from '@/domains/cart/schema';
 import {
   parseCartProductResponse,
   type loadCartProducts,
@@ -19,7 +19,7 @@ import {
   buildGuestCart,
   pairKey,
   type CartChange,
-} from '@/domains/cart/cart.guest';
+} from '@/domains/cart/guest';
 import { selectCartLocked as locked } from './cart-count';
 import { previewChange } from './cart-preview';
 import { failureMessage, messages, noticeMessage } from './cart-messages';

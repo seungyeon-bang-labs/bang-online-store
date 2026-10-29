@@ -1,4 +1,4 @@
-import type { CartNotice, CartOperationResult } from './cart.contract';
+import type { CartNotice, CartOperationResult } from './contract';
 
 export type CartItemDTO = {
   id: string;

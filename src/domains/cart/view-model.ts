@@ -1,5 +1,5 @@
 import type { ProductCartItemViewModel, ProductOptionViewModel } from '../product/view-model';
-import type { CartNotice, CartOperationResult } from './cart.contract';
+import type { CartNotice, CartOperationResult } from './contract';
 
 export type CartItemViewModel = ProductCartItemViewModel & {
   id: string;

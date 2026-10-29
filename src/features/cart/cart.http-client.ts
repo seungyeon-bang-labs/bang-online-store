@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { cartRetryMessage as retryMessage, type CartAccess, type CartActionPort, type CartReply } from '@/domains/cart/cart.contract';
+import { cartRetryMessage as retryMessage, type CartAccess, type CartActionPort, type CartReply } from '@/domains/cart/contract';
 
 // A cart request with no answer by then is cut off and handled as a lost reply, so one stuck request cannot lock the cart.
 export const cartRequestTimeoutMs = 15_000;

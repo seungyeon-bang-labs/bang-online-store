@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { productService } from '@/domains/product';
-import { findCartProducts } from '@/domains/cart/cart.products';
-import { cartProductRequestSchema } from '@/domains/cart/cart.schema';
+import { findCartProducts } from '@/domains/cart/products';
+import { cartProductRequestSchema } from '@/domains/cart/schema';
 import { readCartPost } from '../http';
 
 export async function POST(request: Request) {

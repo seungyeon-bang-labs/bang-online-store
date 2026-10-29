@@ -15,13 +15,13 @@ function setup({ snapshots = [cartDto()], byIds, byStyle, failure } = {}) {
     findByStyleId: async (styleId, options) => { calls.styles.push({ styleId, options }); return byStyle ? byStyle(styleId, calls.styles.length) : [productModel()]; },
   };
   const instant = new Date('2026-10-23T00:00:00Z');
-  const { createCartService } = loadTs('src/domains/cart/cart.service.ts');
+  const { createCartService } = loadTs('src/domains/cart/service.ts');
   const service = createCartService({ repository, products, now: () => { calls.now++; return instant; } });
   return { service, calls, instant };
 }
 
 test('mapper preserves cart order and maps current product prices, options and sold-out selection', () => {
-  const { toCartViewModel } = loadTs('src/domains/cart/cart.mapper.ts');
+  const { toCartViewModel } = loadTs('src/domains/cart/mapper.ts');
   const active = productModel({ discountRate: 20 });
   const soldOut = productModel({ id: 2, color: { ...active.color, id: 2, name: '블랙', code: 'BLACK' }, variants: [{ ...active.variants[0], id: 7, productId: 2, stock: 0 }] });
   const dto = cartDto({ items: [
@@ -125,7 +125,7 @@ test('repository, discount, image and option-read failures propagate without suc
       if (boundary === 'images') throw failure;
       return [dto];
     } }, { findByProductIds: async () => { throw failure; } });
-    const { createCartService } = loadTs('src/domains/cart/cart.service.ts');
+    const { createCartService } = loadTs('src/domains/cart/service.ts');
     const service = createCartService({ repository: { read: async () => cartDto() }, products: productService, now: () => new Date() });
     await assert.rejects(service.read(A), error => error === failure);
   }

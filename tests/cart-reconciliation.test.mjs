@@ -12,8 +12,8 @@ const response=items=>Response.json(productResponse(items));
 async function until(fn){for(let n=0;n<120;n++){if(fn())return;await setImmediate();}assert.fail('Request boundary not reached');}
 async function mountCart(t,items=[line()]){
   let raw=null;let writes=0;const requests=[];
-  const store=loadTs('src/domains/cart/cart.store.ts').createCartStore();
-  const local=loadTs('src/domains/cart/cart.local.ts').createCartLocalAdapter({storage:{getItem:()=>raw,setItem:(_,value)=>{raw=value;writes++;}}});
+  const store=loadTs('src/domains/cart/store.ts').createCartStore();
+  const local=loadTs('src/domains/cart/local.ts').createCartLocalAdapter({storage:{getItem:()=>raw,setItem:(_,value)=>{raw=value;writes++;}}});
   local.write(items);
   const previous=globalThis.fetch;
   const fetchBoundary=(url,options)=>new Promise((resolve,reject)=>requests.push({url,options,resolve,reject}));
@@ -38,7 +38,7 @@ test('an empty successful response clears unavailable items, selections and the 
   const cart=await mountCart(t);await cart.finish([]);
   assert.deepEqual(cart.local.read().items,[]);assert.deepEqual(cart.store.getState().selectedIds,[]);
   assert.ok(cart.page.nodes().some(n=>n.props?.isEmpty===true));assert.equal(cart.store.getState().cart.notices[0].kind,'unavailable');assert.equal(cart.requests.length,1);
-  const {getCartItemCount}=loadTs('src/domains/cart/cart.domain.ts');assert.equal(getCartItemCount(cart.store.getState().cart.items),0);
+  const {getCartItemCount}=loadTs('src/domains/cart/domain.ts');assert.equal(getCartItemCount(cart.store.getState().cart.items),0);
 });
 test('a variant from another product cannot preserve an invalid cart pair',async t=>{
   const cart=await mountCart(t);await cart.finish([product(9,2)]);assert.deepEqual(cart.local.read().items,[line()]);

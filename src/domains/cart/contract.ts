@@ -1,4 +1,8 @@
-import type { CartViewModel } from './cart.view-model';
+import type {
+  ProductCartItemViewModel,
+  ProductOptionViewModel,
+} from '../product/view-model';
+import type { CartViewModel } from './view-model';
 
 // Largest quantity the database column holds (int4).
 export const maxCartQuantity = 2147483647;
@@ -22,6 +26,16 @@ export type CartLine = {
 };
 
 export type CartProductInput = Omit<CartLine, 'id'>;
+
+export type CartProductRequestItem = {
+  productId: number;
+  variantId: number;
+};
+
+export type CartProductResponse = {
+  cartItems: readonly ProductCartItemViewModel[];
+  optionGroups: Record<number, readonly ProductOptionViewModel[]>;
+};
 
 export type CartOperation =
   | { kind: 'merge_guest' | 'add_items'; items: readonly CartProductInput[] }

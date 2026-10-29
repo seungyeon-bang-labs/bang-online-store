@@ -1,7 +1,6 @@
-import type { CartProductResponse } from './cart.api';
-import { maxCartQuantity as maxQuantity, type CartLine, type CartNotice, type CartProductInput } from './cart.contract';
-import type { CartViewModel } from './cart.view-model';
-import { getAdjustedQuantity } from './cart.rules';
+import { maxCartQuantity as maxQuantity, type CartLine, type CartNotice, type CartProductInput, type CartProductResponse } from './contract';
+import type { CartViewModel } from './view-model';
+import { getAdjustedQuantity } from './domain';
 
 export type CartChange =
   | { kind: 'add_items'; items: readonly CartProductInput[] }

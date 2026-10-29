@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { maxCartQuantity as maxQuantity, type CartCommand } from './cart.contract';
-import type { CartSnapshotDTO } from './cart.dto';
+import { maxCartQuantity as maxQuantity, type CartCommand } from './contract';
+import type { CartSnapshotDTO } from './dto';
 
 const maxRevision = '9223372036854775807';
 export const numericIdSchema = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);

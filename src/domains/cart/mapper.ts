@@ -3,8 +3,8 @@ import {
   toProductCartItemViewModel,
   toProductOptionViewModel,
 } from '../product/mapper';
-import type { CartSnapshotDTO } from './cart.dto';
-import type { CartViewModel } from './cart.view-model';
+import type { CartSnapshotDTO } from './dto';
+import type { CartViewModel } from './view-model';
 
 export class CartDisplayMismatchError extends Error {
   constructor() {
