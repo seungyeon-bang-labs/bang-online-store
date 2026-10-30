@@ -10,7 +10,6 @@ const sectionMapping=loadTs('src/domains/product/section/mapper.ts');
 const {createProductService}=loadTs('src/domains/product/service.ts');
 const events={...loadTs('src/domains/event/repository.ts'),
   ...loadTs('src/domains/event/mapper.ts',{'@/domains/product':mapping})};
-const legacyDiscounts=loadTs('src/domains/discount/discount.fixture.ts').DISCOUNTS;
 const fixedNow=new Date('2026-10-19T12:00:00+09:00');
 const row=(id,changes={})=>({
   product:{id,style_id:id,color_id:id,display_name:`DB product ${id}`,price:10000,state:'active',
@@ -65,7 +64,7 @@ test('SALE mapper hides empty or ended sections and retains a precise non-midnig
 function loadSale(productService,convert=sale.toSaleSectionViewModels) {
   return loadTs('src/app/(storefront)/sale/page.tsx',{
     '@/domains/product':{...productExports,productService,toSaleSectionViewModels:convert},
-    '@/domains/event':events,'@/domains/discount':{DISCOUNTS:legacyDiscounts},
+    '@/domains/event':events,
   }).default;
 }
 

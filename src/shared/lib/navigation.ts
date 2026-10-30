@@ -93,8 +93,6 @@ export const MOBILE_PRODUCT_MENU: MenuItem[] = [
   SHARED_MENU.EVENT,
 ];
 
-export const MOBILE_DRAWER_MENU: MenuItem[] = [...PC_MAIN_MENU, SHARED_MENU.CS];
-
 export const MOBILE_FOOTER_MENU: MenuItem[] = [
   SHARED_MENU.HOME,
   SHARED_MENU.CATEGORIES,
@@ -133,21 +131,6 @@ export const FAQ_TABS: TabItem[] = [
   { label: '회원/혜택', urlQuery: 'account' },
   { label: '이용안내', urlQuery: 'guide' },
   { label: '기타', urlQuery: 'other' },
-];
-
-export const PERIOD_TABS: TabItem[] = [
-  { label: '실시간', urlQuery: 'realtime' },
-  { label: '일간', urlQuery: 'daily' },
-  { label: '주간', urlQuery: 'weekly' },
-  { label: '월간', urlQuery: 'monthly' },
-];
-
-export const CATEGORY_TABS: TabItem[] = [
-  { label: 'ALL', urlQuery: 'all' },
-  { label: 'OUTER', urlQuery: 'outer' },
-  { label: 'TOP', urlQuery: 'top' },
-  { label: 'BOTTOM', urlQuery: 'bottom' },
-  { label: 'ACC/SHOES', urlQuery: 'acc-shoes' },
 ];
 
 export const NEW_TABS: TabItem[] = [
