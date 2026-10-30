@@ -72,7 +72,7 @@ test('ProductPrice displays the same base discount and option-inclusive original
 });
 
 test('CartSummary combines different products with base-only discounts and exact won totals', () => {
-  const {CartSummary} = loadTs('src/features/cart/cart-summary.tsx', {react:{useMemo:fn=>fn()}});
+  const {CartSummary} = loadTs('src/features/cart/cart-summary.tsx', {react:{useMemo:fn=>fn(),useState:value=>[value,()=>{}]}});
   const a = {id:'10000000-0000-4000-8000-000000000001',productId:1,name:'A',price:10001,discountRate:15,quantity:2,priceOffset:500,canSelect:true};
   const b = {id:'10000000-0000-4000-8000-000000000002',productId:2,name:'B',price:10000,discountRate:80,quantity:1,priceOffset:0,canSelect:true};
   const single = textContent(CartSummary({selectedProducts:[a]}));

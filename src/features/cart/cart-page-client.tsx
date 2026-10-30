@@ -16,31 +16,46 @@ import { CartSummary } from './cart-summary';
 import { EmptyCart } from './empty-cart';
 import { Container } from '@/shared/components/layout/container';
 import { Button } from '@/shared/components/ui/button';
+import { cn } from '@/shared/lib/utils';
 
 export function CartPageClient() {
   const { phase, cart, selectedIds, message } = useCartState(state => state);
-  const { enterCart, retry, selectAll, setSelected, removeItems, adjustQuantity } = useCartCommands();
+  const {
+    enterCart,
+    retry,
+    selectAll,
+    setSelected,
+    removeItems,
+    adjustQuantity,
+  } = useCartCommands();
   const locked = useCartState(selectCartLocked);
-  useEffect(() => { enterCart(); }, [enterCart]);
+  useEffect(() => {
+    enterCart();
+  }, [enterCart]);
   const ready = phase === 'ready';
   const error = phase === 'error' || phase === 'restricted' ? message : null;
   const cartProducts = cart?.items ?? [];
   const purchasable = cartProducts.filter(item => item.canSelect);
   // The store keeps only selectable items of the current cart selected.
   const selected = new Set(selectedIds);
-  const selectedProducts = ready ? purchasable.filter(item => selected.has(item.id)) : [];
-  const allSelected = purchasable.length > 0 && selected.size === purchasable.length;
+  const selectedProducts = ready
+    ? purchasable.filter(item => selected.has(item.id))
+    : [];
+  const allSelected =
+    purchasable.length > 0 && selected.size === purchasable.length;
   const isIndeterminate = selected.size > 0 && !allSelected;
   const isInitialLoading = cart === null && !error;
   // Results are reported by the cart itself; true only means the change was taken.
-  const handleDeleteSelected = () => !locked && selected.size > 0 && removeItems([...selected]);
+  const handleDeleteSelected = () =>
+    !locked && selected.size > 0 && removeItems([...selected]);
   const handleDeleteItem = (id: string) => !locked && removeItems([id]);
   const handleUpdateCount = (id: string, delta: 1 | -1) => {
-    if (!locked && cartProducts.some(item => item.id === id && item.canSelect)) adjustQuantity(id, delta);
+    if (!locked && cartProducts.some(item => item.id === id && item.canSelect))
+      adjustQuantity(id, delta);
   };
 
   return (
-    <Container className="mb-20 py-6 pt-14 md:py-10 md:pt-10">
+    <Container className="mb-20 pb-6 md:py-10">
       <PageTitle
         current="장바구니"
         className="mb-6 hidden border-b-2 pb-4 md:mb-12 md:flex md:border-b-4 md:pb-5"
@@ -194,14 +209,13 @@ export function CartPageClient() {
                     <div className="col-span-full flex items-end justify-between gap-3 border-t border-gray-100 pt-3 md:mt-0 md:border-0 md:pt-0">
                       {/* 수량 조절 */}
                       <fieldset disabled={locked || !item.canSelect}>
-                      <QuantitySelector
-                        count={item.quantity}
-                        stock={item.stock}
-                        onIncrease={() => handleUpdateCount(item.id, 1)}
-                        onDecrease={() => handleUpdateCount(item.id, -1)}
-                        className="[&_button]:size-8 md:[&_button]:size-6"
-                      />
-
+                        <QuantitySelector
+                          count={item.quantity}
+                          stock={item.stock}
+                          onIncrease={() => handleUpdateCount(item.id, 1)}
+                          onDecrease={() => handleUpdateCount(item.id, -1)}
+                          className="[&_button]:size-8 md:[&_button]:size-6"
+                        />
                       </fieldset>
 
                       {/* 가격 섹션 */}
@@ -225,7 +239,10 @@ export function CartPageClient() {
         </div>
 
         <div
-          className={cartProducts.length === 0 ? 'hidden md:block' : undefined}
+          className={cn(
+            'lg:sticky lg:top-40',
+            cartProducts.length === 0 && 'hidden md:block',
+          )}
         >
           <CartSummary selectedProducts={selectedProducts} />
         </div>
