@@ -114,6 +114,16 @@ export function createCartController({
       notify.info(message);
   }
 
+  function selectAdded(items: readonly CartProductInput[]) {
+    const cart = state().cart;
+    if (!cart) return;
+    const variants = new Set(items.map(item => item.variantId));
+    const added = cart.items
+      .filter(item => variants.has(item.variantId))
+      .map(item => item.id);
+    set({ selectedIds: [...state().selectedIds, ...added] });
+  }
+
   // A new generation disowns every request still in flight; the view waits empty for the next cart.
   function reset(access: CartAccess | null) {
     generation++;
@@ -356,8 +366,10 @@ export function createCartController({
       }
       if (answer.kind === 'ok') {
         show(answer.cart);
-        if (answer.cart.operation?.outcome !== 'rejected') onSaved?.();
-        else if (!answer.cart.notices.length)
+        if (answer.cart.operation?.outcome !== 'rejected') {
+          if (next.kind === 'add_items') selectAdded(next.items);
+          onSaved?.();
+        } else if (!answer.cart.notices.length)
           notify.error(failureMessage[next.kind]);
         return;
       }
@@ -476,7 +488,11 @@ export function createCartController({
         set({ pendingAdd: current.pendingAdd + getCartItemCount(next.items) });
       else if (current.cart) set({ cart: previewChange(current.cart, next) });
     }
-    run(live => rebuildGuest(live));
+    run(async live => {
+      await rebuildGuest(live);
+      // The new line has an ID only once the rebuilt cart shows it.
+      if (saved && live() && next.kind === 'add_items') selectAdded(next.items);
+    });
     if (saved) onSaved?.();
     return saved;
   }
@@ -497,7 +513,6 @@ export function createCartController({
     enterCart() {
       const current = state();
       if (current.busy) return;
-      set({ selectedIds: [] });
       if (current.access?.status === 'member')
         run(live => reread(live, current.access));
       else if (current.access?.status === 'guest') run(enterGuest);

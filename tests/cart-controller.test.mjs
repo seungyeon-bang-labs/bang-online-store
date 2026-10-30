@@ -233,6 +233,47 @@ test('stale reply after restart changes nothing', async () => {
   assert.deepEqual(cart.notes.error, []);
 });
 
+test('a member add selects the added line next to the earlier selection', async () => {
+  const cart = await startedMember();
+  cart.store.getState().setSelected(I1, true);
+  const added = itemOf(1, { id: I2, variantId: 3, size: 'L' });
+  cart.replies.mutate.push(() => okFor(cart.calls.mutate[0], cartView({ items: [itemOf(2), added] })));
+  cart.controller.addItems([{ productId: 1, variantId: 3, quantity: 1 }]);
+  assert.deepEqual(cart.state().selectedIds, [I1], 'not before the server saves it');
+  await cart.idle();
+  assert.deepEqual(cart.state().selectedIds, [I1, I2]);
+});
+
+test('a member add of an option already in the cart selects that line', async () => {
+  const cart = await startedMember();
+  cart.replies.mutate.push(() => okFor(cart.calls.mutate[0], cartView({ items: [itemOf(3)] })));
+  cart.controller.addItems([{ productId: 1, variantId: 2, quantity: 1 }]);
+  await cart.idle();
+  assert.deepEqual(cart.state().selectedIds, [I1]);
+});
+
+test('a member add selects nothing when rejected or when the line is sold out', async () => {
+  const rejected = await startedMember();
+  rejected.replies.mutate.push(() => okFor(rejected.calls.mutate[0], cartView(), 'rejected'));
+  rejected.controller.addItems([{ productId: 1, variantId: 2, quantity: 1 }]);
+  await rejected.idle();
+  assert.deepEqual(rejected.state().selectedIds, []);
+  const soldOut = await startedMember();
+  soldOut.replies.mutate.push(() => okFor(soldOut.calls.mutate[0], cartView({ items: [itemOf(3, { stock: 0, canSelect: false })] })));
+  soldOut.controller.addItems([{ productId: 1, variantId: 2, quantity: 1 }]);
+  await soldOut.idle();
+  assert.deepEqual(soldOut.state().selectedIds, []);
+});
+
+test('an account change clears the selection', async () => {
+  const cart = await startedMember();
+  cart.store.getState().setSelected(I1, true);
+  cart.controller.start(member(B));
+  assert.deepEqual(cart.state().selectedIds, []);
+  await cart.idle();
+  assert.deepEqual(cart.state().selectedIds, []);
+});
+
 test('option change keeps selection through itemIdMap', async () => {
   const cart = await startedMember();
   cart.store.getState().setSelected(I1, true);
@@ -243,7 +284,7 @@ test('option change keeps selection through itemIdMap', async () => {
   assert.deepEqual(cart.state().selectedIds, [I2]);
 });
 
-test('entering the cart re-reads only when not busy and clears selection', async () => {
+test('entering the cart re-reads only when not busy and keeps selection', async () => {
   const cart = await startedMember();
   cart.store.getState().setSelected(I1, true);
   const reply = deferred();
@@ -254,7 +295,7 @@ test('entering the cart re-reads only when not busy and clears selection', async
   reply.resolve(okFor(cart.calls.mutate[0], cartView({ items: [itemOf(3)] })));
   await cart.idle();
   cart.controller.enterCart();
-  assert.deepEqual(cart.state().selectedIds, []);
+  assert.deepEqual(cart.state().selectedIds, [I1]);
   assert.equal(cart.state().busy, true);
   assert.equal(cart.controller.adjustQuantity(I1, 1), false, 'changes wait for the entry read');
   await cart.idle();
@@ -541,6 +582,15 @@ test('a failed member removal brings the line back unselected', async () => {
   await cart.idle();
   assert.deepEqual(cart.state().cart.items.map(item => item.id), [I1]);
   assert.deepEqual(cart.state().selectedIds, []);
+});
+
+test('a guest add selects the new line once the rebuilt cart shows it, keeping the earlier selection', async () => {
+  const cart = await startedGuest({ guestItems: [line()], products: [product(), product({ variantId: 3, size: 'L' })] });
+  cart.store.getState().setSelected(I1, true);
+  assert.equal(cart.controller.addItems([{ productId: 1, variantId: 3, quantity: 1 }]), true);
+  await cart.idle();
+  assert.deepEqual(cart.state().cart.items.map(item => item.id), [I1, R(1)]);
+  assert.deepEqual(cart.state().selectedIds, [I1, R(1)]);
 });
 
 test('a guest option change that merges into another line keeps the selection on that line', async () => {

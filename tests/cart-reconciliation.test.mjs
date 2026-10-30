@@ -32,7 +32,7 @@ test('reconciliation removes unavailable pairs and their selections while preser
   const cart=await mountCart(t,[line(),line({id:I2,productId:2,variantId:7,quantity:2})]);await cart.finish([product(),product(2,7)]);
   cart.store.getState().setSelected(I1,true);cart.store.getState().setSelected(I2,true);
   cart.controller.enterCart();await until(()=>cart.requests.length===2);await cart.finish([product(2,7)]);
-  assert.deepEqual(cart.local.read().items,[line({id:I2,productId:2,variantId:7,quantity:2})]);assert.deepEqual(cart.store.getState().selectedIds,[]);
+  assert.deepEqual(cart.local.read().items,[line({id:I2,productId:2,variantId:7,quantity:2})]);assert.deepEqual(cart.store.getState().selectedIds,[I2]);
 });
 test('an empty successful response clears unavailable items, selections and the badge count',async t=>{
   const cart=await mountCart(t);await cart.finish([]);
