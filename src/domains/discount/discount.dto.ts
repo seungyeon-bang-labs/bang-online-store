@@ -13,8 +13,6 @@ export interface DiscountRuleDTO {
   isActive: boolean;
 }
 
-export type DiscountRule = DiscountRuleDTO;
-
 export type DiscountCampaignDTO = {
   id: number;
   title: string;

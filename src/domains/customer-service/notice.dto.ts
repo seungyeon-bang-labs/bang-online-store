@@ -13,5 +13,3 @@ export interface NoticeDTO {
   tag?: string;
 }
 
-export type Notice = NoticeDTO;
-
