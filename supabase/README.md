@@ -13,6 +13,18 @@
 
 앱 실행과 환경변수 설정은 [프로젝트 README](../README.md)를 참고합니다.
 
+## 주문 DB 준비 — 2026-10-31 (원격 미적용)
+
+원격 적용은 별도 승인 대상입니다. 적용 전 읽기 전용 사전 점검을 먼저 실행합니다.
+
+- 읽기 전용 사전 점검: [orders-preflight.sql](./checks/orders-preflight.sql)
+- 스키마·RPC·RLS: [20261031120000_orders.sql](./migrations/20261031120000_orders.sql)
+- 빈 상태 전용 복구: [rollback SQL](./rollback/20261031120000_orders.sql)
+
+`orders`, `order_items`, `order_status_histories`, `order_payment_transactions` 네 테이블은 본인 주문만 읽을 수 있고(활성·미삭제·이메일 인증 회원), 직접 쓰기 권한은 없습니다. 주문은 authenticated만 실행할 수 있는 `place_order` 한 경로로만 생성합니다. 이 RPC는 회원 장바구니 잠금 아래에서 옵션 재고 행을 잠그고, 판매 상태·재고·본인 배송지(상세 주소 필수)를 확인합니다. 금액은 DB 값으로 다시 계산해(할인은 기본가에만, 옵션 추가금은 할인 없음, 상품 금액 50,000원 미만이면 배송비 3,000원) 클라이언트 총액과 다르면 거절하고, 재고 차감·주문 사본 저장·주문한 장바구니 줄 삭제를 한 트랜잭션으로 처리합니다. 같은 `request_id`는 처음 주문을 그대로 돌려줍니다.
+
+주문 상태와 결제 수단 허용 값은 enum `public.order_status`, `public.order_payment_method` 한 곳에만 두며, 생성 타입에 값 목록 그대로 들어갑니다. 결제 수단은 지금 `card`뿐입니다. 결제 확정은 실행 권한이 없는 `private.order_confirm_payment`가 맡고, 카드는 주문 생성 안에서 바로 확정합니다. 무통장 입금을 붙일 때는 ① `ALTER TYPE public.order_payment_method ADD VALUE 'bank_transfer'`, ② `place_order`에 입금 기한(`payment_due_at`)과 `pending_payment` 상태 이력을 남기는 분기, ③ 입금 확인 경로(관리자 또는 웹훅)에서 `order_confirm_payment` 호출을 추가합니다. 격리 DB 테스트([orders-db.test.mjs](../tests/orders-db.test.mjs))가 TypeScript 장바구니·배송비 규칙과 RPC 금액이 같은지 함께 검사합니다.
+
 ## 배송지 적용·검증 — 2026-10-31
 
 사용자 승인 후 프로젝트 `plamqblmcavrtioajopz`(`main / PRODUCTION`)의 SQL Editor에서 적용했습니다. 전체 `supabase db push`·기존 SQL 재실행·처리 이력 등록은 하지 않았습니다.
