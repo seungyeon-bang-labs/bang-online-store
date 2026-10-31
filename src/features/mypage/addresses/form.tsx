@@ -6,6 +6,7 @@ import { Checkbox } from '@/shared/components/ui/checkbox';
 import { Input, InputError } from '@/shared/components/ui/input';
 import { Textarea } from '@/shared/components/ui/textarea';
 import {
+  USER_ADDRESS_LABEL_MAX_LENGTH,
   formatKoreanPhoneNumber,
   validateUserAddressFormInput,
   type UserAddressFormViewModel,
@@ -37,6 +38,7 @@ interface AddressFormErrors {
   recipientName?: string;
   phoneNumber?: string;
   address?: string;
+  addressLine2?: string;
   submission?: string;
 }
 
@@ -44,13 +46,14 @@ interface MypageAddressFormProps {
   mode: MypageAddressFormMode;
   returnHref: string;
   initialAddress?: UserAddressFormViewModel;
-  onCreateAddress?: (input: UserAddressCreateInput) => Promise<boolean>;
+  onSubmitAddress: (input: UserAddressCreateInput) => Promise<boolean>;
 }
 
 function getInitialFormValues(
   initialAddress?: UserAddressFormViewModel,
 ): MypageAddressFormValues {
   return {
+    label: initialAddress?.label ?? '',
     recipientName: initialAddress?.recipientName ?? '',
     phoneNumber: initialAddress?.phoneNumber ?? '',
     postalCode: initialAddress?.postalCode ?? '',
@@ -65,7 +68,7 @@ export function MypageAddressForm({
   mode,
   returnHref,
   initialAddress,
-  onCreateAddress,
+  onSubmitAddress,
 }: MypageAddressFormProps) {
   const initialValues = getInitialFormValues(initialAddress);
   const [values, setValues] = useState(initialValues);
@@ -73,7 +76,9 @@ export function MypageAddressForm({
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isEditMode = mode === 'edit';
+  const submissionErrorMessage = `배송지를 ${isEditMode ? '수정' : '등록'}하지 못했습니다. 다시 시도해 주세요.`;
   const isDirty =
+    values.label !== initialValues.label ||
     values.recipientName !== initialValues.recipientName ||
     values.phoneNumber !== initialValues.phoneNumber ||
     values.postalCode !== initialValues.postalCode ||
@@ -107,32 +112,31 @@ export function MypageAddressForm({
       ...(validation.isPostalCodeValid && validation.isAddressLine1Valid
         ? {}
         : { address: '주소를 검색해 선택해 주세요.' }),
+      ...(validation.isAddressLine2Valid
+        ? {}
+        : { addressLine2: '상세 주소를 입력해 주세요.' }),
     };
 
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
-    if (mode !== 'create' || !onCreateAddress) {
-      setIsSubmitted(true);
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
-      const isCreated = await onCreateAddress(values);
+      // A locked default checkbox is not a request; a stale true would undo
+      // a default switch made in another tab.
+      const isSaved = await onSubmitAddress({
+        ...values,
+        isDefault: initialAddress?.isDefault ? false : values.isDefault,
+      });
 
-      if (isCreated) {
+      if (isSaved) {
         setIsSubmitted(true);
       } else {
-        setErrors({
-          submission: '배송지를 등록하지 못했습니다. 다시 시도해 주세요.',
-        });
+        setErrors({ submission: submissionErrorMessage });
       }
     } catch {
-      setErrors({
-        submission: '배송지를 등록하지 못했습니다. 다시 시도해 주세요.',
-      });
+      setErrors({ submission: submissionErrorMessage });
     } finally {
       setIsSubmitting(false);
     }
@@ -167,6 +171,22 @@ export function MypageAddressForm({
           <MypageFormField
             className="gap-2 md:grid-cols-[120px_minmax(0,1fr)] md:items-center"
           >
+            <MypageFormLabel htmlFor="address-name" className={fieldLabelClassName}>
+              배송지명
+            </MypageFormLabel>
+            <Input
+              id="address-name"
+              maxLength={USER_ADDRESS_LABEL_MAX_LENGTH}
+              value={values.label}
+              onChange={event => updateValue('label', event.target.value)}
+              placeholder="배송지명을 입력해 주세요"
+              className={addressInputClassName}
+            />
+          </MypageFormField>
+
+          <MypageFormField
+            className="gap-2 md:grid-cols-[120px_minmax(0,1fr)] md:items-center"
+          >
             <MypageFormLabel htmlFor="recipient-name" className={fieldLabelClassName}>
               수령인 <span aria-hidden="true" className="text-red-600">*</span>
             </MypageFormLabel>
@@ -174,6 +194,7 @@ export function MypageAddressForm({
               <Input
                 id="recipient-name"
                 autoComplete="name"
+                maxLength={50}
                 value={values.recipientName}
                 onChange={event => {
                   updateValue('recipientName', event.target.value);
@@ -235,6 +256,7 @@ export function MypageAddressForm({
               addressLine1={values.addressLine1}
               addressLine2={values.addressLine2}
               error={errors.address}
+              addressLine2Error={errors.addressLine2}
               onAddressSelect={({ postalCode, addressLine1 }) => {
                 updateValue('postalCode', postalCode);
                 updateValue('addressLine1', addressLine1);
@@ -243,7 +265,13 @@ export function MypageAddressForm({
                   address: undefined,
                 }));
               }}
-              onAddressLine2Change={value => updateValue('addressLine2', value)}
+              onAddressLine2Change={value => {
+                updateValue('addressLine2', value);
+                setErrors(currentErrors => ({
+                  ...currentErrors,
+                  addressLine2: undefined,
+                }));
+              }}
               onSearchUnavailable={handleAddressSearchUnavailable}
             />
           </MypageFormField>
@@ -254,6 +282,7 @@ export function MypageAddressForm({
             </MypageFormLabel>
             <Textarea
               id="delivery-note"
+              maxLength={200}
               value={values.deliveryNote}
               onChange={event => updateValue('deliveryNote', event.target.value)}
               placeholder="배송 시 요청사항을 입력해 주세요"
@@ -272,6 +301,7 @@ export function MypageAddressForm({
               <Checkbox
                 id="is-default-address"
                 checked={values.isDefault}
+                disabled={initialAddress?.isDefault}
                 onCheckedChange={checked =>
                   updateValue('isDefault', checked === true)
                 }

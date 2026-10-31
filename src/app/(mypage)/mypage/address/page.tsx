@@ -1,9 +1,7 @@
 import { MapPin } from 'lucide-react';
-import {
-  currentUserRepository,
-  toUserAddressViewModel,
-  userAddressRepository,
-} from '@/domains/member';
+import { requireActiveMember } from '@/app/(auth)/require-active-member';
+import { toUserAddressViewModel } from '@/domains/member';
+import { createUserAddressRepository } from '@/domains/member/supabase-repository.server';
 import {
   MypageEmptyState,
   MypagePageLayout,
@@ -11,14 +9,18 @@ import {
 } from '@/features/mypage/common';
 import { MypageAddressList } from '@/features/mypage/addresses';
 import { getMypageAddressWriteHref } from '@/shared/lib/mypage-routes';
+import { createAuthClient } from '@/shared/lib/supabase/auth-server';
+import {
+  deleteMypageAddressAction,
+  setDefaultMypageAddressAction,
+} from './actions';
 
 async function AddressPage() {
-  const user = await currentUserRepository.findCurrent();
-  const addresses = user
-    ? (await userAddressRepository.findByUserId(user.id)).map(
-        toUserAddressViewModel,
-      )
-    : [];
+  const member = await requireActiveMember();
+  const client = await createAuthClient();
+  const addresses = (
+    await createUserAddressRepository(client).findByUserId(member.id)
+  ).map(toUserAddressViewModel);
 
   const hasAddresses = addresses.length > 0;
 
@@ -33,7 +35,11 @@ async function AddressPage() {
         }}
       />
       {hasAddresses ? (
-        <MypageAddressList addresses={addresses} />
+        <MypageAddressList
+          addresses={addresses}
+          onSetDefaultAddress={setDefaultMypageAddressAction}
+          onDeleteAddress={deleteMypageAddressAction}
+        />
       ) : (
         <MypageEmptyState
           icon={MapPin}

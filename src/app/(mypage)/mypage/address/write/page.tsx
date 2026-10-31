@@ -9,7 +9,7 @@ function MypageAddressWritePage() {
       <MypageAddressForm
         mode="create"
         returnHref={getMypageAddressHref()}
-        onCreateAddress={createMypageAddressAction}
+        onSubmitAddress={createMypageAddressAction}
       />
     </MypagePageLayout>
   );

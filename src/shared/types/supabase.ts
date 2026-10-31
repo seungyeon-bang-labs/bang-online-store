@@ -591,6 +591,59 @@ export type Database = {
           },
         ]
       }
+      user_addresses: {
+        Row: {
+          address_line_1: string
+          address_line_2: string | null
+          created_at: string
+          delivery_note: string | null
+          id: string
+          is_default: boolean
+          label: string | null
+          phone_number: string
+          postal_code: string
+          recipient_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address_line_1: string
+          address_line_2?: string | null
+          created_at?: string
+          delivery_note?: string | null
+          id?: string
+          is_default?: boolean
+          label?: string | null
+          phone_number: string
+          postal_code: string
+          recipient_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address_line_1?: string
+          address_line_2?: string | null
+          created_at?: string
+          delivery_note?: string | null
+          id?: string
+          is_default?: boolean
+          label?: string | null
+          phone_number?: string
+          postal_code?: string
+          recipient_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_addresses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_term_consents: {
         Row: {
           consented_at: string

@@ -20,6 +20,20 @@ const bob = {
   email: 'bob@example.invalid',
 };
 
+const defaultAddress = {
+  id: '33333333-3333-4333-8333-333333333333',
+  label: '집',
+  recipient_name: 'Alice Member',
+  phone_number: '010-1234-5678',
+  postal_code: '06134',
+  address_line_1: '서울특별시 강남구 테헤란로 123',
+  address_line_2: '101동 1203호',
+  delivery_note: null,
+  is_default: true,
+  created_at: '2026-10-31T00:00:00Z',
+  updated_at: '2026-10-31T00:00:00Z',
+};
+
 // Run the real access service, repositories and fixture aggregation;
 // substitute only the Supabase client boundary used by this request.
 function createHomeRequest(initialMember, options = {}) {
@@ -30,6 +44,16 @@ function createHomeRequest(initialMember, options = {}) {
     global: { fetch: async input => {
       const url = new URL(String(input));
       requests.push(url);
+      if (url.pathname === '/rest/v1/user_addresses') {
+        assert.equal(url.searchParams.get('is_default'), 'eq.true');
+        const userId = url.searchParams.get('user_id')?.replace(/^eq\./, '');
+        const rows = options.addressMissing || !userId ? [] : [{
+          ...defaultAddress, user_id: userId,
+        }];
+        return new Response(JSON.stringify(rows), {
+          status: 200, headers: { 'content-type': 'application/json' },
+        });
+      }
       assert.equal(url.pathname, '/rest/v1/users');
       const selected = url.searchParams.get('select').split(',').map(value => value.trim());
       const isProfile = selected.includes('name');
@@ -93,8 +117,13 @@ test('home uses the session member name and keeps demo shopping records across a
     JSON.parse(JSON.stringify({ ...first, summary: { ...first.summary, memberName: 'Bob Member' } })),
   );
   assert.deepEqual(CURRENT_USER, originalDemo);
-  assert.deepEqual(request.requests.map(url => url.searchParams.get('id')), [
+  const memberRequests = request.requests.filter(url => url.pathname === '/rest/v1/users');
+  assert.deepEqual(memberRequests.map(url => url.searchParams.get('id')), [
     `eq.${alice.id}`, `eq.${alice.id}`, `eq.${bob.id}`, `eq.${bob.id}`,
+  ]);
+  const addressRequests = request.requests.filter(url => url.pathname === '/rest/v1/user_addresses');
+  assert.deepEqual(addressRequests.map(url => url.searchParams.get('user_id')), [
+    `eq.${alice.id}`, `eq.${bob.id}`,
   ]);
 });
 
@@ -120,4 +149,9 @@ test('home does not substitute a demo name when the real profile is missing or f
       return true;
     });
   }
+});
+
+test('home shows no default address when the member has none', async () => {
+  const home = await createHomeRequest(alice, { addressMissing: true }).getHome();
+  assert.equal(home.summary.defaultAddressText, '등록된 배송지 없음');
 });

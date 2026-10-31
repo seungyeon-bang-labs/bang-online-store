@@ -20,17 +20,20 @@ import {
 import { Button } from '@/shared/components/ui/button';
 
 interface MypageAddressDeleteButtonProps {
+  addressId: string;
   canDelete: boolean;
+  onDeleteAddress: (addressId: string) => Promise<boolean>;
 }
 
-interface MypageAddressDeleteDialogProps {
-  canDelete: boolean;
+interface MypageAddressDeleteDialogProps extends MypageAddressDeleteButtonProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export function MypageAddressDeleteDialog({
+  addressId,
   canDelete,
+  onDeleteAddress,
   open,
   onOpenChange,
 }: MypageAddressDeleteDialogProps) {
@@ -40,7 +43,19 @@ export function MypageAddressDeleteDialog({
     setIsDeleting(true);
 
     try {
-      toast.success('배송지를 삭제했습니다.', { position: 'bottom-center' });
+      const isDeleted = await onDeleteAddress(addressId);
+
+      if (isDeleted) {
+        toast.success('배송지를 삭제했습니다.', { position: 'bottom-center' });
+      } else {
+        toast.error('배송지를 삭제하지 못했습니다.', {
+          position: 'bottom-center',
+        });
+      }
+    } catch {
+      toast.error('배송지를 삭제하지 못했습니다.', {
+        position: 'bottom-center',
+      });
     } finally {
       setIsDeleting(false);
     }
@@ -94,9 +109,9 @@ export function MypageAddressDeleteDialog({
   );
 }
 
-export function MypageAddressDeleteButton({
-  canDelete,
-}: MypageAddressDeleteButtonProps) {
+export function MypageAddressDeleteButton(
+  props: MypageAddressDeleteButtonProps,
+) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -111,7 +126,7 @@ export function MypageAddressDeleteButton({
         삭제
       </Button>
       <MypageAddressDeleteDialog
-        canDelete={canDelete}
+        {...props}
         open={isOpen}
         onOpenChange={setIsOpen}
       />

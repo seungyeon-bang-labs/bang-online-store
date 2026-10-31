@@ -3,6 +3,7 @@
 import { useRef } from 'react';
 import { Input, InputError } from '@/shared/components/ui/input';
 import { MYPAGE_INPUT_CLASS_NAME } from '@/features/mypage/common/styles';
+import { cn } from '@/shared/lib/utils';
 import { MypageAddressSearchButton } from './address-search-button';
 
 interface MypageAddressSearchFieldProps {
@@ -10,6 +11,7 @@ interface MypageAddressSearchFieldProps {
   addressLine1: string;
   addressLine2: string;
   error?: string;
+  addressLine2Error?: string;
   onAddressSelect: (address: {
     postalCode: string;
     addressLine1: string;
@@ -29,11 +31,17 @@ export function MypageAddressSearchField({
   addressLine1,
   addressLine2,
   error,
+  addressLine2Error,
   onAddressSelect,
   onAddressLine2Change,
   onSearchUnavailable,
 }: MypageAddressSearchFieldProps) {
   const addressLine2Ref = useRef<HTMLInputElement>(null);
+  // The selected-address boxes are not inputs, so mirror Input's invalid border.
+  const selectedClassName = cn(
+    selectedAddressClassName,
+    error && 'border-destructive',
+  );
 
   return (
     <div
@@ -43,7 +51,7 @@ export function MypageAddressSearchField({
     >
       <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
         <div
-          className={selectedAddressClassName}
+          className={selectedClassName}
           aria-label={
             postalCode
               ? `선택한 우편번호 ${postalCode}`
@@ -66,7 +74,7 @@ export function MypageAddressSearchField({
         />
       </div>
       <div
-        className={selectedAddressClassName}
+        className={selectedClassName}
         aria-live="polite"
         aria-label={
           addressLine1
@@ -86,10 +94,16 @@ export function MypageAddressSearchField({
         value={addressLine2}
         onChange={event => onAddressLine2Change(event.target.value)}
         placeholder="동, 호수 등 상세 주소를 입력해 주세요"
-        aria-describedby={error ? 'address-error' : undefined}
+        aria-invalid={Boolean(addressLine2Error)}
+        aria-describedby={
+          [error && 'address-error', addressLine2Error && 'address-line-2-error']
+            .filter(Boolean)
+            .join(' ') || undefined
+        }
         className={addressInputClassName}
       />
       <InputError id="address-error" message={error} />
+      <InputError id="address-line-2-error" message={addressLine2Error} />
     </div>
   );
 }

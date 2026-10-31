@@ -138,27 +138,33 @@ test('guard redirects unverified accounts to recovery and never accepts a missin
   }
 });
 
-test('protected mutation never invokes fixture operations when access is denied', async () => {
-  const { createMypageAddressAction } = loadTs('src/app/(mypage)/mypage/address/actions.ts', {
-    '@/app/(auth)/require-active-member': { requireActiveMember: async () => { throw new Error('DENIED'); } },
-    '@/domains/member': {
-      currentUserRepository: { findCurrent: async () => ({ id: 'fixture-user' }) },
-      createUserAddress: () => { throw new Error('MUTATED_WITHOUT_ACCESS'); },
+function loadAddressActions(requireActiveMember, created = []) {
+  let clients = 0;
+  const actions = loadTs('src/app/(mypage)/mypage/address/actions.ts', {
+    '@/app/(auth)/require-active-member': { requireActiveMember },
+    '@/shared/lib/supabase/auth-server': { createAuthClient: async () => { clients++; return {}; } },
+    '@/domains/member/supabase-repository.server': {
+      createUserAddressRepository: () => ({ create: async (userId, address) => { created.push({ userId, address }); } }),
     },
+    'next/cache': { revalidatePath: () => {} },
   });
-  await assert.rejects(createMypageAddressAction({}), { message: 'DENIED' });
+  return { actions, clients: () => clients };
+}
+const validAddress = {
+  label: '', recipientName: '수령인', phoneNumber: '010-1234-5678', postalCode: '06134',
+  addressLine1: '서울특별시 강남구 테헤란로 123', addressLine2: '101동 1203호', deliveryNote: '', isDefault: false,
+};
+test('protected mutation never opens a DB client when access is denied', async () => {
+  const { actions, clients } = loadAddressActions(async () => { throw new Error('DENIED'); });
+  await assert.rejects(actions.createMypageAddressAction(validAddress), { message: 'DENIED' });
+  assert.equal(clients(), 0);
 });
 test('protected mutation uses the server session ID rather than a fixture identity', async () => {
-  let receivedId;
-  const { createMypageAddressAction } = loadTs('src/app/(mypage)/mypage/address/actions.ts', {
-    '@/app/(auth)/require-active-member': { requireActiveMember: async () => ({ id: 'real-member' }) },
-    '@/domains/member': {
-      currentUserRepository: { findCurrent: async () => ({ id: 'fixture-user' }) },
-      createUserAddress: async id => { receivedId = id; return true; },
-    },
-  });
-  assert.equal(await createMypageAddressAction({}), true);
-  assert.equal(receivedId, 'real-member');
+  const created = [];
+  const { actions } = loadAddressActions(async () => ({ id: 'real-member' }), created);
+  assert.equal(await actions.createMypageAddressAction(validAddress), true);
+  assert.equal(created.length, 1);
+  assert.equal(created[0].userId, 'real-member');
 });
 
 function loadLoginPage(access) {
