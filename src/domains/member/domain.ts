@@ -6,6 +6,7 @@ export interface UserAddressFormInput {
   phoneNumber: string;
   postalCode: string;
   addressLine1: string;
+  addressLine2: string;
 }
 
 export interface UserAddressFormValidationResult {
@@ -13,6 +14,7 @@ export interface UserAddressFormValidationResult {
   isPhoneNumberValid: boolean;
   isPostalCodeValid: boolean;
   isAddressLine1Valid: boolean;
+  isAddressLine2Valid: boolean;
 }
 
 const KOREAN_POSTAL_CODE_PATTERN = /^\d{5}$/;
@@ -26,12 +28,15 @@ export function validateUserAddressFormInput({
   phoneNumber,
   postalCode,
   addressLine1,
+  addressLine2,
 }: UserAddressFormInput): UserAddressFormValidationResult {
   return {
     isRecipientNameValid: recipientName.trim().length > 0,
     isPhoneNumberValid: isValidPhoneNumber(phoneNumber, 'KR'),
     isPostalCodeValid: KOREAN_POSTAL_CODE_PATTERN.test(postalCode.trim()),
     isAddressLine1Valid: addressLine1.trim().length > 0,
+    // Courier integrations (CJ대한통운, 우체국) reject a blank detail address.
+    isAddressLine2Valid: addressLine2.trim().length > 0,
   };
 }
 
@@ -56,5 +61,5 @@ export function getUserAddressText(
 export function getUserAddressDisplayName(
   address: UserAddressDisplayNameSource,
 ): string {
-  return address.label.trim() || address.address_line_1;
+  return address.label?.trim() || address.address_line_1;
 }

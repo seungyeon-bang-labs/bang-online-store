@@ -22,6 +22,7 @@ export interface UserAddressViewModel {
 
 export interface UserAddressFormViewModel {
   id: string;
+  label: string;
   recipientName: string;
   phoneNumber: string;
   postalCode: string;

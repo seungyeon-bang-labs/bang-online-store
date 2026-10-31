@@ -1,25 +1,25 @@
 import { notFound } from 'next/navigation';
-import {
-  currentUserRepository,
-  toUserAddressFormViewModel,
-  userAddressRepository,
-} from '@/domains/member';
+import { requireActiveMember } from '@/app/(auth)/require-active-member';
+import { toUserAddressFormViewModel } from '@/domains/member';
+import { createUserAddressRepository } from '@/domains/member/supabase-repository.server';
 import { MypageAddressForm } from '@/features/mypage/addresses';
 import { MypagePageLayout } from '@/features/mypage/common';
 import { getMypageAddressHref } from '@/shared/lib/mypage-routes';
+import { createAuthClient } from '@/shared/lib/supabase/auth-server';
+import { updateMypageAddressAction } from '../../actions';
 
 interface MypageAddressEditPageProps {
   params: Promise<{ addressId: string }>;
 }
 
 async function MypageAddressEditPage({ params }: MypageAddressEditPageProps) {
-  const [{ addressId }, user] = await Promise.all([
+  const [{ addressId }, member] = await Promise.all([
     params,
-    currentUserRepository.findCurrent(),
+    requireActiveMember(),
   ]);
-  const address = user
-    ? await userAddressRepository.findByIdAndUserId(addressId, user.id)
-    : null;
+  const client = await createAuthClient();
+  const address = await createUserAddressRepository(client)
+    .findByIdAndUserId(addressId, member.id);
   if (!address) notFound();
 
   return (
@@ -28,6 +28,7 @@ async function MypageAddressEditPage({ params }: MypageAddressEditPageProps) {
         mode="edit"
         initialAddress={toUserAddressFormViewModel(address)}
         returnHref={getMypageAddressHref()}
+        onSubmitAddress={updateMypageAddressAction.bind(null, address.id)}
       />
     </MypagePageLayout>
   );

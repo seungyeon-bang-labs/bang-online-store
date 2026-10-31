@@ -13,11 +13,13 @@ import { getMypageAddressEditHref } from '@/shared/lib/mypage-routes';
 import { MoreVertical } from 'lucide-react';
 import { MYPAGE_ACTION_MENU_CLASS_NAME } from '../common/styles';
 import { MypageAddressDeleteDialog } from './delete-button';
+import { useSetDefaultAddress } from './set-default-button';
+import type { MypageAddressActions } from './types';
 
 const ADDRESS_ACTION_MENU_TRIGGER_CLASS_NAME =
   `-mr-3 flex size-10 shrink-0 items-center justify-center rounded-sm text-zinc-700 outline-none transition-colors hover:bg-zinc-100 hover:text-black focus-visible:bg-zinc-100 focus-visible:text-black md:hidden ${MYPAGE_ACTION_MENU_CLASS_NAME.quietTrigger}`;
 
-interface MypageAddressMobileActionsProps {
+interface MypageAddressMobileActionsProps extends MypageAddressActions {
   addressId: string;
   canDelete: boolean;
 }
@@ -25,8 +27,14 @@ interface MypageAddressMobileActionsProps {
 export function MypageAddressMobileActions({
   addressId,
   canDelete,
+  onSetDefaultAddress,
+  onDeleteAddress,
 }: MypageAddressMobileActionsProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const { isSettingDefault, setDefaultAddress } = useSetDefaultAddress(
+    addressId,
+    onSetDefaultAddress,
+  );
 
   return (
     <>
@@ -43,7 +51,11 @@ export function MypageAddressMobileActions({
         >
           {canDelete && (
             <>
-              <DropdownMenuItem className={MYPAGE_ACTION_MENU_CLASS_NAME.item}>
+              <DropdownMenuItem
+                disabled={isSettingDefault}
+                onSelect={setDefaultAddress}
+                className={MYPAGE_ACTION_MENU_CLASS_NAME.item}
+              >
                 기본으로 설정
               </DropdownMenuItem>
               <DropdownMenuSeparator
@@ -70,7 +82,9 @@ export function MypageAddressMobileActions({
         </DropdownMenuContent>
       </DropdownMenu>
       <MypageAddressDeleteDialog
+        addressId={addressId}
         canDelete={canDelete}
+        onDeleteAddress={onDeleteAddress}
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
       />

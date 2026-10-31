@@ -1,7 +1,10 @@
 import 'server-only';
 
 import { getCurrentMemberAccess } from '@/domains/auth/member-access.server';
-import { createMemberProfileRepository } from '@/domains/member/supabase-repository.server';
+import {
+  createMemberProfileRepository,
+  createUserAddressRepository,
+} from '@/domains/member/supabase-repository.server';
 import { createAuthClient } from '@/shared/lib/supabase/auth-server';
 import {
   getRecentProductItems,
@@ -19,11 +22,7 @@ import {
   userMembershipRepository,
 } from '@/domains/benefit';
 import { couponRepository } from '@/domains/coupon';
-import {
-  getUserAddressText,
-  userAddressRepository,
-  type UserDTO,
-} from '@/domains/member';
+import { getUserAddressText, type UserDTO } from '@/domains/member';
 import {
   filterOrders,
   orderClaimRepository,
@@ -70,7 +69,7 @@ export async function getMypageHomeViewModel(
     recentProducts,
     wishlistProducts,
   ] = await Promise.all([
-    userAddressRepository.findDefaultByUserId(demoUser.id),
+    createUserAddressRepository(client).findDefaultByUserId(access.member.id),
     userMembershipRepository.findByUserId(demoUser.id),
     membershipTierRepository.findMany(),
     pointTransactionRepository.findByUserId(demoUser.id),

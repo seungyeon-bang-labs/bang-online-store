@@ -37,6 +37,7 @@ export const toUserAddressFormViewModel = (
   address: UserAddressDTO,
 ): UserAddressFormViewModel => ({
   id: address.id,
+  label: address.label ?? '',
   recipientName: address.recipient_name,
   phoneNumber: address.phone_number,
   postalCode: address.postal_code,

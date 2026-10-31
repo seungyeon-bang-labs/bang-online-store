@@ -4,7 +4,7 @@
 
 ## 현재 상태와 적용 조건
 
-- 회원 인증은 Supabase Auth를 사용하고, 회원·약관·상품·카테고리는 실제 DB에서 조회합니다. 상품·카테고리 이미지는 Storage에서 제공합니다.
+- 회원 인증은 Supabase Auth를 사용하고, 회원·약관·상품·카테고리·배송지는 실제 DB에서 조회합니다. 상품·카테고리 이미지는 Storage에서 제공합니다.
 - 기존 주문·리뷰·문의·혜택 등 데모 내역은 fixture를 유지합니다. 현재 카탈로그 판매량·적용 할인·SALE 캠페인과 홈 직접 구성 섹션은 DB에서 조회합니다. 이벤트 배너의 기존 출처와 NEW 분류 기준은 유지합니다.
 - 현재 앱은 `AUTH_FEATURES_ENABLED`가 정확히 `true`일 때 회원가입·이메일 인증·비밀번호 찾기를 허용합니다. 제한 모드에서도 로그인·로그아웃은 사용할 수 있습니다.
 - 아래 SQL은 기존 회원·약관 스키마 등을 전제로 작성한 변경 이력입니다. 빈 Supabase 프로젝트 전체를 초기화하는 스크립트가 아니므로, 새 환경에서는 기존 스키마와 각 사전점검 조건을 먼저 준비해야 합니다.
@@ -12,6 +12,21 @@
 - 상품 집계·할인·홈 진열의 스키마와 초기 72건은 실제 DB에 적용하고 공개 조회까지 검증했습니다. 상품 Service·Model과 카드·상세·장바구니·필터·SALE의 DB 할인 연결, 최종 검증과 README 갱신을 마쳤습니다. 판매량은 고정 데모 값이며 자동 집계하지 않습니다.
 
 앱 실행과 환경변수 설정은 [프로젝트 README](../README.md)를 참고합니다.
+
+## 배송지 적용·검증 — 2026-10-31
+
+사용자 승인 후 프로젝트 `plamqblmcavrtioajopz`(`main / PRODUCTION`)의 SQL Editor에서 적용했습니다. 전체 `supabase db push`·기존 SQL 재실행·처리 이력 등록은 하지 않았습니다.
+
+- 읽기 전용 사전 점검: [user-addresses-preflight.sql](./checks/user-addresses-preflight.sql)
+- 스키마·트리거·RLS: [20261031000000_user_addresses.sql](./migrations/20261031000000_user_addresses.sql), SHA-256 `bb6fcb4876571f3fecd3f6f258d8ce628599433433748664b1ab125220c8b03b`
+- 데모 계정 배송지 5건: [초기 데이터 SQL](./seeds/20261031000000_user_addresses.sql), SHA-256 `8d6fb08a930e250bb7eb017a7772400cc03230e63d3f6d06bd05fb773034ea63`
+- 빈 상태 전용 복구: [rollback SQL](./rollback/20261031000000_user_addresses.sql)
+
+`user_addresses`는 본인 행만 읽고 쓰는 RLS 정책 하나를 둡니다. 조건은 `auth.uid()`가 소유자이고 회원이 활성·미삭제·이메일 인증 상태인 것입니다. authenticated는 SELECT·DELETE와, `id`·`user_id`(수정 시)·시각 열을 뺀 열의 INSERT·UPDATE만 가집니다. anon 권한은 없습니다. `private` 트리거 두 개가 첫 배송지 자동 기본 지정, 기본 변경 시 기존 기본 해제, 기본 배송지의 직접 해제·삭제 거부, `updated_at` 갱신을 맡습니다. 기본 상태가 바뀌는 쓰기는 회원 단위 advisory 트랜잭션 잠금으로 직렬화합니다.
+
+사전 점검(READ ONLY)에서 신규 객체 충돌이 없고, `users` 필수 열·`users_read_own` 정책·`auth.uid()` 실행 권한·역할 설정, 활성 데모 회원 1명, CLI 이력 테이블 부재를 확인했습니다. migration 실행 결과는 `Success. No rows returned`였습니다. 적용 후 읽기 전용 확인으로 소유자·RLS·마커, 정책 1개, 테이블·열 권한, 함수 2개의 마커·고정 search_path·실행 권한 없음, 트리거 2개, 인덱스 3개, CHECK 7개·FK(`ON DELETE RESTRICT`)·PK, 0건을 확인했습니다. seed는 사용자가 SQL Editor에서 직접 실행했고, 이후 읽기 전용 확인으로 전체 5건이 모두 데모 계정 소유이며 기본 배송지 1건('집')과 원래 fixture의 이름·주소·메모·등록 시각이 일치함을 확인했습니다.
+
+같은 project ref의 public 스키마에서 설치된 Supabase CLI로 생성한 타입이 [공유 타입](../src/shared/types/supabase.ts)과 완전히 일치했습니다. 격리 DB 검증 10개는 적용 전에 통과했습니다.
 
 ## 장바구니 클라이언트 재구성 — 2026-10-28
 
