@@ -254,6 +254,220 @@ export type Database = {
         }
         Relationships: []
       }
+      order_items: {
+        Row: {
+          created_at: string
+          discount_amount: number
+          id: string
+          line_total_amount: number
+          option_label: string
+          order_id: string
+          product_id: number
+          product_name: string
+          product_variant_id: number
+          quantity: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          discount_amount: number
+          id?: string
+          line_total_amount: number
+          option_label: string
+          order_id: string
+          product_id: number
+          product_name: string
+          product_variant_id: number
+          quantity: number
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          discount_amount?: number
+          id?: string
+          line_total_amount?: number
+          option_label?: string
+          order_id?: string
+          product_id?: number
+          product_name?: string
+          product_variant_id?: number
+          quantity?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_variant_id_fkey"
+            columns: ["product_variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_payment_transactions: {
+        Row: {
+          amount: number
+          id: string
+          occurred_at: string
+          order_id: string
+          payment_method: Database["public"]["Enums"]["order_payment_method"]
+          receipt_details: Json | null
+          type: string
+        }
+        Insert: {
+          amount: number
+          id?: string
+          occurred_at?: string
+          order_id: string
+          payment_method: Database["public"]["Enums"]["order_payment_method"]
+          receipt_details?: Json | null
+          type: string
+        }
+        Update: {
+          amount?: number
+          id?: string
+          occurred_at?: string
+          order_id?: string
+          payment_method?: Database["public"]["Enums"]["order_payment_method"]
+          receipt_details?: Json | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_payment_transactions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_status_histories: {
+        Row: {
+          id: string
+          occurred_at: string
+          order_id: string
+          status: Database["public"]["Enums"]["order_status"]
+        }
+        Insert: {
+          id?: string
+          occurred_at?: string
+          order_id: string
+          status: Database["public"]["Enums"]["order_status"]
+        }
+        Update: {
+          id?: string
+          occurred_at?: string
+          order_id?: string
+          status?: Database["public"]["Enums"]["order_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_status_histories_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          cancelled_at: string | null
+          delivered_at: string | null
+          delivery_note: string | null
+          discount_amount: number
+          estimated_delivery_at: string | null
+          id: string
+          order_number: string
+          ordered_at: string
+          paid_at: string | null
+          payment_due_at: string | null
+          payment_method: Database["public"]["Enums"]["order_payment_method"]
+          postal_code: string
+          recipient_name: string
+          recipient_phone: string
+          request_id: string
+          shipping_address_line_1: string
+          shipping_address_line_2: string | null
+          shipping_fee: number
+          status: Database["public"]["Enums"]["order_status"]
+          subtotal_amount: number
+          total_amount: number
+          user_id: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          delivered_at?: string | null
+          delivery_note?: string | null
+          discount_amount: number
+          estimated_delivery_at?: string | null
+          id?: string
+          order_number: string
+          ordered_at?: string
+          paid_at?: string | null
+          payment_due_at?: string | null
+          payment_method: Database["public"]["Enums"]["order_payment_method"]
+          postal_code: string
+          recipient_name: string
+          recipient_phone: string
+          request_id: string
+          shipping_address_line_1: string
+          shipping_address_line_2?: string | null
+          shipping_fee: number
+          status: Database["public"]["Enums"]["order_status"]
+          subtotal_amount: number
+          total_amount: number
+          user_id: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          delivered_at?: string | null
+          delivery_note?: string | null
+          discount_amount?: number
+          estimated_delivery_at?: string | null
+          id?: string
+          order_number?: string
+          ordered_at?: string
+          paid_at?: string | null
+          payment_due_at?: string | null
+          payment_method?: Database["public"]["Enums"]["order_payment_method"]
+          postal_code?: string
+          recipient_name?: string
+          recipient_phone?: string
+          request_id?: string
+          shipping_address_line_1?: string
+          shipping_address_line_2?: string | null
+          shipping_fee?: number
+          status?: Database["public"]["Enums"]["order_status"]
+          subtotal_amount?: number
+          total_amount?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_images: {
         Row: {
           created_at: string
@@ -743,8 +957,26 @@ export type Database = {
         Returns: string
       }
       get_cart: { Args: { p_expected_user_id: string }; Returns: Json }
+      place_order: {
+        Args: {
+          p_address_id: string
+          p_cart_item_ids: string[]
+          p_expected_total: number
+          p_expected_user_id: string
+          p_payment_method: string
+          p_request_id: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
+      order_payment_method: "card"
+      order_status:
+        | "pending_payment"
+        | "payment_completed"
+        | "shipping"
+        | "delivered"
+        | "cancelled"
       term_kind: "document" | "confirmation"
       user_role: "customer" | "admin"
       user_status: "active" | "suspended" | "deleted"
@@ -875,6 +1107,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      order_payment_method: ["card"],
+      order_status: [
+        "pending_payment",
+        "payment_completed",
+        "shipping",
+        "delivered",
+        "cancelled",
+      ],
       term_kind: ["document", "confirmation"],
       user_role: ["customer", "admin"],
       user_status: ["active", "suspended", "deleted"],
