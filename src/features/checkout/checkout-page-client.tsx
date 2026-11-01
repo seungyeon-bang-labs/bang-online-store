@@ -18,8 +18,8 @@ import { PageTitle } from '@/shared/components/common/page-title';
 import { Container } from '@/shared/components/layout/container';
 import { Button } from '@/shared/components/ui/button';
 import { getCartHref } from '@/shared/lib/cart-routes';
+import { getOrderCompleteHref } from '@/shared/lib/checkout-routes';
 import { formatKoreanMoney } from '@/shared/lib/format';
-import { getMypageOrderDetailHref } from '@/shared/lib/mypage-routes';
 import { cn } from '@/shared/lib/utils';
 import { getOrderBlockMessage, getPlaceOrderMessage } from './checkout-messages';
 
@@ -70,7 +70,7 @@ export function CheckoutPageClient({
     if (result.status === 'placed') {
       // The ordered lines left the cart on the server; read it again so the header count follows.
       enterCart();
-      router.replace(getMypageOrderDetailHref(result.orderId));
+      router.replace(getOrderCompleteHref(result.orderId));
       return;
     }
 

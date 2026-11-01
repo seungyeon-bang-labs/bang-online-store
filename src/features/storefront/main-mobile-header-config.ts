@@ -53,6 +53,11 @@ export function getStorefrontMobileHeaderConfig(
     return getTitleConfig('주문/결제', { backHref: '/cart' });
   }
 
+  // Back goes to the cart, as browser back does: payment replaced the checkout in history.
+  if (/^\/order\/complete\/[^/]+$/.test(pathname)) {
+    return getTitleConfig('주문완료', { backHref: '/cart' });
+  }
+
   const categoryMatch = pathname.match(/^\/category\/([^/]+)\/[^/]+$/);
   if (categoryMatch) {
     const currentCategory = categoryGroupViewModels.find(

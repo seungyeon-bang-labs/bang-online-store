@@ -200,3 +200,26 @@ test('the checkout address form stays locked after saving so a second click cann
   assert.deepEqual(setters[2], [true]);
   assert.deepEqual(setters[3], [true, false]);
 });
+
+test('a placed order lands on its complete page, which links to the order detail and goes back to the cart', () => {
+  const { getOrderCompleteHref } = loadTs('src/shared/lib/checkout-routes.ts');
+  assert.equal(getOrderCompleteHref(ORDER), `/order/complete/${ORDER}`);
+
+  const { getStorefrontMobileHeaderConfig } = loadTs('src/features/storefront/main-mobile-header-config.ts');
+  assert.deepEqual(getStorefrontMobileHeaderConfig(`/order/complete/${ORDER}`, []), { kind: 'title', title: '주문완료', backHref: '/cart' });
+
+  const { OrderComplete } = loadTs('src/features/checkout/order-complete.tsx');
+  const links = [];
+  const texts = [];
+  const walk = node => {
+    if (Array.isArray(node)) return node.forEach(walk);
+    if (typeof node === 'string') return texts.push(node);
+    if (!node?.props) return;
+    if (node.props.href) links.push(node.props.href);
+    walk(node.props.children);
+  };
+  walk(OrderComplete({ orderId: ORDER, orderNumber: 'ORD-20261101-001' }));
+  assert.deepEqual(links, [`/mypage/orders/${ORDER}`, '/']);
+  assert.ok(texts.includes('ORD-20261101-001'));
+  assert.ok(texts.includes('결제가 완료되었습니다'));
+});

@@ -10,3 +10,7 @@ export function parseCheckoutItemIds(items?: string | string[]): string[] {
 
   return [...new Set(value.split(',').map(id => id.trim()).filter(Boolean))];
 }
+
+export function getOrderCompleteHref(orderId: string): string {
+  return `/order/complete/${encodeURIComponent(orderId)}`;
+}
