@@ -15,11 +15,46 @@ const claim: OrderItemActionViewModel = { type: 'claim', label: '교환·반품'
 const review: OrderItemActionViewModel = { type: 'review', label: '리뷰 쓰기' };
 const repurchase: OrderItemActionViewModel = { type: 'repurchase', label: '다시 담기' };
 
+// DB 주문에는 아직 취소·교환·반품·영수증 흐름이 없고, 1:1 문의는 fixture 주문만 확인한다.
+// 각 흐름을 DB 주문에 연결할 때 여기서 뺀다. 리뷰 쓰기도 fixture 주문만 찾으므로,
+// DB 주문에 배송완료 전환이 생기기 전에 여기에 넣거나 리뷰를 DB로 옮긴다.
+const UNAVAILABLE_ACTION_TYPES = new Set<OrderItemActionViewModel['type']>([
+  'cancel',
+  'claim',
+  'receipt',
+  'inquiry',
+]);
+
+export function isOrderActionAvailable(
+  type: OrderItemActionViewModel['type'],
+): boolean {
+  return !UNAVAILABLE_ACTION_TYPES.has(type);
+}
+
 /**
  * 상품 하나에 표시할 주문 후속 액션의 위치를 결정한다.
  * 주문 상세 이동은 주문 카드 헤더에서 제공하므로 상품 액션에는 포함하지 않는다.
  */
-export function getOrderItemActionPolicy({
+export function getOrderItemActionPolicy(
+  input: OrderItemActionPolicyInput,
+): OrderItemActionsViewModel | null {
+  const slots = getOrderItemActionSlots(input);
+
+  if (!slots) return null;
+
+  const [primary, secondary = null, ...more] = [
+    slots.primary,
+    slots.secondary,
+    ...slots.more,
+  ].filter(
+    (action): action is OrderItemActionViewModel =>
+      action !== null && isOrderActionAvailable(action.type),
+  );
+
+  return primary ? { primary, secondary, more } : null;
+}
+
+function getOrderItemActionSlots({
   status,
   canRepurchase,
   deliveredAt,

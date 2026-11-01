@@ -1,5 +1,8 @@
 import Link from 'next/link';
-import type { OrderDetailViewModel } from '@/domains/order';
+import {
+  isOrderActionAvailable,
+  type OrderDetailViewModel,
+} from '@/domains/order';
 import { Button } from '@/shared/components/ui/button';
 import {
   MypageCard,
@@ -54,7 +57,7 @@ interface ReceiptLinkButtonProps {
 function ReceiptLinkButton({ order, className }: ReceiptLinkButtonProps) {
   const buttonClassName = `${MYPAGE_ACTION_CLASS_NAME.outline} ${className ?? ''}`;
 
-  if (!order.paidAt) return null;
+  if (!order.paidAt || !isOrderActionAvailable('receipt')) return null;
 
   return (
     <Button variant="outline" size="default" asChild className={buttonClassName}>

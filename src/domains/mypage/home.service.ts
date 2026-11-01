@@ -25,14 +25,11 @@ import { couponRepository } from '@/domains/coupon';
 import { getUserAddressText, type UserDTO } from '@/domains/member';
 import {
   filterOrders,
-  orderClaimRepository,
-  orderItemCancellationRepository,
-  orderItemRepository,
-  orderRepository,
+  joinOrderItems,
   toOrderListItemViewModel,
   toOrderStatusViewModel,
 } from '@/domains/order';
-import { fixtureProductService } from '@/domains/product/fixture-service';
+import { createMemberOrderReadServices } from '@/domains/order/member-order-read.server';
 import { requireRelation } from '@/shared/lib/data-integrity';
 import {
   MYPAGE_HOME_ORDER_STATUS_SUMMARY_STATUSES,
@@ -57,6 +54,7 @@ export async function getMypageHomeViewModel(
     throw new Error('회원 정보를 확인하지 못했습니다.');
   }
 
+  const orders = createMemberOrderReadServices(client);
   const [
     defaultAddress,
     membership,
@@ -65,7 +63,6 @@ export async function getMypageHomeViewModel(
     userCoupons,
     orderRows,
     reviews,
-    claims,
     recentProducts,
     wishlistProducts,
   ] = await Promise.all([
@@ -74,60 +71,36 @@ export async function getMypageHomeViewModel(
     membershipTierRepository.findMany(),
     pointTransactionRepository.findByUserId(demoUser.id),
     userCouponRepository.findByUserId(demoUser.id),
-    orderRepository.findByUserId(demoUser.id),
+    orders.orderRepository.findByUserId(access.member.id),
     reviewRepository.findByUserId(demoUser.id),
-    orderClaimRepository.findByUserId(demoUser.id),
     getRecentProductItems(demoUser.id),
     getWishlistProductItems(demoUser.id),
   ]);
 
-  const [orderItems, orderItemCancellations, coupons] = await Promise.all([
-    orderItemRepository.findByOrderIds(orderRows.map(order => order.id)),
-    orderItemCancellationRepository.findByOrderIds(
-      orderRows.map(order => order.id),
+  const now = new Date();
+  const recentOrderRows = filterOrders(
+    orderRows,
+    { period: 'all', status: 'all' },
+    now,
+  ).slice(0, 3);
+  // Only the three recent orders are shown, so only their items are read.
+  const [relations, coupons] = await Promise.all([
+    orders.orderItemRelationsService.getOrderItemRelations(
+      recentOrderRows.map(order => order.id),
     ),
     couponRepository.findByIds(
       Array.from(new Set(userCoupons.map(coupon => coupon.coupon_id))),
     ),
   ]);
-  const products = await fixtureProductService.findByIdsIncludingInactive(
-    Array.from(
-      new Set([
-        ...orderItems.map(item => item.product_id),
-      ]),
-    ),
-  );
-  const productById = new Map(products.map(product => [product.id, product]));
   const couponById = new Map(coupons.map(coupon => [coupon.id, coupon]));
-  const cancellationByOrderItemId = new Map(
-    orderItemCancellations.map(cancellation => [
-      cancellation.order_item_id,
-      cancellation,
-    ]),
-  );
   const reviewedItemIds = new Set(
     reviews.map(review => review.order_item_id),
   );
-  const cancelledItemIds = new Set(
-    orderItemCancellations.map(cancellation => cancellation.order_item_id),
-  );
-  const completedClaimedItemIds = new Set(
-    claims
-      .filter(claim => claim.status === 'completed')
-      .map(claim => claim.order_item_id),
-  );
   const orderById = new Map(orderRows.map(order => [order.id, order]));
-  const orderItemsByOrderId = new Map<string, typeof orderItems>();
-  const now = new Date();
 
-  orderItems.forEach(item => {
-    const items = orderItemsByOrderId.get(item.order_id) ?? [];
-    items.push(item);
-    orderItemsByOrderId.set(item.order_id, items);
-  });
-
+  // DB 주문에는 아직 취소·교환·반품 내역이 없다.
   const writableReviewOrderItemIds = new Set(
-    orderItems
+    Array.from(relations.itemById.values())
       .filter(item => {
         const order = orderById.get(item.order_id);
 
@@ -137,8 +110,8 @@ export async function getMypageHomeViewModel(
                 orderStatus: order.status,
                 deliveredAt: order.delivered_at,
                 hasReview: reviewedItemIds.has(item.id),
-                isCancelled: cancelledItemIds.has(item.id),
-                hasCompletedClaim: completedClaimedItemIds.has(item.id),
+                isCancelled: false,
+                hasCompletedClaim: false,
               },
               now,
             )
@@ -151,32 +124,23 @@ export async function getMypageHomeViewModel(
     { period: '1-month', status: 'all' },
     now,
   );
-  const recentOrders = filterOrders(
-    orderRows,
-    { period: 'all', status: 'all' },
-    now,
-  )
-    .slice(0, 3)
-    .map(order => {
-      const orderViewModel = toOrderListItemViewModel(
-        order,
-        (orderItemsByOrderId.get(order.id) ?? []).map(item => ({
-          item,
-          product: requireRelation(
-            productById.get(item.product_id),
-            'order_items.product_id -> products.id',
-            item.id,
-          ),
-          cancellation: cancellationByOrderItemId.get(item.id) ?? null,
-        })),
-      );
-      return toMypageHomeRecentOrderViewModel({
-        order,
-        orderViewModel,
-        writableReviewOrderItemIds,
-        reviewedOrderItemIds: reviewedItemIds,
-      });
+  const recentOrders = recentOrderRows.map(order => {
+    const orderViewModel = toOrderListItemViewModel(
+      order,
+      joinOrderItems(
+        order.id,
+        relations.itemsByOrderId,
+        relations.productById,
+        new Map(),
+      ),
+    );
+    return toMypageHomeRecentOrderViewModel({
+      order,
+      orderViewModel,
+      writableReviewOrderItemIds,
+      reviewedOrderItemIds: reviewedItemIds,
     });
+  });
   const currentMembership = membership
     ? requireRelation(
         membershipTiers.find(tier => tier.id === membership.tier_id),

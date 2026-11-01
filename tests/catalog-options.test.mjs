@@ -112,34 +112,6 @@ test('cart API omits inactive products but keeps active sold-out options', async
   assert.deepEqual(data.cartItems.map(item => [item.productId, item.variantId, item.stock]), [[2, 7, 0]]);
 });
 
-test('demo order saves numeric options and rejects mismatched product-option pairs', async () => {
-  const { fixtureProductService: productService } = loadTs('src/domains/product/fixture-service.ts');
-  const { createOrderCommandService } = loadTs('src/domains/order/order-command.service.ts', {
-    '@/domains/product': loadTs('src/domains/product/domain.ts'),
-  });
-  const saved = { items: [] };
-  const service = createOrderCommandService({
-    productRepository: productService,
-    orderMutationRepository: {
-      createOrder: async order => { saved.order = order; },
-      createOrderItems: async items => { saved.items = items; },
-      createOrderStatusHistories: async () => {},
-      createPaymentTransactions: async () => {},
-    },
-    now: () => new Date('2026-10-17T00:00:00Z'),
-  });
-  const input = {
-    userId: 'demo', recipientName: '테스트', recipientPhone: '01012345678',
-    postalCode: '12345', shippingAddressText: '테스트 주소',
-    items: [{ productId: 1, variantId: 2, quantity: 2 }],
-  };
-  await service.createDemoOrder(input);
-  assert.equal(saved.items[0].variant_id, 2);
-  assert.equal(saved.items[0].option_label, '그레이 / M');
-  assert.equal(saved.order.total_amount, saved.items[0].line_total_amount + saved.order.shipping_fee);
-  await assert.rejects(service.createDemoOrder({ ...input, items: [{ productId: 1, variantId: 17, quantity: 1 }] }), /상품 옵션/);
-});
-
 test('exchange form keeps a missing option null and prevents submitting it', () => {
   const states = [];
   let cursor = 0;

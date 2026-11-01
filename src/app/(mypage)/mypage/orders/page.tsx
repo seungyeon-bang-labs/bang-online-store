@@ -1,7 +1,8 @@
 import { PackageSearch } from 'lucide-react';
 import { DynamicPagination } from '@/shared/components/common/dynamic-pagination';
-import { currentUserRepository } from '@/domains/member';
+import { requireActiveMember } from '@/app/(auth)/require-active-member';
 import { getMypageOrderListViewModel } from '@/domains/mypage';
+import { createMemberOrderReadServices } from '@/domains/order/member-order-read.server';
 import {
   MypageEmptyState,
   MypageFilterCard,
@@ -14,6 +15,7 @@ import {
   MypageOrderPartialCancellationToggle,
 } from '@/features/mypage/orders';
 import { waitForMypageLoadingForDevelopment } from '@/shared/lib/development';
+import { createAuthClient } from '@/shared/lib/supabase/auth-server';
 import {
   buildOrderListFilterHref,
   buildOrderListHref,
@@ -29,18 +31,13 @@ interface OrdersPageProps {
 async function OrdersPage({ searchParams }: OrdersPageProps) {
   await waitForMypageLoadingForDevelopment();
 
-  const user = await currentUserRepository.findCurrent();
+  const member = await requireActiveMember();
   const query = parseOrderListQuery(await searchParams);
-
-  const orderListViewModel = user
-    ? await getMypageOrderListViewModel(user.id, query)
-    : {
-        items: [],
-        currentPage: 1,
-        totalPages: 1,
-        totalItems: 0,
-        unfilteredItemCount: 0,
-      };
+  const orderListViewModel = await getMypageOrderListViewModel(
+    createMemberOrderReadServices(await createAuthClient()),
+    member.id,
+    query,
+  );
 
   const { items, currentPage, totalPages, unfilteredItemCount } =
     orderListViewModel;

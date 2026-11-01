@@ -1,7 +1,4 @@
-import { ChevronRight } from 'lucide-react';
-import Link from 'next/link';
 import type { PointTransactionViewModel } from '@/domains/benefit';
-import { getMypageOrderDetailHref } from '@/shared/lib/mypage-routes';
 import { MypageBadge } from '../common/badge';
 
 interface MypagePointTransactionCardProps {
@@ -25,24 +22,9 @@ export function MypagePointTransactionCard({
         {transaction.amountText}
       </p>
       <h3 className="col-start-1 row-start-2 min-w-0 text-sm leading-5 font-bold text-black">
-        {transaction.orderId ? (
-          <Link
-            href={getMypageOrderDetailHref(transaction.orderId)}
-            className="flex min-w-0 items-center gap-0.5 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
-          >
-            <span className="min-w-0 truncate" title={transaction.description}>
-              {transaction.description}
-            </span>
-            <ChevronRight
-              aria-hidden="true"
-              className="size-4 shrink-0 text-black"
-            />
-          </Link>
-        ) : (
-          <span className="block min-w-0 truncate" title={transaction.description}>
-            {transaction.description}
-          </span>
-        )}
+        <span className="block min-w-0 truncate" title={transaction.description}>
+          {transaction.description}
+        </span>
       </h3>
     </article>
   );

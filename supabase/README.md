@@ -5,7 +5,7 @@
 ## 현재 상태와 적용 조건
 
 - 회원 인증은 Supabase Auth를 사용하고, 회원·약관·상품·카테고리·배송지는 실제 DB에서 조회합니다. 상품·카테고리 이미지는 Storage에서 제공합니다.
-- 기존 주문·리뷰·문의·혜택 등 데모 내역은 fixture를 유지합니다. 현재 카탈로그 판매량·적용 할인·SALE 캠페인과 홈 직접 구성 섹션은 DB에서 조회합니다. 이벤트 배너의 기존 출처와 NEW 분류 기준은 유지합니다.
+- 주문 목록·상세·마이페이지 홈의 주문은 DB에서 조회합니다. 주문 취소·교환·반품·영수증과 리뷰·문의·혜택 등 데모 내역은 fixture를 유지합니다. 현재 카탈로그 판매량·적용 할인·SALE 캠페인과 홈 직접 구성 섹션은 DB에서 조회합니다. 이벤트 배너의 기존 출처와 NEW 분류 기준은 유지합니다.
 - 현재 앱은 `AUTH_FEATURES_ENABLED`가 정확히 `true`일 때 회원가입·이메일 인증·비밀번호 찾기를 허용합니다. 제한 모드에서도 로그인·로그아웃은 사용할 수 있습니다.
 - 아래 SQL은 기존 회원·약관 스키마 등을 전제로 작성한 변경 이력입니다. 빈 Supabase 프로젝트 전체를 초기화하는 스크립트가 아니므로, 새 환경에서는 기존 스키마와 각 사전점검 조건을 먼저 준비해야 합니다.
 - 기존 SQL은 SQL Editor에서 적용했으며 CLI 마이그레이션 이력에는 등록하지 않았습니다. 이미 적용된 SQL을 재실행하거나 이력 정리 없이 `supabase db push`를 실행하지 않습니다.
@@ -13,17 +13,27 @@
 
 앱 실행과 환경변수 설정은 [프로젝트 README](../README.md)를 참고합니다.
 
-## 주문 DB 준비 — 2026-10-31 (원격 미적용)
+## 주문 DB 적용·검증 — 2026-11-01
 
-원격 적용은 별도 승인 대상입니다. 적용 전 읽기 전용 사전 점검을 먼저 실행합니다.
+사용자 승인 후 프로젝트 `plamqblmcavrtioajopz`(`main / PRODUCTION`)의 SQL Editor에서 아래 migration 한 개만 적용했습니다. 전체 `supabase db push`·기존 SQL 재실행·처리 이력 등록은 하지 않았습니다.
 
 - 읽기 전용 사전 점검: [orders-preflight.sql](./checks/orders-preflight.sql)
 - 스키마·RPC·RLS: [20261031120000_orders.sql](./migrations/20261031120000_orders.sql)
 - 빈 상태 전용 복구: [rollback SQL](./rollback/20261031120000_orders.sql)
+- 적용 SQL SHA-256: `1149fc2a352502e9dbe55b290c0b4c096bf17b4928d4364c9dc4a8d83cc64bfd`
+
+사전 점검(READ ONLY, PostgreSQL 17.6)에서 신규 테이블·enum·함수 이름 충돌이 없고, 의존 테이블 10개의 RLS·마커, 필수 열 18개의 형식, `private.cart_member`·`private.cart_lock`·`auth.uid()` 실행 권한, 역할 설정, CLI 이력 테이블 부재, 활성 상품 27개를 확인했습니다. migration 실행 결과는 `Success. No rows returned`였습니다. 적용 후 읽기 전용 확인으로 네 테이블의 RLS·마커·0건, authenticated 조회 전용·anon 권한 없음, 본인 조회 정책 4개, `place_order`의 security definer·고정 search_path·authenticated 전용 실행 권한, private 함수 2개의 실행 권한 없음, enum 2개의 값, 인덱스 10개, CHECK·FK·PK·UNIQUE 제약을 확인했습니다. 같은 project ref의 public 스키마에서 설치된 Supabase CLI로 생성한 타입이 [공유 타입](../src/shared/types/supabase.ts)과 완전히 일치했습니다.
 
 `orders`, `order_items`, `order_status_histories`, `order_payment_transactions` 네 테이블은 본인 주문만 읽을 수 있고(활성·미삭제·이메일 인증 회원), 직접 쓰기 권한은 없습니다. 주문은 authenticated만 실행할 수 있는 `place_order` 한 경로로만 생성합니다. 이 RPC는 회원 장바구니 잠금 아래에서 옵션 재고 행을 잠그고, 판매 상태·재고·본인 배송지(상세 주소 필수)를 확인합니다. 금액은 DB 값으로 다시 계산해(할인은 기본가에만, 옵션 추가금은 할인 없음, 상품 금액 50,000원 미만이면 배송비 3,000원) 클라이언트 총액과 다르면 거절하고, 재고 차감·주문 사본 저장·주문한 장바구니 줄 삭제를 한 트랜잭션으로 처리합니다. 같은 `request_id`는 처음 주문을 그대로 돌려줍니다.
 
 주문 상태와 결제 수단 허용 값은 enum `public.order_status`, `public.order_payment_method` 한 곳에만 두며, 생성 타입에 값 목록 그대로 들어갑니다. 결제 수단은 지금 `card`뿐입니다. 결제 확정은 실행 권한이 없는 `private.order_confirm_payment`가 맡고, 카드는 주문 생성 안에서 바로 확정합니다. 무통장 입금을 붙일 때는 ① `ALTER TYPE public.order_payment_method ADD VALUE 'bank_transfer'`, ② `place_order`에 입금 기한(`payment_due_at`)과 `pending_payment` 상태 이력을 남기는 분기, ③ 입금 확인 경로(관리자 또는 웹훅)에서 `order_confirm_payment` 호출을 추가합니다. 격리 DB 테스트([orders-db.test.mjs](../tests/orders-db.test.mjs))가 TypeScript 장바구니·배송비 규칙과 RPC 금액이 같은지 함께 검사합니다.
+
+주문 목록·상세·마이페이지 홈은 DB 주문만 읽습니다. 아직 DB로 옮기지 않은 기능 때문에 남은 일은 다음과 같습니다.
+
+- 주문 취소·교환·반품·영수증·1:1 문의 버튼은 DB 주문에서 숨깁니다(`src/domains/order/order-action-policy.ts`). 각 기능을 DB 주문에 연결할 때 하나씩 되살립니다. 리뷰 쓰기도 fixture 주문만 찾으므로 DB 주문에 배송완료 전환이 생기기 전에 숨기거나 리뷰를 DB로 옮깁니다.
+- 리뷰·적립금·문의 화면의 주문 상세 링크(`주문 상세 보기`)는 fixture 주문 id라 제거했습니다. 각 화면을 DB로 옮기면 되살립니다.
+- 회원 주문은 한 번에 모두 읽어 메모리에서 거릅니다. Data API 행 상한(기본 1,000)을 넘으면 오류 없이 잘리므로, 주문이 늘면 필터와 페이지 나누기를 쿼리로 옮깁니다.
+- 판매 중지 상품은 회원이 조회할 수 없어 주문 당시 이름과 기본 이미지로 표시하는데, 대체 카드가 아직 없는 상품 페이지로 링크합니다. 링크를 빼고, 이미지를 남기려면 `order_items`에 썸네일을 저장합니다.
 
 ## 배송지 적용·검증 — 2026-10-31
 

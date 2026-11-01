@@ -1,7 +1,4 @@
-import {
-  DataIntegrityError,
-  requireRelation,
-} from '@/shared/lib/data-integrity';
+import { DataIntegrityError } from '@/shared/lib/data-integrity';
 import type { ProductModel } from '@/domains/product';
 import type {
   OrderDTO,
@@ -12,7 +9,8 @@ import type {
 
 export interface OrderJoinedItem {
   item: OrderItemDTO;
-  product: ProductModel;
+  // Null once the product is off sale; the item keeps its order-time snapshot.
+  product: ProductModel | null;
   cancellation: OrderItemCancellationDTO | null;
 }
 
@@ -143,11 +141,7 @@ export function joinOrderItems(
 
     return {
       item,
-      product: requireRelation(
-        productById.get(item.product_id),
-        'order_items.product_id -> products.id',
-        item.id,
-      ),
+      product: productById.get(item.product_id) ?? null,
       cancellation,
     };
   });

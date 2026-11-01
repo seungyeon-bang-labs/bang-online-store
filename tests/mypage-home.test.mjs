@@ -34,6 +34,25 @@ const defaultAddress = {
   updated_at: '2026-10-31T00:00:00Z',
 };
 
+const ORDER = '44444444-4444-4444-8444-444444444441';
+const OLDER_ORDER = '44444444-4444-4444-8444-444444444442';
+const orderRow = (id, orderedAt) => ({
+  id, order_number: '20261101-123456', user_id: alice.id, request_id: id, status: 'payment_completed',
+  ordered_at: orderedAt, payment_due_at: orderedAt, paid_at: orderedAt, estimated_delivery_at: null,
+  delivered_at: null, cancelled_at: null, subtotal_amount: 25000, discount_amount: 0, shipping_fee: 3000,
+  total_amount: 28000, recipient_name: 'Alice Member', recipient_phone: '010-1234-5678', postal_code: '06134',
+  shipping_address_line_1: '서울특별시 강남구 테헤란로 123', shipping_address_line_2: '101동 1203호',
+  delivery_note: null, payment_method: 'card',
+});
+const orderItemRow = (orderId, productId) => ({
+  id: orderId.replace(/4$|1$|2$/, '9'), order_id: orderId, product_id: productId, product_variant_id: 2,
+  product_name: '주문 당시 상품명', option_label: '그레이 / M', quantity: 1, unit_price: 25000,
+  discount_amount: 0, line_total_amount: 25000, created_at: '2026-11-01T00:00:00Z',
+});
+const json = rows => new Response(JSON.stringify(rows), {
+  status: 200, headers: { 'content-type': 'application/json' },
+});
+
 // Run the real access service, repositories and fixture aggregation;
 // substitute only the Supabase client boundary used by this request.
 function createHomeRequest(initialMember, options = {}) {
@@ -44,6 +63,14 @@ function createHomeRequest(initialMember, options = {}) {
     global: { fetch: async input => {
       const url = new URL(String(input));
       requests.push(url);
+      if (url.pathname === '/rest/v1/orders') {
+        const userId = url.searchParams.get('user_id')?.replace(/^eq\./, '');
+        return json((options.orders ?? []).filter(order => order.user_id === userId));
+      }
+      if (url.pathname === '/rest/v1/order_items') {
+        const orderIds = url.searchParams.get('order_id').replace(/^in\.\(|\)$/g, '').split(',');
+        return json((options.orderItems ?? []).filter(item => orderIds.includes(item.order_id)));
+      }
       if (url.pathname === '/rest/v1/user_addresses') {
         assert.equal(url.searchParams.get('is_default'), 'eq.true');
         const userId = url.searchParams.get('user_id')?.replace(/^eq\./, '');
@@ -83,9 +110,13 @@ function createHomeRequest(initialMember, options = {}) {
     } : null },
     error: options.authError ?? null,
   });
+  const { fixtureProductService } = loadTs('src/domains/product/fixture-service.ts');
   const { getMypageHomeViewModel } = loadTs('src/domains/mypage/home.service.ts', {
     '@/shared/lib/supabase/auth-server': { createAuthClient: async () => client },
     '@/shared/lib/supabase/server': { supabase: {} },
+    '@/domains/order/member-order-read.server': loadTs('src/domains/order/member-order-read.server.ts', {
+      '@/domains/product': { ...loadTs('src/domains/product/mapper.ts'), productService: fixtureProductService },
+    }),
   });
   return {
     getHome: () => getMypageHomeViewModel(CURRENT_USER),
@@ -102,11 +133,8 @@ test('home uses the session member name and keeps demo shopping records across a
   assert.equal(first.summary.defaultAddressText, '서울특별시 강남구 테헤란로 123 101동 1203호');
   assert.equal(first.summary.membershipTierCode, 'GOLD');
   assert.equal(first.summary.pointBalanceText, '17,200 P');
-  assert.deepEqual(Array.from(first.recentOrders, order => order.id), [
-    '20000000-0000-4000-8000-000000000007',
-    '20000000-0000-4000-8000-000000000001',
-    '20000000-0000-4000-8000-000000000019',
-  ]);
+  assert.deepEqual(first.recentOrders, []);
+  assert.equal(first.orderStatuses.every(status => status.count === 0), true);
   assert.equal(first.wishlistProducts.length, 10);
 
   request.setMember(bob);
@@ -125,6 +153,39 @@ test('home uses the session member name and keeps demo shopping records across a
   assert.deepEqual(addressRequests.map(url => url.searchParams.get('user_id')), [
     `eq.${alice.id}`, `eq.${bob.id}`,
   ]);
+});
+
+test('home shows the session member DB orders without unconnected follow-up actions', async () => {
+  const now = Date.now();
+  const recent = new Date(now - 60_000).toISOString();
+  const older = new Date(now - 120_000).toISOString();
+  const request = createHomeRequest(alice, {
+    orders: [orderRow(OLDER_ORDER, older), orderRow(ORDER, recent), { ...orderRow(ORDER, recent), id: 'other', user_id: bob.id }],
+    orderItems: [orderItemRow(ORDER, 1), orderItemRow(OLDER_ORDER, 999)],
+  });
+  const home = await request.getHome();
+  assert.deepEqual(home.recentOrders.map(order => order.id), [ORDER, OLDER_ORDER]);
+  assert.equal(home.orderStatuses.find(status => status.status === 'payment_completed').count, 2);
+  const [first, second] = home.recentOrders;
+  assert.equal(first.productSummary, '주문 당시 상품명');
+  assert.equal(first.orderAmount.amountText, '28,000원');
+  const types = [first.actions.primary, first.actions.secondary, ...first.actions.more].filter(Boolean).map(action => action.type);
+  assert.deepEqual(types, ['order']);
+  // A product that is no longer on sale keeps the order snapshot instead of failing the page.
+  assert.equal(second.items[0].product.thumbnailUrl, '/file.svg');
+  assert.equal(second.items[0].repurchaseItem, null);
+  assert.deepEqual(home.recentOrders.length, 2);
+  const fourOrders = createHomeRequest(alice, {
+    orders: [1, 2, 3, 4].map(n => orderRow(`44444444-4444-4444-8444-44444444445${n}`, new Date(now - n * 60_000).toISOString())),
+  });
+  const fourHome = await fourOrders.getHome();
+  assert.equal(fourHome.recentOrders.length, 3);
+  const itemQuery = fourOrders.requests.find(url => url.pathname === '/rest/v1/order_items').searchParams.get('order_id');
+  assert.equal(itemQuery.includes('444444444454'), false);
+  assert.deepEqual(
+    request.requests.filter(url => url.pathname === '/rest/v1/orders').map(url => url.searchParams.get('user_id')),
+    [`eq.${alice.id}`],
+  );
 });
 
 test('home rejects unavailable access instead of returning a demo name', async () => {

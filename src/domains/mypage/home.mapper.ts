@@ -1,4 +1,7 @@
-import { getOrderActionEligibility } from '@/domains/order';
+import {
+  getOrderActionEligibility,
+  isOrderActionAvailable,
+} from '@/domains/order';
 import type { OrderDTO } from '@/domains/order/dto';
 import type { OrderListItemViewModel } from '@/domains/order/view-model';
 import {
@@ -68,15 +71,19 @@ export function toMypageHomeRecentOrderViewModel({
       repurchaseItem: singleItem?.repurchaseItem ?? null,
       links: {
         payment: 'placeholder',
-        cancel: cancellationHref,
+        cancel: isOrderActionAvailable('cancel') ? cancellationHref : null,
         order: orderHref,
         tracking: 'placeholder',
         reviewWrite: reviewWriteHref,
         reviewEdit: '/mypage/reviews?tab=completed&page=1',
-        claim: claimHref,
-        receipt: getMypageOrderReceiptHref(order.id),
-        refund: getMypageOrderReceiptHref(order.id),
-        inquiry: inquiryHref,
+        claim: isOrderActionAvailable('claim') ? claimHref : null,
+        receipt: isOrderActionAvailable('receipt')
+          ? getMypageOrderReceiptHref(order.id)
+          : null,
+        refund: isOrderActionAvailable('receipt')
+          ? getMypageOrderReceiptHref(order.id)
+          : null,
+        inquiry: isOrderActionAvailable('inquiry') ? inquiryHref : null,
       },
     }),
   };

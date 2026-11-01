@@ -1,5 +1,5 @@
 import { MYPAGE_ACTION_CLASS_NAME } from '@/features/mypage/common/styles';
-import { ChevronRight, Star } from 'lucide-react';
+import { Star } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/shared/components/ui/button';
 import type { WrittenReviewViewModel } from '@/domains/activity/view-model';
@@ -8,10 +8,7 @@ import {
   MypageProductSummary,
   MypageProductThumbnailLink,
 } from '@/features/mypage/common/product-summary';
-import {
-  getMypageOrderDetailHref,
-  getMypageReviewEditHref,
-} from '@/shared/lib/mypage-routes';
+import { getMypageReviewEditHref } from '@/shared/lib/mypage-routes';
 import { MypageReviewDeleteButton } from './delete-button';
 
 interface WrittenReviewCardProps {
@@ -40,15 +37,6 @@ export function WrittenReviewCard({
           nameHref={review.product.href}
           meta={review.optionLabel}
           truncateName
-          action={
-            <Link
-              href={getMypageOrderDetailHref(review.orderId)}
-              className="mt-1 inline-flex w-fit items-center gap-0.5 text-xs font-bold text-black hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
-            >
-              주문 상세 보기
-              <ChevronRight className="size-4" aria-hidden="true" />
-            </Link>
-          }
         />
         <MypageCardContentBlock
           title="리뷰"
