@@ -5,7 +5,12 @@ import {
   formatKoreanShortDateTime,
 } from '@/shared/lib/format';
 import type { StatusViewModel } from '@/shared/types/status';
-import { toProductCardViewModel, type ProductModel } from '@/domains/product';
+import {
+  toProductCardViewModel,
+  type ProductCardViewModel,
+  type ProductModel,
+} from '@/domains/product';
+import type { OrderJoinedItem } from './domain';
 import type {
   OrderDTO,
   OrderItemCancellationDTO,
@@ -77,17 +82,34 @@ interface OrderItemViewModelParts {
   repurchaseItem: OrderItemViewModel['repurchaseItem'];
 }
 
+// 판매 중지 상품은 회원이 조회할 수 없어 주문 당시 이름과 기본 이미지로 대신한다.
+// 아직 상품 링크가 남아 있어 404로 간다. 링크를 빼고, 이미지를 남기려면 order_items에 썸네일을 저장한다.
+function toOrderedProductCardViewModel(
+  item: OrderItemDTO,
+): ProductCardViewModel {
+  return {
+    id: item.product_id,
+    name: item.product_name,
+    href: `/product/${item.product_id}`,
+    thumbnailUrl: '/file.svg',
+    price: item.unit_price,
+    discountRate: 0,
+    discountedPrice: item.unit_price,
+    isSoldOut: true,
+  };
+}
+
 function toOrderItemViewModelParts(
   order: OrderDTO,
   item: OrderItemDTO,
-  product: ProductModel,
+  product: ProductModel | null,
   cancellation: OrderItemCancellationDTO | null,
 ): OrderItemViewModelParts {
-  const orderedVariant = product.variants.find(
+  const orderedVariant = product?.variants.find(
     variant => variant.id === item.variant_id,
   );
   const canRepurchase =
-    product.state === 'active' &&
+    product?.state === 'active' &&
     orderedVariant !== undefined &&
     orderedVariant.stock >= item.quantity;
 
@@ -102,7 +124,9 @@ function toOrderItemViewModelParts(
   return {
     detailItem: {
       id: item.id,
-      product: toProductCardViewModel(product),
+      product: product
+        ? toProductCardViewModel(product)
+        : toOrderedProductCardViewModel(item),
       productName: item.product_name,
       optionLabel: item.option_label,
       quantity: item.quantity,
@@ -181,11 +205,7 @@ function toOrderAmountViewModel(
 
 export function toOrderListItemViewModel(
   order: OrderDTO,
-  joinedItems: Array<{
-    item: OrderItemDTO;
-    product: ProductModel;
-    cancellation: OrderItemCancellationDTO | null;
-  }>,
+  joinedItems: readonly OrderJoinedItem[],
 ): OrderListItemViewModel {
   const refunds = toOrderRefundViewModels(joinedItems, order.payment_method);
   const cancelledItemCount = joinedItems.filter(
@@ -252,11 +272,7 @@ export function applyReviewedItemActions(
 
 export function toOrderDetailViewModel(
   order: OrderDTO,
-  joinedItems: Array<{
-    item: OrderItemDTO;
-    product: ProductModel;
-    cancellation: OrderItemCancellationDTO | null;
-  }>,
+  joinedItems: readonly OrderJoinedItem[],
   histories: readonly OrderStatusHistoryDTO[],
 ): OrderDetailViewModel {
   const refunds = toOrderRefundViewModels(joinedItems, order.payment_method);

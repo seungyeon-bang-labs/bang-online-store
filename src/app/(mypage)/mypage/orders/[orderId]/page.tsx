@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
+import { requireActiveMember } from '@/app/(auth)/require-active-member';
 import { getMypageOrderDetailViewModel } from '@/domains/mypage';
-import { currentUserRepository } from '@/domains/member';
+import { createMemberOrderReadServices } from '@/domains/order/member-order-read.server';
 import { MypagePageLayout, MypagePageHeader } from '@/features/mypage/common';
 import {
   MypageOrderDetailHeader,
@@ -11,19 +12,22 @@ import {
   MypageOrderDetailShipping,
   MypageOrderDetailStatusHistory,
 } from '@/features/mypage/orders/detail';
+import { createAuthClient } from '@/shared/lib/supabase/auth-server';
 
 interface OrderDetailPageProps {
   params: Promise<{ orderId: string }>;
 }
 
 async function OrderDetailPage({ params }: OrderDetailPageProps) {
-  const [{ orderId }, user] = await Promise.all([
+  const [{ orderId }, member] = await Promise.all([
     params,
-    currentUserRepository.findCurrent(),
+    requireActiveMember(),
   ]);
-  const orderDetailViewModel = user
-    ? await getMypageOrderDetailViewModel(user.id, orderId)
-    : null;
+  const orderDetailViewModel = await getMypageOrderDetailViewModel(
+    createMemberOrderReadServices(await createAuthClient()),
+    member.id,
+    orderId,
+  );
 
   if (!orderDetailViewModel) {
     notFound();

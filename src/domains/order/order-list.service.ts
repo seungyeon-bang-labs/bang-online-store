@@ -50,11 +50,13 @@ export function createOrderListService({
       cancellations,
       query.includePartialCancellation,
     );
+    // Read items only for the page being shown.
+    const page = paginate(orders, query.page, 10);
     const relations = await orderItemRelationsService.getOrderItemRelations(
-      orders.map(order => order.id),
+      page.items.map(order => order.id),
     );
     const cancellationByOrderItemId = indexOrderItemCancellations(cancellations);
-    const items = orders.map(order =>
+    const items = page.items.map(order =>
       toOrderListItemViewModel(
         order,
         joinOrderItems(
@@ -67,7 +69,8 @@ export function createOrderListService({
     );
 
     return {
-      ...paginate(items, query.page, 10),
+      ...page,
+      items,
       unfilteredItemCount: sourceOrders.length,
     };
   }

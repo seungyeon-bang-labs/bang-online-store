@@ -1,14 +1,15 @@
 import { reviewRepository } from '@/domains/activity';
 import { pointTransactionRepository } from '@/domains/benefit';
-import { getOrderDetailViewModel } from '@/domains/order';
+import type { OrderDetailService } from '@/domains/order';
 import { toMypageOrderDetailViewModel } from './order-detail.mapper';
 import type { MypageOrderDetailViewModel } from './order-detail.view-model';
 
 export async function getMypageOrderDetailViewModel(
+  orders: OrderDetailService,
   userId: string,
   orderId: string,
 ): Promise<MypageOrderDetailViewModel | null> {
-  const order = await getOrderDetailViewModel(userId, orderId);
+  const order = await orders.getOrderDetailViewModel(userId, orderId);
 
   if (!order) return null;
 

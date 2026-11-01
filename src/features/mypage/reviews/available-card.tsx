@@ -1,5 +1,4 @@
 import { MYPAGE_ACTION_CLASS_NAME } from '@/features/mypage/common/styles';
-import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/shared/components/ui/button';
 import type { AvailableReviewViewModel } from '@/domains/activity/view-model';
@@ -8,10 +7,7 @@ import {
   MypageProductSummary,
   MypageProductThumbnailLink,
 } from '@/features/mypage/common/product-summary';
-import {
-  getMypageOrderDetailHref,
-  getMypageReviewWriteHref,
-} from '@/shared/lib/mypage-routes';
+import { getMypageReviewWriteHref } from '@/shared/lib/mypage-routes';
 
 interface AvailableReviewCardProps {
   review: AvailableReviewViewModel;
@@ -45,15 +41,6 @@ export function AvailableReviewCard({
           nameHref={review.product.href}
           meta={review.optionLabel}
           truncateName
-          action={
-            <Link
-              href={getMypageOrderDetailHref(review.orderId)}
-              className="mt-1 inline-flex w-fit items-center gap-0.5 text-xs font-bold text-black hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
-            >
-              주문 상세 보기
-              <ChevronRight className="size-4" aria-hidden="true" />
-            </Link>
-          }
         />
       </MypageCard.Body>
       <MypageCard.Footer>

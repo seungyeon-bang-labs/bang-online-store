@@ -14,7 +14,6 @@ import {
   fixtureOrderClaimHistoryRepository,
   fixtureOrderClaimSettlementRepository,
 } from './claim/fixture-repository';
-import { createOrderCommandService } from './order-command.service';
 import { createOrderCancellationPreviewService } from './cancellation/preview.service';
 import { createOrderCancellationSubmitService } from './cancellation/submit.service';
 import { createClaimListService } from './claim/list.service';
@@ -30,10 +29,11 @@ export * from './dto';
 export * from './claim';
 export * from './cancellation';
 export * from './mapper';
-export * from './order-command.service';
 export * from './order-action-policy';
 export * from './repository';
 export * from './view-model';
+export type { OrderDetailService } from './order-detail.service';
+export type { OrderListService } from './order-list.service';
 
 export const orderClaimRepository = fixtureOrderClaimRepository;
 export const orderClaimHistoryRepository = fixtureOrderClaimHistoryRepository;
@@ -67,11 +67,6 @@ const orderDetailService = createOrderDetailService({
   orderItemCancellationRepository,
   orderStatusHistoryRepository,
   orderItemRelationsService,
-});
-
-const orderCommandService = createOrderCommandService({
-  orderMutationRepository,
-  productRepository: productService,
 });
 
 const orderCancellationPreviewService = createOrderCancellationPreviewService({
@@ -136,4 +131,3 @@ export const getOrderClaimDetailViewModel =
 export const getOrderClaimRequestViewModel =
   claimRequestService.getOrderClaimRequestViewModel;
 export const cancelOrderClaim = claimCancelService.cancelOrderClaim;
-export const createDemoOrder = orderCommandService.createDemoOrder;
