@@ -189,14 +189,14 @@ test('order constraints reject inconsistent amounts, states and payment methods'
 
 test('order amounts match the TypeScript cart and shipping rules', options, t => {
   const db = orders(t);
-  const { getProductLinePrice } = loadTs('src/domains/product/domain.ts');
-  const { getOrderShippingFee } = loadTs('src/domains/order/domain.ts');
+  // The same function the cart summary and the checkout page show.
+  const { getOrderAmounts } = loadTs('src/domains/order/domain.ts');
   const expected = lines => {
-    const priced = lines.map(line => getProductLinePrice(line.price, line.rate, line.offset, line.quantity));
-    const subtotal = priced.reduce((sum, line) => sum + line.originalTotal, 0);
-    const discount = priced.reduce((sum, line) => sum + line.discountAmount, 0);
-    return { subtotal, discount, shipping: getOrderShippingFee(subtotal - discount),
-      total: subtotal - discount + getOrderShippingFee(subtotal - discount) };
+    const amounts = getOrderAmounts(lines.map(line => ({
+      price: line.price, discountRate: line.rate, priceOffset: line.offset, quantity: line.quantity,
+    })));
+    return { subtotal: amounts.productAmount + amounts.optionAmount, discount: amounts.discountAmount,
+      shipping: amounts.shippingFee, total: amounts.totalAmount };
   };
   db.sql(`insert into public.discounts(id,title,starts_at,ends_at,priority,is_active) values
       (1,'낮은 우선순위',now()-interval '1 day',now()+interval '1 day',1,true),
