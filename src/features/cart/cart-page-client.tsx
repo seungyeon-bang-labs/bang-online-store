@@ -64,13 +64,13 @@ export function CartPageClient() {
         <div className="hidden md:flex items-center gap-2 text-sm font-black">
           <span className="text-black">01. 장바구니</span>
           <span className="text-gray-300 mx-2">{'>'}</span>
-          <span className="text-gray-300">02. 주문결제</span>
+          <span className="text-gray-300">02. 주문/결제</span>
           <span className="text-gray-300 mx-2">{'>'}</span>
           <span className="text-gray-300">03. 주문완료</span>
         </div>
       </PageTitle>
 
-      <div className="grid items-start gap-6 pb-32 lg:grid-cols-[1fr_400px] lg:gap-12 lg:pb-0">
+      <div className="grid items-start gap-6 pb-32 lg:grid-cols-[1fr_360px] lg:gap-12 lg:pb-0">
         <div className="space-y-6">
           {error && (
             <div

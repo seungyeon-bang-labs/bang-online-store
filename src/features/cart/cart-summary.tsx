@@ -2,8 +2,14 @@ import { Button } from '@/shared/components/ui/button';
 import { useMemo, useState } from 'react';
 import { ChevronUp, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
-import { getProductLinePrice } from '@/domains/product/domain';
+import { useRouter } from 'next/navigation';
+import { getOrderAmounts } from '@/domains/order/domain';
+import { getOrderBlock } from '@/domains/order/place-order';
+import { getOrderBlockMessage } from '@/features/checkout/checkout-messages';
+import { getCheckoutHref } from '@/shared/lib/checkout-routes';
 import { cn } from '@/shared/lib/utils';
+import { selectCartLocked } from './cart-selectors';
+import { useCartState } from './use-cart';
 
 import type { CartItemViewModel } from '@/domains/cart/view-model';
 
@@ -12,46 +18,31 @@ interface CartSummaryProps {
 }
 
 export function CartSummary({ selectedProducts }: CartSummaryProps) {
+  const purchasable = useMemo(
+    () => selectedProducts.filter(item => item.canSelect),
+    [selectedProducts],
+  );
   const orderSummary = useMemo(() => {
-    const purchasable = selectedProducts.filter(item => item.canSelect);
-    const itemCount = purchasable.reduce(
-      (total, item) => total + item.quantity,
-      0,
-    );
-    const subtotal = purchasable.reduce(
-      (total, item) => total + item.price * item.quantity,
-      0,
-    );
-    const discountAmount = purchasable.reduce(
-      (total, item) =>
-        total +
-        getProductLinePrice(
-          item.price,
-          item.discountRate,
-          item.priceOffset,
-          item.quantity,
-        ).discountAmount,
-      0,
-    );
-    const shippingFee = 0;
-    const optionsTotal = purchasable.reduce(
-      (total, item) => total + item.priceOffset * item.quantity,
-      0,
-    );
-    const total = Math.max(
-      0,
-      subtotal - discountAmount + shippingFee + optionsTotal,
-    );
+    const amounts = getOrderAmounts(purchasable);
 
     return {
-      itemCount,
-      subtotal,
-      discountAmount,
-      shippingFee,
-      total,
-      optionsTotal,
+      itemCount: amounts.itemCount,
+      subtotal: amounts.productAmount,
+      discountAmount: amounts.discountAmount,
+      shippingFee: amounts.shippingFee,
+      total: amounts.totalAmount,
+      optionsTotal: amounts.optionAmount,
     };
-  }, [selectedProducts]);
+  }, [purchasable]);
+  const access = useCartState(state => state.access);
+  // A pending change would reach checkout as the old lines; wait until it settles.
+  const locked = useCartState(selectCartLocked);
+  const block =
+    purchasable.length > 0
+      ? getOrderBlock({ lineCount: purchasable.length, totalAmount: orderSummary.total })
+      : null;
+  const canOrder = purchasable.length > 0 && block === null && !locked;
+  const router = useRouter();
 
   const [expanded, setExpanded] = useState(false);
 
@@ -92,7 +83,16 @@ export function CartSummary({ selectedProducts }: CartSummaryProps) {
   );
 
   const handleOrderClick = () => {
-    toast.info('주문 기능은 준비 중입니다.', { position: 'bottom-center' });
+    if (!canOrder) return;
+    if (access?.status === 'member') {
+      router.push(getCheckoutHref(purchasable.map(item => item.id)));
+    } else if (access?.status === 'guest') {
+      router.push('/login');
+    } else {
+      toast.info('지금은 주문할 수 없습니다. 잠시 후 다시 시도해 주세요.', {
+        position: 'bottom-center',
+      });
+    }
   };
 
   return (
@@ -147,13 +147,18 @@ export function CartSummary({ selectedProducts }: CartSummaryProps) {
           <Button
             type="button"
             size="lg"
-            disabled={!selectedProducts.some(item => item.canSelect)}
+            disabled={!canOrder}
             className="min-w-28 font-black"
             onClick={handleOrderClick}
           >
             주문하기
           </Button>
         </div>
+        {block !== null && (
+          <p className="mx-auto mt-2 max-w-md text-center text-xs text-gray-500">
+            {getOrderBlockMessage(block)}
+          </p>
+        )}
       </div>
 
       <div className="hidden md:block">
@@ -162,11 +167,11 @@ export function CartSummary({ selectedProducts }: CartSummaryProps) {
             결제정보
           </h2>
 
-          <div className="space-y-4 mb-8 font-bold">
+          <div className="space-y-4 mb-8 font-medium">
             {renderDetails('text-gray-400')}
             <div className="pt-6 border-t border-gray-800 flex justify-between items-end">
-              <span className="font-black uppercase">총 결제 금액</span>
-              <span className="text-lg font-black tracking-tighter">
+              <span className="font-bold">총 결제 금액</span>
+              <span className="text-[28px] leading-none font-black tracking-tight">
                 {orderSummary.total.toLocaleString()}원
               </span>
             </div>
@@ -177,13 +182,18 @@ export function CartSummary({ selectedProducts }: CartSummaryProps) {
               type="button"
               variant="outline"
               size="xl"
-              disabled={!selectedProducts.some(item => item.canSelect)}
-              className="w-full text-black font-black flex items-center justify-center gap-3 text-lg tracking-widest"
+              disabled={!canOrder}
+              className="w-full text-black font-black flex items-center justify-center gap-3 text-lg"
               onClick={handleOrderClick}
             >
               <CreditCard className="size-6" />
               주문하기
             </Button>
+            {block !== null && (
+              <p className="text-center text-xs text-gray-400">
+                {getOrderBlockMessage(block)}
+              </p>
+            )}
           </div>
         </div>
       </div>

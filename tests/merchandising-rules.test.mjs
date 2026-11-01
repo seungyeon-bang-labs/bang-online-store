@@ -71,13 +71,44 @@ test('ProductPrice displays the same base discount and option-inclusive original
   assert.ok(highDiscount.includes('2,000원'),highDiscount);
 });
 
-test('CartSummary combines different products with base-only discounts and exact won totals', () => {
-  const {CartSummary} = loadTs('src/features/cart/cart-summary.tsx', {react:{useMemo:fn=>fn(),useState:value=>[value,()=>{}]}});
+test('CartSummary combines different products with base-only discounts, shipping and exact won totals', () => {
+  const {CartSummary} = loadTs('src/features/cart/cart-summary.tsx', {
+    react:{useMemo:fn=>fn(),useState:value=>[value,()=>{}]},
+    'next/navigation':{useRouter:()=>({push(){}})},
+    './use-cart':{useCartState:select=>select({access:{status:'member',userId:'u'}})},
+  });
   const a = {id:'10000000-0000-4000-8000-000000000001',productId:1,name:'A',price:10001,discountRate:15,quantity:2,priceOffset:500,canSelect:true};
   const b = {id:'10000000-0000-4000-8000-000000000002',productId:2,name:'B',price:10000,discountRate:80,quantity:1,priceOffset:0,canSelect:true};
   const single = textContent(CartSummary({selectedProducts:[a]}));
-  assert.ok(single.includes('18,000원'),single);
-  assert.ok(single.includes('-3,002원'),single);
+  // 20,002 + 1,000 - 3,002 = 18,000원 is under 50,000원, so 3,000원 shipping makes 21,000원.
+  for (const expected of ['-3,002원','3,000원','21,000원']) assert.ok(single.includes(expected),single);
   const multiple = textContent(CartSummary({selectedProducts:[a,b]}));
-  for (const expected of ['3개','30,002원','1,000원','-11,002원','20,000원']) assert.ok(multiple.includes(expected),multiple);
+  for (const expected of ['3개','30,002원','1,000원','-11,002원','23,000원']) assert.ok(multiple.includes(expected),multiple);
+});
+
+test('CartSummary keeps 주문하기 off while a cart change is saving or past 100 lines', () => {
+  const render = (state, selectedProducts) => {
+    const {CartSummary} = loadTs('src/features/cart/cart-summary.tsx', {
+      react:{useMemo:fn=>fn(),useState:value=>[value,()=>{}]},
+      'next/navigation':{useRouter:()=>({push(){}})},
+      './use-cart':{useCartState:select=>select({access:{status:'member',userId:'u'},phase:'ready',busy:false,...state})},
+    });
+    return CartSummary({selectedProducts});
+  };
+  const orderButtons = node => {
+    if (!node || typeof node !== 'object') return [];
+    if (Array.isArray(node)) return node.flatMap(orderButtons);
+    const own = node.props?.onClick && textContent(node.props.children).includes('주문하기') ? [node] : [];
+    return [...own, ...orderButtons(node.props?.children)];
+  };
+  const item = index => ({id:`10000000-0000-4000-8000-${String(index).padStart(12,'0')}`,productId:index,name:'A',price:10000,discountRate:0,quantity:1,priceOffset:0,canSelect:true});
+  const disabled = tree => orderButtons(tree).map(button => button.props.disabled);
+
+  assert.deepEqual(disabled(render({}, [item(1)])), [false, false]);
+  assert.deepEqual(disabled(render({busy:true}, [item(1)])), [true, true]);
+  const many = Array.from({length:101}, (_, index) => item(index));
+  const tooMany = render({}, many);
+  assert.deepEqual(disabled(tooMany), [true, true]);
+  assert.ok(textContent(tooMany).includes('100개 상품까지'), textContent(tooMany));
+  assert.deepEqual(disabled(render({}, many.slice(0, 100))), [false, false]);
 });

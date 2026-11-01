@@ -47,6 +47,8 @@ interface MypageAddressFormProps {
   returnHref: string;
   initialAddress?: UserAddressFormViewModel;
   onSubmitAddress: (input: UserAddressCreateInput) => Promise<boolean>;
+  // Replaces the result screen, for a caller that continues in place (the checkout).
+  onSaved?: () => void;
 }
 
 function getInitialFormValues(
@@ -69,6 +71,7 @@ export function MypageAddressForm({
   returnHref,
   initialAddress,
   onSubmitAddress,
+  onSaved,
 }: MypageAddressFormProps) {
   const initialValues = getInitialFormValues(initialAddress);
   const [values, setValues] = useState(initialValues);
@@ -121,6 +124,8 @@ export function MypageAddressForm({
     if (Object.keys(nextErrors).length > 0) return;
 
     setIsSubmitting(true);
+    // Stays locked after onSaved: the refresh replaces this form, and a second click would save it twice.
+    let keepLocked = false;
 
     try {
       // A locked default checkbox is not a request; a stale true would undo
@@ -130,7 +135,10 @@ export function MypageAddressForm({
         isDefault: initialAddress?.isDefault ? false : values.isDefault,
       });
 
-      if (isSaved) {
+      if (isSaved && onSaved) {
+        keepLocked = true;
+        onSaved();
+      } else if (isSaved) {
         setIsSubmitted(true);
       } else {
         setErrors({ submission: submissionErrorMessage });
@@ -138,7 +146,7 @@ export function MypageAddressForm({
     } catch {
       setErrors({ submission: submissionErrorMessage });
     } finally {
-      setIsSubmitting(false);
+      if (!keepLocked) setIsSubmitting(false);
     }
   }
 

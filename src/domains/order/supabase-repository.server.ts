@@ -13,6 +13,10 @@ import type {
   OrderRepository,
   OrderStatusHistoryRepository,
 } from './repository';
+import {
+  toPlaceOrderRejection,
+  type OrderPlacementRepository,
+} from './place-order';
 
 type Tables = Database['public']['Tables'];
 type OrderRow = Tables['orders']['Row'];
@@ -186,6 +190,33 @@ export function createOrderStatusHistoryRepository(
       if (error) readFailed(error);
 
       return data.map(toOrderStatusHistoryDTO);
+    },
+  };
+}
+
+// place_order checks the member, the cart lines, stock and the total under one cart lock.
+export function createOrderPlacementRepository(
+  client: SupabaseClient<Database>,
+): OrderPlacementRepository {
+  return {
+    async placeOrder(input) {
+      const { data, error } = await client.rpc('place_order', {
+        p_expected_user_id: input.userId,
+        p_request_id: input.requestId,
+        p_cart_item_ids: input.cartItemIds,
+        p_address_id: input.addressId,
+        p_payment_method: 'card',
+        p_expected_total: input.expectedTotal,
+      });
+
+      if (error) return toPlaceOrderRejection(error);
+
+      const orderId = (data as { order_id?: unknown } | null)?.order_id;
+      if (typeof orderId !== 'string' || !UUID_PATTERN.test(orderId)) {
+        return { status: 'rejected', reason: 'failed' };
+      }
+
+      return { status: 'placed', orderId };
     },
   };
 }

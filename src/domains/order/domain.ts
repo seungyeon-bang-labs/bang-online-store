@@ -1,5 +1,6 @@
 import { DataIntegrityError } from '@/shared/lib/data-integrity';
 import type { ProductModel } from '@/domains/product';
+import { getProductLinePrice } from '@/domains/product/domain';
 import type {
   OrderDTO,
   OrderItemCancellationDTO,
@@ -66,6 +67,54 @@ export function getOrderShippingFee(itemTotalAmount: number): number {
     itemTotalAmount >= ORDER_FREE_SHIPPING_THRESHOLD
     ? 0
     : ORDER_STANDARD_SHIPPING_FEE;
+}
+
+export interface OrderAmountLine {
+  price: number;
+  discountRate: number;
+  priceOffset: number;
+  quantity: number;
+}
+
+export interface OrderAmounts {
+  itemCount: number;
+  productAmount: number;
+  optionAmount: number;
+  discountAmount: number;
+  shippingFee: number;
+  totalAmount: number;
+}
+
+// The cart, the checkout and place_order share this rule; tests/orders-db.test.mjs ties it to the SQL.
+export function getOrderAmounts(lines: readonly OrderAmountLine[]): OrderAmounts {
+  let itemCount = 0;
+  let productAmount = 0;
+  let optionAmount = 0;
+  let discountAmount = 0;
+
+  for (const line of lines) {
+    itemCount += line.quantity;
+    productAmount += line.price * line.quantity;
+    optionAmount += line.priceOffset * line.quantity;
+    discountAmount += getProductLinePrice(
+      line.price,
+      line.discountRate,
+      line.priceOffset,
+      line.quantity,
+    ).discountAmount;
+  }
+
+  const itemTotalAmount = productAmount + optionAmount - discountAmount;
+  const shippingFee = getOrderShippingFee(itemTotalAmount);
+
+  return {
+    itemCount,
+    productAmount,
+    optionAmount,
+    discountAmount,
+    shippingFee,
+    totalAmount: itemTotalAmount + shippingFee,
+  };
 }
 
 function getMinimumDate(period: OrderPeriod, now: Date): Date | null {
