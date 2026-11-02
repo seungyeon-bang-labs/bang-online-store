@@ -162,7 +162,7 @@ test('home repurchase buttons are disabled while the cart is locked', t => {
   assert.ok(buttons().every(n => n.props.disabled));
 });
 
-test('an empty cart shows the shared empty state stretched to the summary, and the skeleton renders a screen reader sentence', t => {
+test('an empty cart shows the shared empty state stretched to the summary, and loading is announced outside the busy skeleton', t => {
   const view = client('src/features/cart/cart-page-client.tsx', 'CartPageClient', { cart: cartView({ items: [] }) }); t.after(() => view.dispose()); view.flush();
   const empty = view.nodes().find(n => n.type?.name === 'EmptyState');
   assert.equal(empty.props.fill, true);
@@ -175,9 +175,15 @@ test('an empty cart shows the shared empty state stretched to the summary, and t
   assert.equal(nodes(empty.type(empty.props)).find(n => n.props?.href === '/').props.variant, 'default');
   assert.equal(view.nodes().some(n => n.type?.name === 'CartItemsSkeleton'), false);
 
+  // The status line lives outside the busy skeleton and stays mounted; only its sentence changes.
+  const status = view => view.nodes().find(n => n.props?.role === 'status');
+  assert.equal(text(status(view)), '');
+
   const loading = client('src/features/cart/cart-page-client.tsx', 'CartPageClient', { phase: 'loading', cart: null }); t.after(() => loading.dispose()); loading.flush();
-  const skeleton = loading.nodes().find(n => n.type?.name === 'CartItemsSkeleton');
-  const rendered = skeleton.type();
-  assert.equal(rendered.props['aria-busy'], 'true');
-  assert.match(text(rendered), /장바구니 상품을 불러오는 중입니다/);
+  assert.equal(text(status(loading)), '장바구니 상품을 불러오는 중입니다.');
+  const skeleton = loading.nodes().find(n => n.type?.name === 'CartItemsSkeleton').type();
+  assert.equal(skeleton.props['aria-busy'], 'true');
+  assert.equal(nodes(skeleton).some(n => n.props?.role === 'status' || n.props?.['aria-live']), false);
+  ready(loading, { phase: 'ready', cart: cartView({ items: [] }) });
+  assert.equal(text(status(loading)), '');
 });

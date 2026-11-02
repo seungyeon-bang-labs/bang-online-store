@@ -93,6 +93,11 @@ export function CartPageClient() {
             </div>
           )}
 
+          {/* Outside the busy skeleton and always mounted, so the sentence is not held back and then removed unread. */}
+          <p role="status" className="sr-only">
+            {isInitialLoading ? '장바구니 상품을 불러오는 중입니다.' : ''}
+          </p>
+
           {/* Always shown, disabled while loading or empty, so the content below never jumps. */}
           <div className="sticky top-14 z-10 flex items-center justify-between border-b border-gray-200 bg-white py-3 transition-all duration-300 md:top-24 md:py-4">
             <div className="group flex items-center gap-2">
@@ -253,11 +258,10 @@ export function CartPageClient() {
   );
 }
 
-// Two cards in the shape of a cart line; screen readers hear the sentence instead.
+// Two cards in the shape of a cart line; the page's status line speaks for it.
 function CartItemsSkeleton() {
   return (
-    <div aria-busy="true" aria-live="polite" className="space-y-6">
-      <p className="sr-only">장바구니 상품을 불러오는 중입니다.</p>
+    <div aria-busy="true" className="space-y-6">
       {[0, 1].map(index => (
         <div
           key={index}
