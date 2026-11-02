@@ -37,7 +37,7 @@ test('reconciliation removes unavailable pairs and their selections while preser
 test('an empty successful response clears unavailable items, selections and the badge count',async t=>{
   const cart=await mountCart(t);await cart.finish([]);
   assert.deepEqual(cart.local.read().items,[]);assert.deepEqual(cart.store.getState().selectedIds,[]);
-  assert.ok(cart.page.nodes().some(n=>n.props?.isEmpty===true));assert.equal(cart.store.getState().cart.notices[0].kind,'unavailable');assert.equal(cart.requests.length,1);
+  assert.ok(cart.page.nodes().some(n=>n.type?.name==='EmptyState'));assert.equal(cart.store.getState().cart.notices[0].kind,'unavailable');assert.equal(cart.requests.length,1);
   const {getCartItemCount}=loadTs('src/domains/cart/domain.ts');assert.equal(getCartItemCount(cart.store.getState().cart.items),0);
 });
 test('a variant from another product cannot preserve an invalid cart pair',async t=>{

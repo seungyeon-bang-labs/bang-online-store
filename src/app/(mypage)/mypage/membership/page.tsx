@@ -2,10 +2,10 @@ import { Crown } from 'lucide-react';
 import { getMembershipViewModel } from '@/domains/benefit';
 import { currentUserRepository } from '@/domains/member';
 import {
-  MypageEmptyState,
   MypagePageLayout,
   MypagePageHeader,
 } from '@/features/mypage/common';
+import { EmptyState } from '@/shared/components/common/empty-state';
 import {
   MypageMembershipEvaluationGuide,
   MypageMembershipOverview,
@@ -20,7 +20,7 @@ async function MembershipPage() {
     return (
       <MypagePageLayout fill>
         <MypagePageHeader title="멤버십 혜택" />
-        <MypageEmptyState
+        <EmptyState
           icon={Crown}
           title="멤버십 정보가 없습니다."
           description="로그인 후 현재 등급과 받을 수 있는 혜택을 확인할 수 있습니다."

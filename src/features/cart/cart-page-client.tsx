@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { ShoppingCart } from 'lucide-react';
 import { useCartState, useCartCommands } from './use-cart';
 import { selectCartLocked } from './cart-selectors';
 import { PageTitle } from '@/shared/components/common/page-title';
@@ -13,7 +14,7 @@ import { ProductPrice } from '@/features/product/product-price';
 import { DeleteConfirmModal } from './delete-confirm-modal';
 import { OptionChangeModal } from './option-change-modal';
 import { CartSummary } from './cart-summary';
-import { EmptyCart } from './empty-cart';
+import { EmptyState } from '@/shared/components/common/empty-state';
 import { Container } from '@/shared/components/layout/container';
 import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/lib/utils';
@@ -45,6 +46,7 @@ export function CartPageClient() {
     purchasable.length > 0 && selected.size === purchasable.length;
   const isIndeterminate = selected.size > 0 && !allSelected;
   const isInitialLoading = cart === null && !error;
+  const isEmpty = ready && cartProducts.length === 0;
   // Results are reported by the cart itself; true only means the change was taken.
   const handleDeleteSelected = () =>
     !locked && selected.size > 0 && removeItems([...selected]);
@@ -71,7 +73,8 @@ export function CartPageClient() {
       </PageTitle>
 
       <div className="grid items-start gap-6 pb-32 lg:grid-cols-[1fr_360px] lg:gap-12 lg:pb-0">
-        <div className="space-y-6">
+        {/* Stretched beside the summary so the empty state ends where the summary does. */}
+        <div className={cn('space-y-6', isEmpty && 'lg:flex lg:flex-col lg:self-stretch')}>
           {error && (
             <div
               role="alert"
@@ -90,48 +93,45 @@ export function CartPageClient() {
             </div>
           )}
 
-          {isInitialLoading ? (
-            <div
-              aria-live="polite"
-              className="flex min-h-56 items-center justify-center text-sm text-gray-500"
-            >
-              장바구니 상품을 불러오는 중입니다.
+          {/* Outside the busy skeleton and always mounted, so the sentence is not held back and then removed unread. */}
+          <p role="status" className="sr-only">
+            {isInitialLoading ? '장바구니 상품을 불러오는 중입니다.' : ''}
+          </p>
+
+          {/* Always shown, disabled while loading or empty, so the content below never jumps. */}
+          <div className="sticky top-14 z-10 flex items-center justify-between border-b border-gray-200 bg-white py-3 transition-all duration-300 md:top-24 md:py-4">
+            <div className="group flex items-center gap-2">
+              <Checkbox
+                id="select-all"
+                checked={
+                  allSelected
+                    ? true
+                    : isIndeterminate
+                      ? 'indeterminate'
+                      : false
+                }
+                onCheckedChange={checked => selectAll(Boolean(checked))}
+                className="size-4 border border-black transition-all duration-200 data-[state=checked]:bg-black data-[state=checked]:text-white"
+                disabled={!ready || purchasable.length === 0}
+              />
+              <Label
+                htmlFor="select-all"
+                className="cursor-pointer select-none text-sm font-black uppercase group-hover:underline"
+              >
+                전체 선택
+              </Label>
             </div>
+            <DeleteConfirmModal
+              onConfirm={handleDeleteSelected}
+              type="selected"
+              disableTrigger={locked || selected.size === 0}
+            />
+          </div>
+
+          {isInitialLoading ? (
+            <CartItemsSkeleton />
           ) : (
             <>
-              <div
-                className={`sticky top-14 z-10 flex items-center justify-between border-b border-gray-200 bg-white py-3 transition-all duration-300 md:top-24 md:py-4 ${
-                  cartProducts.length === 0 ? 'hidden md:flex' : ''
-                }`}
-              >
-                <div className="group flex items-center gap-2">
-                  <Checkbox
-                    id="select-all"
-                    checked={
-                      allSelected
-                        ? true
-                        : isIndeterminate
-                          ? 'indeterminate'
-                          : false
-                    }
-                    onCheckedChange={checked => selectAll(Boolean(checked))}
-                    className="size-4 border border-black transition-all duration-200 data-[state=checked]:bg-black data-[state=checked]:text-white"
-                    disabled={!ready || purchasable.length === 0}
-                  />
-                  <Label
-                    htmlFor="select-all"
-                    className="cursor-pointer select-none text-sm font-black uppercase group-hover:underline"
-                  >
-                    전체 선택
-                  </Label>
-                </div>
-                <DeleteConfirmModal
-                  onConfirm={handleDeleteSelected}
-                  type="selected"
-                  disableTrigger={locked || selected.size === 0}
-                />
-              </div>
-
               {/* 상품 아이템 루프 */}
               {cartProducts.map((item, index) => (
                 // Price already includes size offset; apply discount for display.
@@ -232,8 +232,15 @@ export function CartPageClient() {
                 </div>
               ))}
 
-              {/* 비어있을 때 (참고용) */}
-              {ready && <EmptyCart isEmpty={cartProducts.length === 0} />}
+              {isEmpty && (
+                <EmptyState
+                  icon={ShoppingCart}
+                  title="장바구니에 담긴 상품이 없습니다."
+                  description="마음에 드는 상품을 담아 보세요."
+                  action={{ href: '/', label: '쇼핑 계속하기' }}
+                  fill
+                />
+              )}
             </>
           )}
         </div>
@@ -248,5 +255,27 @@ export function CartPageClient() {
         </div>
       </div>
     </Container>
+  );
+}
+
+// Two cards in the shape of a cart line; the page's status line speaks for it.
+function CartItemsSkeleton() {
+  return (
+    <div aria-busy="true" className="space-y-6">
+      {[0, 1].map(index => (
+        <div
+          key={index}
+          aria-hidden="true"
+          className="flex gap-3 rounded-md border border-gray-200 p-4 md:gap-2 md:border-2 md:border-gray-100 md:p-6"
+        >
+          <div className="size-4 shrink-0 animate-pulse rounded-sm bg-zinc-200" />
+          <div className="size-20 shrink-0 animate-pulse rounded-md bg-zinc-100 md:size-28" />
+          <div className="flex-1 space-y-2 pt-1">
+            <div className="h-4 w-3/4 animate-pulse rounded-sm bg-zinc-200" />
+            <div className="h-3 w-1/3 animate-pulse rounded-sm bg-zinc-200" />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }

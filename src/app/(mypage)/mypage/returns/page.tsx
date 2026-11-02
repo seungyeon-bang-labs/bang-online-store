@@ -3,12 +3,12 @@ import { DynamicPagination } from '@/shared/components/common/dynamic-pagination
 import { currentUserRepository } from '@/domains/member';
 import { getOrderClaimListViewModel } from '@/domains/order';
 import {
-  MypageEmptyState,
   MypageFilterCard,
   MypageFilterEmptyState,
   MypagePageLayout,
   MypagePageHeader,
 } from '@/features/mypage/common';
+import { EmptyState } from '@/shared/components/common/empty-state';
 import { MypageClaimList } from '@/features/mypage/returns';
 import {
   buildOrderClaimListFilterHref,
@@ -64,7 +64,7 @@ async function ReturnsPage({ searchParams }: ReturnsPageProps) {
           })}
         />
       ) : (
-        <MypageEmptyState
+        <EmptyState
           icon={RotateCcw}
           title="교환·반품 내역이 없습니다."
           description="처리 중인 요청이 생기면 이곳에서 진행 상태를 확인할 수 있습니다."

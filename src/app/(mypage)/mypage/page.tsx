@@ -10,14 +10,15 @@ import {
   MypageHomeSummary,
   MypageHomeWishlist,
 } from '@/features/mypage/home';
-import { MypageEmptyState, MypagePageLayout } from '@/features/mypage/common';
+import { MypagePageLayout } from '@/features/mypage/common';
+import { EmptyState } from '@/shared/components/common/empty-state';
 
 async function MyPageHome() {
   const user = await currentUserRepository.findCurrent();
 
   if (!user) {
     return (
-      <MypageEmptyState
+      <EmptyState
         icon={UserRound}
         title="회원 정보를 확인할 수 없습니다."
         description="회원 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."

@@ -1,6 +1,6 @@
 import type { ActivityProductViewModel } from '@/domains/activity';
 import { SectionHeader } from '@/shared/components/common/section-header';
-import { MypageEmptyState } from '../common';
+import { EmptyState } from '@/shared/components/common/empty-state';
 import { MypageHomeProductPreview } from './product-preview';
 
 interface MypageHomeRecentProductsProps {
@@ -22,10 +22,11 @@ export function MypageHomeRecentProducts({
       {hasRecentProducts ? (
         <MypageHomeProductPreview items={items} ariaLabel="최근 본 상품" />
       ) : (
-        <MypageEmptyState
+        <EmptyState
           title="최근 본 상품이 없습니다."
           description="상품을 둘러보면 이곳에서 다시 확인할 수 있습니다."
           action={{ href: '/new', label: '상품 보러 가기' }}
+          actionVariant="outline"
         />
       )}
     </section>

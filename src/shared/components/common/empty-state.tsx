@@ -1,9 +1,8 @@
-import { MYPAGE_ACTION_CLASS_NAME } from '@/features/mypage/common/styles';
 import { LucideIcon } from 'lucide-react';
 import { ButtonLink } from '@/shared/components/ui/button';
 import { cn } from '@/shared/lib/utils';
 
-interface MypageEmptyStateProps {
+interface EmptyStateProps {
   icon?: LucideIcon;
   title: string;
   description: string;
@@ -11,18 +10,21 @@ interface MypageEmptyStateProps {
     href: string;
     label: string;
   };
+  // One filled action per screen; pass outline where several empty states share a screen.
+  actionVariant?: 'default' | 'outline';
   className?: string;
   fill?: boolean;
 }
 
-export function MypageEmptyState({
+export function EmptyState({
   icon: Icon,
   title,
   description,
   action,
+  actionVariant = 'default',
   className,
   fill = false,
-}: MypageEmptyStateProps) {
+}: EmptyStateProps) {
   return (
     <div
       className={cn(
@@ -41,8 +43,8 @@ export function MypageEmptyState({
       {action && (
         <ButtonLink
           href={action.href}
-          variant="outline"
-          className={`mt-6 ${MYPAGE_ACTION_CLASS_NAME.outline}`}
+          variant={actionVariant}
+          className="mt-6"
         >
           {action.label}
         </ButtonLink>

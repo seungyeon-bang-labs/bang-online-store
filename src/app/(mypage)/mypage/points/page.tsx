@@ -3,12 +3,12 @@ import { DynamicPagination } from '@/shared/components/common/dynamic-pagination
 import { currentUserRepository } from '@/domains/member';
 import { getMypagePointPageViewModel } from '@/domains/mypage';
 import {
-  MypageEmptyState,
   MypageFilterCard,
   MypageFilterEmptyState,
   MypagePageLayout,
   MypagePageHeader,
 } from '@/features/mypage/common';
+import { EmptyState } from '@/shared/components/common/empty-state';
 import {
   MypagePointSummary,
   MypagePointTransactionList,
@@ -76,7 +76,7 @@ async function PointsPage({ searchParams }: PointsPageProps) {
           resetHref={buildPointListHref({ filter: 'all', page: 1 })}
         />
       ) : (
-        <MypageEmptyState
+        <EmptyState
           icon={Wallet}
           title="적립금 내역이 없습니다."
           description="적립금이 지급되거나 사용되면 이곳에서 내역을 확인할 수 있습니다."

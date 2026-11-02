@@ -1,6 +1,6 @@
 import type { ActivityProductViewModel } from '@/domains/activity';
 import { SectionHeader } from '@/shared/components/common/section-header';
-import { MypageEmptyState } from '../common';
+import { EmptyState } from '@/shared/components/common/empty-state';
 import { MypageHomeProductPreview } from './product-preview';
 
 interface MypageHomeWishlistProps {
@@ -24,10 +24,11 @@ export function MypageHomeWishlist({ items }: MypageHomeWishlistProps) {
           isWishlisted
         />
       ) : (
-        <MypageEmptyState
+        <EmptyState
           title="관심 상품이 없습니다."
           description="관심 있는 상품을 저장하면 이곳에서 확인할 수 있습니다."
           action={{ href: '/best', label: '상품 보러 가기' }}
+          actionVariant="outline"
         />
       )}
     </section>

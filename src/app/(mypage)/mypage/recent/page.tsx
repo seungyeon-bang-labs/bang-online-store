@@ -5,11 +5,11 @@ import {
 } from '@/domains/activity';
 import { currentUserRepository } from '@/domains/member';
 import {
-  MypageEmptyState,
   MypagePageLayout,
   MypagePolicyCard,
   MypagePageHeader,
 } from '@/features/mypage/common';
+import { EmptyState } from '@/shared/components/common/empty-state';
 import { MypageRecentProductList } from '@/features/mypage/activity';
 
 async function RecentProductsPage() {
@@ -31,7 +31,7 @@ async function RecentProductsPage() {
       {hasRecentProducts ? (
         <MypageRecentProductList groups={groups} />
       ) : (
-        <MypageEmptyState
+        <EmptyState
           icon={Clock3}
           title="최근 본 상품이 없습니다."
           description="상품 상세 페이지를 확인하면 최근 본 상품으로 기록됩니다."

@@ -3,10 +3,10 @@ import { requireActiveMember } from '@/app/(auth)/require-active-member';
 import { toUserAddressViewModel } from '@/domains/member';
 import { createUserAddressRepository } from '@/domains/member/supabase-repository.server';
 import {
-  MypageEmptyState,
   MypagePageLayout,
   MypagePageHeader,
 } from '@/features/mypage/common';
+import { EmptyState } from '@/shared/components/common/empty-state';
 import { MypageAddressList } from '@/features/mypage/addresses';
 import { getMypageAddressWriteHref } from '@/shared/lib/mypage-routes';
 import { createAuthClient } from '@/shared/lib/supabase/auth-server';
@@ -41,7 +41,7 @@ async function AddressPage() {
           onDeleteAddress={deleteMypageAddressAction}
         />
       ) : (
-        <MypageEmptyState
+        <EmptyState
           icon={MapPin}
           title="등록된 배송지가 없습니다."
           description="자주 사용하는 배송지를 등록하면 주문할 때 빠르게 선택할 수 있습니다."

@@ -3,11 +3,11 @@ import { DynamicPagination } from '@/shared/components/common/dynamic-pagination
 import { getReviewPageViewModel } from '@/domains/activity';
 import { currentUserRepository } from '@/domains/member';
 import {
-  MypageEmptyState,
   MypageFilterCard,
   MypagePageLayout,
   MypagePageHeader,
 } from '@/features/mypage/common';
+import { EmptyState } from '@/shared/components/common/empty-state';
 import { MypageReviewList } from '@/features/mypage/reviews';
 import {
   buildReviewListFilterHref,
@@ -56,7 +56,7 @@ async function ReviewsPage({ searchParams }: ReviewsPageProps) {
           deleteReviewAction={deleteMypageReviewAction}
         />
       ) : (
-        <MypageEmptyState
+        <EmptyState
           icon={Star}
           title={
             query.tab === 'available'

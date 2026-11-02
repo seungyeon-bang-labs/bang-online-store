@@ -1,5 +1,5 @@
 import type { MypageHomeRecentOrderViewModel } from '@/domains/mypage';
-import { MypageEmptyState } from '../common';
+import { EmptyState } from '@/shared/components/common/empty-state';
 import { MypageHomeRecentOrderCard } from './recent-order-card';
 
 interface MypageHomeRecentOrdersProps {
@@ -13,10 +13,11 @@ export function MypageHomeRecentOrders({
 
   if (!hasRecentOrders) {
     return (
-      <MypageEmptyState
+      <EmptyState
         title="최근 주문이 없습니다."
         description="상품을 주문하면 배송 상태와 주문 내역을 확인할 수 있습니다."
         action={{ href: '/new', label: '상품 보러 가기' }}
+        actionVariant="outline"
       />
     );
   }
