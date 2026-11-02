@@ -3,12 +3,12 @@ import { DynamicPagination } from '@/shared/components/common/dynamic-pagination
 import { getUserCouponListViewModel } from '@/domains/benefit';
 import { currentUserRepository } from '@/domains/member';
 import {
-  MypageEmptyState,
   MypageFilterCard,
   MypageFilterEmptyState,
   MypagePageLayout,
   MypagePageHeader,
 } from '@/features/mypage/common';
+import { EmptyState } from '@/shared/components/common/empty-state';
 import { MypageCouponList } from '@/features/mypage/coupons';
 import {
   buildCouponListFilterHref,
@@ -56,7 +56,7 @@ async function CouponsPage({ searchParams }: CouponsPageProps) {
           resetHref={buildCouponListHref({ tab: 'all', page: 1 })}
         />
       ) : (
-        <MypageEmptyState
+        <EmptyState
           icon={Ticket}
           title="보유한 쿠폰이 없습니다."
           description="쿠폰을 발급받으면 이곳에서 쿠폰 내역을 확인할 수 있습니다."

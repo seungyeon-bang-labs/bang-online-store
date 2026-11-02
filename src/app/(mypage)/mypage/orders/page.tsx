@@ -4,12 +4,12 @@ import { requireActiveMember } from '@/app/(auth)/require-active-member';
 import { getMypageOrderListViewModel } from '@/domains/mypage';
 import { createMemberOrderReadServices } from '@/domains/order/member-order-read.server';
 import {
-  MypageEmptyState,
   MypageFilterCard,
   MypageFilterEmptyState,
   MypagePageLayout,
   MypagePageHeader,
 } from '@/features/mypage/common';
+import { EmptyState } from '@/shared/components/common/empty-state';
 import {
   MypageOrderCardList,
   MypageOrderPartialCancellationToggle,
@@ -88,7 +88,7 @@ async function OrdersPage({ searchParams }: OrdersPageProps) {
           })}
         />
       ) : (
-        <MypageEmptyState
+        <EmptyState
           icon={PackageSearch}
           title="주문 내역이 없습니다."
           description="상품을 주문하면 이곳에서 주문 및 배송 상태를 확인할 수 있습니다."

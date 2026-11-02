@@ -3,12 +3,12 @@ import { DynamicPagination } from '@/shared/components/common/dynamic-pagination
 import { getInquiryPageViewModel } from '@/domains/inquiry';
 import { currentUserRepository } from '@/domains/member';
 import {
-  MypageEmptyState,
   MypageFilterCard,
   MypageFilterEmptyState,
   MypagePageLayout,
   MypagePageHeader,
 } from '@/features/mypage/common';
+import { EmptyState } from '@/shared/components/common/empty-state';
 import { MypageInquiryList } from '@/features/mypage/inquiries';
 import { getMypageInquiryWriteHref } from '@/shared/lib/mypage-routes';
 import {
@@ -74,7 +74,7 @@ async function InquiriesPage({ searchParams }: InquiriesPageProps) {
           })}
         />
       ) : (
-        <MypageEmptyState
+        <EmptyState
           icon={MessageSquare}
           title="문의 내역이 없습니다."
           description="상품, 주문, 배송과 관련해 궁금한 내용을 1:1 문의로 남겨보세요."

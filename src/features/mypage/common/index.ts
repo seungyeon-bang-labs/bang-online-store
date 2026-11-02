@@ -1,4 +1,3 @@
-export { MypageEmptyState } from './empty-state';
 export { MypageCard } from './card';
 export { MypageCardContentBlock } from './content-block';
 export {

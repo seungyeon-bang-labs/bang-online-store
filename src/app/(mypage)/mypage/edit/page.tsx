@@ -4,10 +4,10 @@ import { toMemberProfileViewModel } from '@/domains/member';
 import { createMemberProfileRepository } from '@/domains/member/supabase-repository.server';
 import { createAuthClient } from '@/shared/lib/supabase/auth-server';
 import {
-  MypageEmptyState,
   MypagePageLayout,
   MypagePageHeader,
 } from '@/features/mypage/common';
+import { EmptyState } from '@/shared/components/common/empty-state';
 import { MypageProfileForm } from '@/features/mypage/profile';
 
 async function EditProfilePage() {
@@ -31,7 +31,7 @@ async function EditProfilePage() {
           </fieldset>
         </div>
       ) : (
-        <MypageEmptyState
+        <EmptyState
           icon={UserRound}
           title="회원 정보를 확인할 수 없습니다."
           description="회원 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."

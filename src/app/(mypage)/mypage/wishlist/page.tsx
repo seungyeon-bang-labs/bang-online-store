@@ -3,10 +3,10 @@ import { DynamicPagination } from '@/shared/components/common/dynamic-pagination
 import { getWishlistPageViewModel } from '@/domains/activity';
 import { currentUserRepository } from '@/domains/member';
 import {
-  MypageEmptyState,
   MypagePageLayout,
   MypagePageHeader,
 } from '@/features/mypage/common';
+import { EmptyState } from '@/shared/components/common/empty-state';
 import { WishlistProductGrid } from '@/features/mypage/activity';
 import { buildQueryHref, parsePositivePage } from '@/shared/lib/query';
 
@@ -35,7 +35,7 @@ async function WishlistPage({ searchParams }: WishlistPageProps) {
       {hasWishlistProducts ? (
         <WishlistProductGrid items={wishlistProducts} />
       ) : (
-        <MypageEmptyState
+        <EmptyState
           icon={Heart}
           title="관심 상품이 없습니다."
           description="상품의 하트 버튼을 누르면 관심 상품으로 저장됩니다."

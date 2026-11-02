@@ -64,8 +64,11 @@ test('product add is disabled while the cart is locked and offers retry on error
 
 test('cart page disables changes while locked and retries only on error', t => {
   const view = client('src/features/cart/cart-page-client.tsx', 'CartPageClient', { phase: 'loading', cart: null }); t.after(() => view.dispose()); view.flush();
-  assert.equal(view.nodes().some(n => n.props?.isEmpty === true), false);
-  assert.match(text(view.tree()), /불러오/);
+  // Loading keeps the select-all row (disabled) and shows a skeleton in place of the lines, not the empty state.
+  assert.equal(view.nodes().find(n => n.props?.id === 'select-all').props.disabled, true);
+  assert.equal(view.nodes().find(n => n.props?.type === 'selected').props.disableTrigger, true);
+  assert.equal(view.nodes().some(n => n.type?.name === 'CartItemsSkeleton'), true);
+  assert.equal(view.nodes().some(n => n.type?.name === 'EmptyState'), false);
   ready(view, { phase: 'ready', cart: cartView() });
   const deleteTrigger = () => view.nodes().find(n => n.props?.type === 'item' && 'disableTrigger' in n.props);
   const quantity = () => view.nodes().find(n => n.type === 'fieldset');
@@ -157,4 +160,24 @@ test('home repurchase buttons are disabled while the cart is locked', t => {
   assert.ok(buttons().every(n => n.props.disabled));
   ready(view, { busy: false, phase: 'error', cart: null });
   assert.ok(buttons().every(n => n.props.disabled));
+});
+
+test('an empty cart shows the shared empty state stretched to the summary, and the skeleton renders a screen reader sentence', t => {
+  const view = client('src/features/cart/cart-page-client.tsx', 'CartPageClient', { cart: cartView({ items: [] }) }); t.after(() => view.dispose()); view.flush();
+  const empty = view.nodes().find(n => n.type?.name === 'EmptyState');
+  assert.equal(empty.props.fill, true);
+  // The select-all row stays (disabled) on every screen size, so loading into an empty cart does not shift it.
+  const selectAll = view.nodes().find(n => n.props?.id === 'select-all');
+  assert.equal(selectAll.props.disabled, true);
+  assert.doesNotMatch(view.nodes().find(n => String(n.props?.className).includes('sticky top-14')).props.className, /hidden/);
+  assert.deepEqual(empty.props.action, { href: '/', label: '쇼핑 계속하기' });
+  // Its only action is the filled button; mypage home passes outline for its three side-by-side empty states.
+  assert.equal(nodes(empty.type(empty.props)).find(n => n.props?.href === '/').props.variant, 'default');
+  assert.equal(view.nodes().some(n => n.type?.name === 'CartItemsSkeleton'), false);
+
+  const loading = client('src/features/cart/cart-page-client.tsx', 'CartPageClient', { phase: 'loading', cart: null }); t.after(() => loading.dispose()); loading.flush();
+  const skeleton = loading.nodes().find(n => n.type?.name === 'CartItemsSkeleton');
+  const rendered = skeleton.type();
+  assert.equal(rendered.props['aria-busy'], 'true');
+  assert.match(text(rendered), /장바구니 상품을 불러오는 중입니다/);
 });
