@@ -4,7 +4,7 @@ import { loadTs } from './helpers/load-ts.mjs';
 import { A, I1, I2, cartView } from './helpers/cart-fixtures.mjs';
 
 const createStore = () => loadTs('src/features/cart/cart-store.ts').createCartStore();
-const soldOut = () => ({ ...cartView().items[0], id: I2, variantId: 3, stock: 0, canSelect: false });
+const soldOut = () => ({ ...cartView().items[0], id: I2, variantId: 3, stock: 0 });
 
 test('new store starts loading with nothing shown', () => {
   const s = createStore().getState();
@@ -14,13 +14,13 @@ test('new store starts loading with nothing shown', () => {
   );
 });
 
-test('selection works only in ready and only for purchasable items', () => {
+test('selection works only in ready and for every line, sold-out included', () => {
   const store = createStore();
   store.getState().setStateFromController({ phase: 'ready', cart: cartView({ items: [...cartView().items, soldOut()] }) });
   store.getState().setSelected(I2, true);
-  assert.deepEqual(store.getState().selectedIds, []);
+  assert.deepEqual(store.getState().selectedIds, [I2]);
   store.getState().selectAll(true);
-  assert.deepEqual(store.getState().selectedIds, [I1]);
+  assert.deepEqual(store.getState().selectedIds, [I1, I2]);
   store.getState().selectAll(false);
   store.getState().setStateFromController({ busy: true });
   store.getState().setSelected(I1, true);

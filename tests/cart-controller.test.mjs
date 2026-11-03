@@ -252,17 +252,17 @@ test('a member add of an option already in the cart selects that line', async ()
   assert.deepEqual(cart.state().selectedIds, [I1]);
 });
 
-test('a member add selects nothing when rejected or when the line is sold out', async () => {
+test('a member add selects nothing when rejected, but selects a saved line even if it shows as sold out', async () => {
   const rejected = await startedMember();
   rejected.replies.mutate.push(() => okFor(rejected.calls.mutate[0], cartView(), 'rejected'));
   rejected.controller.addItems([{ productId: 1, variantId: 2, quantity: 1 }]);
   await rejected.idle();
   assert.deepEqual(rejected.state().selectedIds, []);
   const soldOut = await startedMember();
-  soldOut.replies.mutate.push(() => okFor(soldOut.calls.mutate[0], cartView({ items: [itemOf(3, { stock: 0, canSelect: false })] })));
+  soldOut.replies.mutate.push(() => okFor(soldOut.calls.mutate[0], cartView({ items: [itemOf(3, { stock: 0 })] })));
   soldOut.controller.addItems([{ productId: 1, variantId: 2, quantity: 1 }]);
   await soldOut.idle();
-  assert.deepEqual(soldOut.state().selectedIds, []);
+  assert.deepEqual(soldOut.state().selectedIds, [I1]);
 });
 
 test('an account change clears the selection', async () => {
@@ -485,10 +485,18 @@ test('guest write failure reports and rebuilds', async () => {
   assert.equal(cart.calls.products.length, 2);
 });
 
-test('guest cleanup saves and reports adjusted and unavailable items', async () => {
+test('guest cleanup saves and reports unavailable items but keeps quantities above stock', async () => {
   const cart = await startedGuest({ guestItems: [line({ quantity: 5 }), line({ id: I2, productId: 9, variantId: 9 })], products: [product({ stock: 3 })] });
+  assert.deepEqual(cart.local.read().items, [line({ quantity: 5 })]);
+  assert.deepEqual(cart.notes.info, ['현재 이용할 수 없는 상품을 장바구니에서 제외했습니다.']);
+});
+
+test('a guest decrease from above stock saves stock at once, like a member', async () => {
+  const cart = await startedGuest({ guestItems: [line({ quantity: 5 })], products: [product({ stock: 3 })] });
+  cart.controller.adjustQuantity(I1, -1);
+  await cart.idle();
   assert.deepEqual(cart.local.read().items, [line({ quantity: 3 })]);
-  assert.deepEqual(cart.notes.info, ['현재 재고에 맞게 수량을 조정했습니다.', '현재 이용할 수 없는 상품을 장바구니에서 제외했습니다.']);
+  assert.equal(cart.state().cart.items[0].quantity, 3);
 });
 
 test('guest entry that detects a login asks the server, then merges once started as that member', async () => {
@@ -528,7 +536,7 @@ test('a malformed member read reply becomes a load error, not a silent hang', as
 });
 
 test('member replies with an invalid line are handled as lost replies', async () => {
-  const lines = [{ quantity: 0 }, { id: 'not-a-uuid' }, { canSelect: undefined }, { price: -1 }];
+  const lines = [{ quantity: 0 }, { id: 'not-a-uuid' }, { stock: -1 }, { price: -1 }];
   for (const broken of lines) {
     const cart = setup();
     cart.replies.read.push({ status: 'ok', cart: cartView({ items: [{ ...cartView().items[0], ...broken }] }) });

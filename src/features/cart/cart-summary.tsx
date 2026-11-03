@@ -6,10 +6,20 @@ import { useRouter } from 'next/navigation';
 import { getOrderAmounts } from '@/domains/order/domain';
 import { getOrderBlock } from '@/domains/order/place-order';
 import { getOrderBlockMessage } from '@/features/checkout/checkout-messages';
+import { getCartLineStatus } from '@/domains/cart/domain';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/shared/components/ui/dialog';
 import { getCheckoutHref } from '@/shared/lib/checkout-routes';
 import { cn } from '@/shared/lib/utils';
+import { lineStatusShortReason } from './cart-messages';
 import { selectCartLocked } from './cart-selectors';
-import { useCartState } from './use-cart';
+import { useCartCommands, useCartState } from './use-cart';
 
 import type { CartItemViewModel } from '@/domains/cart/view-model';
 
@@ -17,13 +27,25 @@ interface CartSummaryProps {
   selectedProducts: readonly CartItemViewModel[];
 }
 
+// The cart page gives each line this id so 주문하기 can bring the first problem line into view.
+export const getCartItemElementId = (itemId: string) => `cart-item-${itemId}`;
+
 export function CartSummary({ selectedProducts }: CartSummaryProps) {
-  const purchasable = useMemo(
-    () => selectedProducts.filter(item => item.canSelect),
-    [selectedProducts],
+  const optionGroups = useCartState(state => state.cart?.optionGroups);
+  // Checked only against what the page already shows; place_order checks the database at payment.
+  const problems = useMemo(
+    () =>
+      selectedProducts.flatMap(item => {
+        const status = getCartLineStatus(item, optionGroups ?? {});
+        return status === 'ok' ? [] : [{ item, status }];
+      }),
+    [selectedProducts, optionGroups],
   );
+  const [problemsOpen, setProblemsOpen] = useState(false);
+  const [scrollOnClose, setScrollOnClose] = useState(false);
+  const { setSelected } = useCartCommands();
   const orderSummary = useMemo(() => {
-    const amounts = getOrderAmounts(purchasable);
+    const amounts = getOrderAmounts(selectedProducts);
 
     return {
       itemCount: amounts.itemCount,
@@ -33,15 +55,15 @@ export function CartSummary({ selectedProducts }: CartSummaryProps) {
       total: amounts.totalAmount,
       optionsTotal: amounts.optionAmount,
     };
-  }, [purchasable]);
+  }, [selectedProducts]);
   const access = useCartState(state => state.access);
   // A pending change would reach checkout as the old lines; wait until it settles.
   const locked = useCartState(selectCartLocked);
   const block =
-    purchasable.length > 0
-      ? getOrderBlock({ lineCount: purchasable.length, totalAmount: orderSummary.total })
+    selectedProducts.length > 0
+      ? getOrderBlock({ lineCount: selectedProducts.length, totalAmount: orderSummary.total })
       : null;
-  const canOrder = purchasable.length > 0 && block === null && !locked;
+  const canOrder = selectedProducts.length > 0 && block === null && !locked;
   const router = useRouter();
 
   const [expanded, setExpanded] = useState(false);
@@ -82,10 +104,9 @@ export function CartSummary({ selectedProducts }: CartSummaryProps) {
     </>
   );
 
-  const handleOrderClick = () => {
-    if (!canOrder) return;
+  const order = (items: readonly CartItemViewModel[]) => {
     if (access?.status === 'member') {
-      router.push(getCheckoutHref(purchasable.map(item => item.id)));
+      router.push(getCheckoutHref(items.map(item => item.id)));
     } else if (access?.status === 'guest') {
       router.push('/login');
     } else {
@@ -95,8 +116,84 @@ export function CartSummary({ selectedProducts }: CartSummaryProps) {
     }
   };
 
+  const handleOrderClick = () => {
+    if (!canOrder) return;
+    if (problems.length > 0) {
+      setScrollOnClose(false);
+      setProblemsOpen(true);
+      return;
+    }
+    order(selectedProducts);
+  };
+
+  // Only the selection changes; the problem lines stay in the cart with their reasons.
+  const handleOrderOthers = () => {
+    setProblemsOpen(false);
+    for (const { item } of problems) setSelected(item.id, false);
+    order(selectedProducts.filter(item => !problems.some(problem => problem.item.id === item.id)));
+  };
+
+  const scrollToFirstProblem = () => {
+    const first = problems[0];
+    if (!first) return;
+    document
+      .getElementById(getCartItemElementId(first.item.id))
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
   return (
     <>
+      <Dialog open={problemsOpen} onOpenChange={setProblemsOpen}>
+        <DialogContent
+          showCloseButton={false}
+          className="max-w-sm! rounded-md"
+          // Only 확인하기 moves the page; outside click and Esc just close.
+          onCloseAutoFocus={event => {
+            if (!scrollOnClose) return;
+            event.preventDefault();
+            scrollToFirstProblem();
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black">
+              주문할 수 없는 상품이 있습니다
+            </DialogTitle>
+            <DialogDescription asChild>
+              {/* A long list scrolls inside the popup so its buttons stay on screen. */}
+              <ul className="max-h-[40dvh] space-y-1 overflow-y-auto text-sm font-medium text-gray-600">
+                {problems.map(({ item, status }) => (
+                  <li key={item.id}>
+                    · {item.name} {item.color} / {item.size} —{' '}
+                    {lineStatusShortReason(status, item.stock)}
+                  </li>
+                ))}
+              </ul>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-2 gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1 rounded-md border-gray-200 font-bold"
+              onClick={() => {
+                setScrollOnClose(true);
+                setProblemsOpen(false);
+              }}
+            >
+              확인하기
+            </Button>
+            {problems.length > 0 && problems.length < selectedProducts.length && (
+              <Button
+                type="button"
+                className="flex-1 rounded-md font-bold"
+                onClick={handleOrderOthers}
+              >
+                주문 가능한 상품만 주문하기
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {expanded && (
         <div
           aria-hidden="true"

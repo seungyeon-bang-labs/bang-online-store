@@ -4,7 +4,6 @@ import type { CartNotice, CartOperationResult } from './contract';
 export type CartItemViewModel = ProductCartItemViewModel & {
   id: string;
   quantity: number;
-  canSelect: boolean;
 };
 
 export type CartViewModel = {

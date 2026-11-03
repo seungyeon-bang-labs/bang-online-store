@@ -1,4 +1,5 @@
 import type { CartChange, CartNotice } from '@/domains/cart/contract';
+import type { CartLineStatus } from '@/domains/cart/domain';
 
 export type CartActionKind = CartChange['kind'];
 
@@ -28,3 +29,16 @@ export const messages = {
   mergeFailed: '로그인 전에 담은 상품을 옮기지 못했습니다.',
   itemMissing: noticeMessage({ kind: 'item_missing' }),
 };
+
+// Shown under a line that cannot be ordered as it is; the popup at 주문하기 uses the short form.
+export function lineStatusReason(status: Exclude<CartLineStatus, 'ok'>, stock: number): string {
+  switch (status) {
+    case 'over_stock': return `재고 ${stock}개 · 수량을 줄여 주세요`;
+    case 'sold_out_all': return '모든 옵션이 품절되었습니다';
+    case 'sold_out_option': return '선택한 옵션이 품절되었습니다 · 옵션을 변경해 주세요';
+  }
+}
+
+export function lineStatusShortReason(status: Exclude<CartLineStatus, 'ok'>, stock: number): string {
+  return status === 'over_stock' ? `재고 ${stock}개` : '품절';
+}

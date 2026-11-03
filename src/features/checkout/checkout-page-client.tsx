@@ -22,7 +22,20 @@ import { getCartHref } from '@/shared/lib/cart-routes';
 import { getOrderCompleteHref } from '@/shared/lib/checkout-routes';
 import { formatKoreanMoney } from '@/shared/lib/format';
 import { cn } from '@/shared/lib/utils';
-import { getOrderBlockMessage, getPlaceOrderMessage } from './checkout-messages';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/shared/components/ui/alert-dialog';
+import {
+  getOrderBlockMessage,
+  getPlaceOrderMessage,
+  isCartFixRejection,
+} from './checkout-messages';
 
 interface CheckoutPageClientProps {
   checkout: CheckoutViewModel;
@@ -44,6 +57,8 @@ export function CheckoutPageClient({
   const { enterCart } = useCartCommands();
   const [isPlacing, setIsPlacing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  // A refusal fixed in the cart; its popup closes only by going back there, since paying again fails the same way.
+  const [cartFix, setCartFix] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const { items, amounts, address } = checkout;
   const isAddressReady = address.status === 'ready';
@@ -78,8 +93,12 @@ export function CheckoutPageClient({
       return;
     }
 
-    setMessage(getPlaceOrderMessage(result));
     setIsPlacing(false);
+    if (isCartFixRejection(result.reason)) {
+      setCartFix(getPlaceOrderMessage(result));
+      return;
+    }
+    setMessage(getPlaceOrderMessage(result));
     // A failure may have placed the order after all; keep this page and its request id so a retry replays it.
     if (result.reason !== 'failed') router.refresh();
   }
@@ -126,6 +145,29 @@ export function CheckoutPageClient({
 
   return (
     <Container className="mb-20 pb-6 tabular-nums md:py-10">
+      <AlertDialog open={cartFix !== null}>
+        <AlertDialogContent
+          className="max-w-xs! rounded-md"
+          onEscapeKeyDown={event => event.preventDefault()}
+        >
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-black">
+              주문할 수 없는 상품이 있습니다
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm font-medium text-gray-500">
+              {cartFix}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogAction
+              className="flex-1 rounded-md font-bold"
+              onClick={() => router.push(getCartHref())}
+            >
+              확인
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <PageTitle
         current="주문/결제"
         className="mb-6 hidden border-b-2 pb-4 md:mb-12 md:flex md:border-b-4 md:pb-5"

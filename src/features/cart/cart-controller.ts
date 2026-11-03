@@ -459,7 +459,8 @@ export function createCartController({
   ): boolean {
     let saved = false;
     try {
-      const result = applyGuestChange(local.read().items, next, newId);
+      const stocks = new Map(current.cart?.items.map(item => [item.variantId, item.stock]));
+      const result = applyGuestChange(local.read().items, next, newId, variantId => stocks.get(variantId));
       if (result.status === 'missing') notify.error(messages.itemMissing);
       else {
         local.write(result.lines);

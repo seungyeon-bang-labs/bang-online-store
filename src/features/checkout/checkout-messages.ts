@@ -8,8 +8,8 @@ import { formatKoreanMoney } from '@/shared/lib/format';
 
 const MESSAGES: Record<PlaceOrderRejection, string> = {
   price_changed: '상품 가격이 바뀌었습니다. 바뀐 금액을 확인하고 다시 결제해 주세요.',
-  out_of_stock: '재고가 부족한 상품이 있습니다. 장바구니에서 수량을 확인해 주세요.',
-  product_unavailable: '판매가 중지된 상품이 있습니다. 장바구니를 확인해 주세요.',
+  out_of_stock: '재고가 부족한 상품이 있습니다. 장바구니에서 확인해 주세요.',
+  product_unavailable: '판매가 중지된 상품이 있습니다. 장바구니에서 확인해 주세요.',
   cart_changed: '장바구니가 바뀌었습니다. 장바구니에서 다시 주문해 주세요.',
   address_missing: '배송지를 찾지 못했습니다. 배송지를 다시 확인해 주세요.',
   address_incomplete: '상세 주소를 입력해 주세요.',
@@ -35,4 +35,11 @@ export function getPlaceOrderMessage(
   }
 
   return MESSAGES[result.reason];
+}
+
+// Fixed in the cart, not on this page: the checkout shows these in a popup that only leads back to the cart.
+const CART_FIX_REASONS: ReadonlySet<PlaceOrderRejection> = new Set(['out_of_stock', 'product_unavailable', 'cart_changed']);
+
+export function isCartFixRejection(reason: PlaceOrderRejection): boolean {
+  return CART_FIX_REASONS.has(reason);
 }

@@ -41,7 +41,7 @@ export function createCheckoutService({
   findDefaultAddress(userId: string): Promise<UserAddressDTO | null>;
 }) {
   return {
-    /** Null when none of the requested lines can be ordered from the current cart. */
+    /** Null when none of the requested lines are in the cart. Lines are shown as they are; place_order checks stock. */
     async getCheckoutViewModel(
       userId: string,
       cartItemIds: readonly string[],
@@ -51,9 +51,7 @@ export function createCheckoutService({
         readCart(userId),
         findDefaultAddress(userId),
       ]);
-      const items = cart.items.filter(
-        item => item.canSelect && requested.has(item.id),
-      );
+      const items = cart.items.filter(item => requested.has(item.id));
       if (items.length === 0) return null;
 
       return {
