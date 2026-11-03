@@ -11,7 +11,8 @@ import {
   type PlaceOrderResult,
 } from '@/domains/order/place-order';
 import type { UserAddressCreateInput } from '@/domains/member';
-import { useCartCommands } from '@/features/cart/use-cart';
+import { selectCartPending } from '@/features/cart/cart-selectors';
+import { useCartCommands, useCartState } from '@/features/cart/use-cart';
 import { MypageAddressForm } from '@/features/mypage/addresses';
 import { ProductPrice } from '@/features/product/product-price';
 import { PageTitle } from '@/shared/components/common/page-title';
@@ -48,10 +49,13 @@ export function CheckoutPageClient({
   const isAddressReady = address.status === 'ready';
   // place_order would refuse these anyway; stop them here so the member is not told to retry.
   const block = getOrderBlock({ lineCount: items.length, totalAmount: amounts.totalAmount });
-  const canPay = isAddressReady && block === null;
+  // Paying while the cart is read lets that older answer land after the order, so the header would
+  // keep the ordered lines (the re-read below is skipped while busy). A failed read does not block.
+  const cartPending = useCartState(selectCartPending);
+  const canPay = isAddressReady && block === null && !cartPending;
 
   async function handlePlaceOrder() {
-    if (isPlacing || block !== null || address.status !== 'ready') return;
+    if (isPlacing || cartPending || block !== null || address.status !== 'ready') return;
 
     setIsPlacing(true);
     setMessage(null);
@@ -93,7 +97,11 @@ export function CheckoutPageClient({
   const renderPayHint = (className: string) =>
     !canPay && (
       <p className={cn('text-center text-xs', className)}>
-        {block !== null ? getOrderBlockMessage(block) : '배송지를 입력하면 결제할 수 있습니다.'}
+        {block !== null
+          ? getOrderBlockMessage(block)
+          : !isAddressReady
+            ? '배송지를 입력하면 결제할 수 있습니다.'
+            : '장바구니를 확인하는 중입니다.'}
       </p>
     );
   // Same rows as the cart summary; weight and label color come from the caller.
