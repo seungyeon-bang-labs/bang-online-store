@@ -17,14 +17,6 @@ test('a quantity change stays within 1 and stock, lands on stock from above it a
   assert.equal(getChangedQuantity(5, 1, 2), 5, 'an increase never lowers a line above stock');
 });
 
-test('an add holds only the added quantity to stock', () => {
-  const { getAddedQuantity } = rules();
-  assert.equal(getAddedQuantity(1, 5, 3), 3);
-  assert.equal(getAddedQuantity(3, 3, 3), 3);
-  assert.equal(getAddedQuantity(5, 1, 3), 5);
-  assert.equal(getAddedQuantity(0, 4, 0), 4);
-});
-
 test('line status: ok first, then over stock, then all options or only the chosen option sold out', () => {
   const { getCartLineStatus } = rules();
   const option = (productId, stocks) => ({ productId, styleId: 1, color: { id: productId, label: '', hex: '' },

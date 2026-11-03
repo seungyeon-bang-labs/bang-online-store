@@ -28,13 +28,6 @@ export function getChangedQuantity(quantity: number, delta: 1 | -1, stock: numbe
   return Math.min(Math.max(1, quantity - 1), stock);
 }
 
-// Only the added quantity is held to stock: a line already above stock keeps its quantity.
-// Sold-out options cannot be chosen for an add, so stock 0 adds as asked.
-export function getAddedQuantity(current: number, added: number, stock: number): number {
-  if (stock === 0) return current + added;
-  return Math.min(current + added, Math.max(stock, current));
-}
-
 export function reconcileSelection(
   selected: readonly string[],
   items: readonly CartItemViewModel[],

@@ -1,5 +1,7 @@
 -- Separate approval required. Restores the 20261023000000 cleanup and cart operations exactly as they were.
 -- Only these two functions change; cart rows stay as they are until the next read lowers them to stock.
+-- When reverting the app as well, run this first: the earlier app cannot show a member line above stock and
+-- fails to load such a cart, while this restored cleanup lowers those lines on the next read.
 begin;
 set local lock_timeout='5s';
 

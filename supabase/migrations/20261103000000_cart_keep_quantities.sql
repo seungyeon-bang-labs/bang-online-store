@@ -1,8 +1,8 @@
 -- Preparation only. Obtain approval before applying; apply after the app that shows over-stock lines is deployed.
 -- The cart no longer lowers quantities the customer did not just change:
 --   reading the cart keeps quantities above stock (cart_cleanup);
---   adding or changing an option holds only the added quantity to stock, a login merge keeps guest quantities,
---   and one decrease from above stock lands on stock without an adjustment notice (apply_cart_operation).
+--   adding, a login merge and an option change keep the quantity asked for, even above stock;
+--   + stops at stock, and one - from above stock lands on stock without an adjustment notice (apply_cart_operation).
 -- place_order still checks stock. Only these two functions change; tables, data and grants stay as they are.
 begin;
 set local lock_timeout='5s';
@@ -98,10 +98,8 @@ begin
       end if;
       desired:=coalesce(existing.quantity,0)::bigint+(entry->>'quantity')::bigint;
       if desired>2147483647 then raise exception 'CART_INVALID_OPERATION' using errcode='22023'; end if;
-      -- Only the added quantity is held to stock: a line already above stock keeps its quantity,
-      -- and a login merge moves the guest's own quantities as they are.
-      next_quantity:=case when target.stock=0 or kind='merge_guest' then desired::integer
-        else least(desired,greatest(target.stock,coalesce(existing.quantity,0)))::integer end;
+      -- The cart never changes the quantity a customer asked for; a line above stock shows why it cannot be ordered.
+      next_quantity:=desired::integer;
       accepted:=true;
       if existing.id is null then
         insert into public.cart_items(cart_id,product_variant_id,quantity)
@@ -113,10 +111,6 @@ begin
           update public.cart_items set quantity=next_quantity where id=existing.id and cart_id=v_cart_id;
           changed:=true;
         end if;
-      end if;
-      if desired<>next_quantity then
-        notices:=notices||jsonb_build_array(jsonb_build_object('kind','quantity_adjusted',
-          'variantId',target.id,'itemId',item_id,'before',desired,'after',next_quantity));
       end if;
     end loop;
   elsif kind='adjust_quantity' then
@@ -168,7 +162,7 @@ begin
           where i.cart_id=v_cart_id and i.product_variant_id=target.id;
         desired:=source.quantity::bigint+coalesce(existing.quantity,0)::bigint;
         if desired>2147483647 then raise exception 'CART_INVALID_OPERATION' using errcode='22023'; end if;
-        next_quantity:=least(desired,greatest(target.stock,coalesce(existing.quantity,0)))::integer;
+        next_quantity:=desired::integer;
         if existing.id is null then
           insert into public.cart_items(cart_id,product_variant_id,quantity)
             values (v_cart_id,target.id,next_quantity) returning id into item_id;
@@ -182,10 +176,6 @@ begin
         item_map:=jsonb_build_object(source.id::text,item_id::text);
         accepted:=true;
         changed:=true;
-        if desired<>next_quantity then
-          notices:=notices||jsonb_build_array(jsonb_build_object('kind','quantity_adjusted',
-            'itemId',item_id,'variantId',target.id,'before',desired,'after',next_quantity));
-        end if;
       end if;
     end if;
   elsif kind='remove_items' then

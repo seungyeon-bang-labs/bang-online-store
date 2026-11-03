@@ -1,11 +1,12 @@
 import { maxCartQuantity, type CartChange, type CartLine, type CartNotice, type CartProductResponse } from './contract';
 import type { CartViewModel } from './view-model';
-import { getAddedQuantity, getChangedQuantity } from './domain';
+import { getChangedQuantity } from './domain';
 
 export const pairKey = (item: { productId: number; variantId: number }) => `${item.productId}:${item.variantId}`;
 
 // Applies one change to the latest stored lines; option choices are limited by the option dialog, so they are not re-checked here.
-// Quantities follow the member rules when the variant's stock is known (unknown keeps only the 1..max bounds).
+// Adds and option moves keep the quantity asked for, like the member cart; a quantity change follows the member
+// rule when the line's stock is known (unknown keeps only the 1..max bounds).
 export function applyGuestChange(
   lines: readonly CartLine[],
   change: CartChange,
@@ -13,15 +14,11 @@ export function applyGuestChange(
   stockOf: (variantId: number) => number | undefined = () => undefined,
 ): { status: 'saved'; lines: CartLine[]; itemIdMap?: Record<string, string> } | { status: 'missing' } {
   const next = lines.map(item => ({ ...item }));
-  const added = (current: number, quantity: number, variantId: number) => {
-    const stock = stockOf(variantId);
-    return Math.min(stock === undefined ? current + quantity : getAddedQuantity(current, quantity, stock), maxCartQuantity);
-  };
   if (change.kind === 'add_items') {
     for (const input of change.items) {
       const existing = next.find(item => item.variantId === input.variantId);
-      if (existing) existing.quantity = added(existing.quantity, input.quantity, input.variantId);
-      else next.push({ id: newId(), productId: input.productId, variantId: input.variantId, quantity: added(0, input.quantity, input.variantId) });
+      if (existing) existing.quantity = Math.min(existing.quantity + input.quantity, maxCartQuantity);
+      else next.push({ id: newId(), productId: input.productId, variantId: input.variantId, quantity: input.quantity });
     }
     return { status: 'saved', lines: next };
   }
@@ -41,12 +38,11 @@ export function applyGuestChange(
   if (source.variantId === change.variantId) return { status: 'saved', lines: next };
   const target = next.find(item => item.variantId === change.variantId);
   if (target) {
-    target.quantity = added(target.quantity, source.quantity, change.variantId);
+    target.quantity = Math.min(target.quantity + source.quantity, maxCartQuantity);
     return { status: 'saved', lines: next.filter(item => item.id !== source.id), itemIdMap: { [source.id]: target.id } };
   }
   source.productId = change.productId;
   source.variantId = change.variantId;
-  source.quantity = added(0, source.quantity, change.variantId);
   return { status: 'saved', lines: next };
 }
 

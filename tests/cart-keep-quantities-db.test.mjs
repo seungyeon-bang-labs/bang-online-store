@@ -90,15 +90,15 @@ test('one decrease from above stock lands on stock without an adjustment notice;
   assert.equal(soldOut.items.find(line => line.id === I2).quantity, 4);
 });
 
-test('adding holds only the added quantity to stock and never lowers a line already above it', options, t => {
+test('adding keeps the quantity asked for, even above stock, without an adjustment notice', options, t => {
   const db = setup(t, [[I1, 2, 5]]);
   const onOver = apply(db, { kind: 'add_items', items: [{ productId: 1, variantId: 2, quantity: 1 }] });
-  assert.deepEqual(quantities(onOver), [[2, 5]]);
-  assert.deepEqual(adjusted(onOver).map(note => [note.before, note.after]), [[6, 5]]);
+  assert.deepEqual(quantities(onOver), [[2, 6]]);
+  assert.deepEqual(adjusted(onOver), []);
   const fresh = apply(db, { kind: 'add_items', items: [{ productId: 4, variantId: 17, quantity: 12 }] }, REQUEST2);
-  assert.deepEqual(quantities(fresh), [[2, 5], [17, 10]]);
-  const other = setup(t, [[I1, 2, 1]]);
-  assert.deepEqual(quantities(apply(other, { kind: 'add_items', items: [{ productId: 1, variantId: 2, quantity: 3 }] })), [[2, 2]]);
+  assert.deepEqual(quantities(fresh), [[2, 6], [17, 12]]);
+  const soldOut = apply(db, { kind: 'add_items', items: [{ productId: 2, variantId: 7, quantity: 1 }] }, REQUEST3);
+  assert.equal(soldOut.operation.outcome, 'rejected', 'a sold-out option still cannot be added');
 });
 
 test('a login merge moves guest quantities as they are, above stock or sold out', options, t => {
@@ -113,13 +113,16 @@ test('a login merge moves guest quantities as they are, above stock or sold out'
   assert.deepEqual(quantities(getCart(db)), [[2, 5], [7, 3], [17, 12]]);
 });
 
-test('an option change holds the moved quantity to stock but keeps a target line already above it', options, t => {
+test('an option change keeps the moved quantity, even above stock, but not onto a sold-out option', options, t => {
   const db = setup(t, [[I1, 17, 3], [I2, 2, 5]]);
   db.sql('update public.product_variants set stock=1 where id=2;');
   const merged = apply(db, { kind: 'change_option', itemId: I1, productId: 1, variantId: 2 });
-  assert.deepEqual(quantities(merged), [[2, 5]]);
-  const fresh = setup(t, [[I1, 17, 5]]);
-  assert.deepEqual(quantities(apply(fresh, { kind: 'change_option', itemId: I1, productId: 1, variantId: 2 })), [[2, 2]]);
+  assert.deepEqual(quantities(merged), [[2, 8]]);
+  assert.deepEqual(adjusted(merged), []);
+  const soldOut = setup(t, [[I1, 17, 5]]);
+  const rejected = apply(soldOut, { kind: 'change_option', itemId: I1, productId: 2, variantId: 7 });
+  assert.equal(rejected.operation.outcome, 'rejected');
+  assert.deepEqual(quantities(rejected), [[17, 5]]);
 });
 
 test('migration keeps grants, refuses an unreviewed cart and rolls back to the original definitions', options, t => {
