@@ -13,6 +13,19 @@
 
 앱 실행과 환경변수 설정은 [프로젝트 README](../README.md)를 참고합니다.
 
+## 장바구니 수량 유지 적용·검증 — 2026-11-04
+
+PR #42 배포 후 사용자 승인으로 프로젝트 `plamqblmcavrtioajopz`(`main / PRODUCTION`)의 SQL Editor에서 아래 migration 한 개만 적용했습니다. 전체 `supabase db push`·기존 SQL 재실행·처리 이력 등록은 하지 않았습니다.
+
+- 적용 SQL: [20261103000000_cart_keep_quantities.sql](./migrations/20261103000000_cart_keep_quantities.sql), SHA-256 `8b055964104d2be52329c24b63d9fe0dd7dab45093376ec568bfca0e77e71805`
+- 복구 SQL: [rollback SQL](./rollback/20261103000000_cart_keep_quantities.sql), SHA-256 `2fb2086ac3389367f5de1eb27dd85b11ba2d1bc62302a17af84bd875b29119f9`
+
+`private.cart_cleanup`과 `public.apply_cart_operation` 두 함수만 바꿨고 테이블·데이터·권한은 그대로입니다. 장바구니는 고객이 요청한 수량을 줄이지 않습니다. 조회·담기·옵션 변경·로그인 병합은 재고를 넘어도 수량을 유지하고, `+`는 재고에서 멈추며 재고를 넘은 줄의 `−`는 한 번에 재고로 내려갑니다. 재고 확인은 `place_order`가 계속 맡습니다.
+
+읽기 전용 사전 점검에서 두 함수의 마커 `bang_cart_20261023000000`, 본문 md5(`3b02017e…dccd`, `4b188316…c555`), 실행 권한(authenticated는 `apply_cart_operation`만, anon 없음)을 확인했습니다. 적용 후 같은 확인으로 두 함수의 마커가 `bang_cart_keep_quantities_20261103000000`이고 본문 md5(`2ae57db0a2a05cd314c00f62301fc177`, `85372c88380e3ad2d72532c20a66233d`)가 migration 파일의 함수 본문과 일치하며 실행 권한이 바뀌지 않았음을 확인했습니다. 적용 후 한 번 더 실행된 같은 SQL은 시작 점검(`CART_KEEP_QUANTITIES_REVIEW_REQUIRED`)에서 거부되어 아무것도 바꾸지 않았습니다.
+
+앱을 이전 버전으로 되돌릴 때는 복구 SQL을 **먼저** 실행합니다. 이전 앱은 재고를 넘은 회원 장바구니 줄을 표시하지 못해 해당 장바구니를 불러오지 못합니다.
+
 ## 주문 DB 적용·검증 — 2026-11-01
 
 사용자 승인 후 프로젝트 `plamqblmcavrtioajopz`(`main / PRODUCTION`)의 SQL Editor에서 아래 migration 한 개만 적용했습니다. 전체 `supabase db push`·기존 SQL 재실행·처리 이력 등록은 하지 않았습니다.
