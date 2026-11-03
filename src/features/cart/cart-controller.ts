@@ -459,7 +459,14 @@ export function createCartController({
   ): boolean {
     let saved = false;
     try {
-      const result = applyGuestChange(local.read().items, next, newId);
+      // Stock of every option shown with the cart, so adds and option changes into a known variant stop at stock.
+      const stocks = new Map(
+        Object.values(current.cart?.optionGroups ?? {})
+          .flatMap(options => options.flatMap(option => option.variants))
+          .map(variant => [variant.id, variant.stock]),
+      );
+      for (const item of current.cart?.items ?? []) stocks.set(item.variantId, item.stock);
+      const result = applyGuestChange(local.read().items, next, newId, variantId => stocks.get(variantId));
       if (result.status === 'missing') notify.error(messages.itemMissing);
       else {
         local.write(result.lines);

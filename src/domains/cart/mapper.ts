@@ -54,7 +54,6 @@ export function toCartViewModel(
       variant.productId !== product.id ||
       !optionVariant ||
       optionVariant.productId !== product.id ||
-      (variant.stock > 0 && line.quantity > variant.stock) ||
       variant.stock !== optionVariant.stock ||
       variant.priceOffset !== optionVariant.priceOffset ||
       variant.size !== optionVariant.size
@@ -67,7 +66,6 @@ export function toCartViewModel(
       ...displayed,
       id: line.id,
       quantity: line.quantity,
-      canSelect: variant.stock > 0,
     };
   });
   const styleIds = new Set(items.map(item => item.styleId));

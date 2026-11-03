@@ -20,20 +20,22 @@ function setup({ snapshots = [cartDto()], byIds, byStyle, failure } = {}) {
   return { service, calls, instant };
 }
 
-test('mapper preserves cart order and maps current product prices, options and sold-out selection', () => {
+test('mapper preserves cart order and maps current product prices, options and stock, keeping quantities above stock', () => {
   const { toCartViewModel } = loadTs('src/domains/cart/mapper.ts');
   const active = productModel({ discountRate: 20 });
   const soldOut = productModel({ id: 2, color: { ...active.color, id: 2, name: '블랙', code: 'BLACK' }, variants: [{ ...active.variants[0], id: 7, productId: 2, stock: 0 }] });
+  const overStock = active.variants[0].stock + 3;
   const dto = cartDto({ items: [
     { id: I2, product_id: 2, product_variant_id: 7, quantity: 5 },
-    { id: I1, product_id: 1, product_variant_id: 2, quantity: 2 },
+    { id: I1, product_id: 1, product_variant_id: 2, quantity: overStock },
   ] });
   const before = JSON.stringify({ dto, active, soldOut });
   const result = toCartViewModel(dto, [active, soldOut], [active, soldOut]);
   assert.deepEqual(result.owner, { kind: 'member', userId: A });
   assert.equal(result.cartId, dto.cart_id);
   assert.equal(result.revision, dto.revision);
-  assert.deepEqual(result.items.map(item => [item.id, item.quantity, item.canSelect]), [[I2, 5, false], [I1, 2, true]]);
+  assert.deepEqual(result.items.map(item => [item.id, item.quantity, item.stock]), [[I2, 5, 0], [I1, overStock, active.variants[0].stock]]);
+  assert.equal('canSelect' in result.items[0], false);
   assert.equal(result.items[1].discountRate, 20);
   assert.equal(result.items[1].priceOffset, 1000);
   assert.equal(result.items[1].thumbnailUrl, '/file.svg');

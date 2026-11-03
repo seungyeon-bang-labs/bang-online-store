@@ -14,7 +14,7 @@ const ORDER = '44444444-4444-4444-8444-444444444441';
 
 const line = (id, overrides = {}) => ({
   id, productId: 1, styleId: 1, variantId: 2, name: '상품', color: '그레이', thumbnailUrl: '/file.svg',
-  price: 10000, discountRate: 0, stock: 10, size: 'M', priceOffset: 0, quantity: 1, canSelect: true, ...overrides,
+  price: 10000, discountRate: 0, stock: 10, size: 'M', priceOffset: 0, quantity: 1, ...overrides,
 });
 const address = (overrides = {}) => ({
   id: ADDRESS, user_id: MEMBER, label: null, recipient_name: '수령인', phone_number: '010-1234-5678',
@@ -43,19 +43,19 @@ function checkoutService({ items, defaultAddress }) {
   });
 }
 
-test('checkout keeps only requested lines that can still be ordered', async () => {
+test('checkout shows the requested lines as they are, sold-out included, and leaves stock to place_order', async () => {
   const service = checkoutService({
-    items: [line(LINE_A), line(LINE_B, { quantity: 2 }), line(SOLD_OUT, { stock: 0, canSelect: false })],
+    items: [line(LINE_A), line(LINE_B, { quantity: 2 }), line(SOLD_OUT, { stock: 0 })],
     defaultAddress: address(),
   });
   const checkout = await service.getCheckoutViewModel(MEMBER, [LINE_B, SOLD_OUT, 'gone']);
-  assert.deepEqual(checkout.items.map(item => item.id), [LINE_B]);
-  assert.equal(checkout.amounts.totalAmount, 23000);
+  assert.deepEqual(checkout.items.map(item => item.id), [LINE_B, SOLD_OUT]);
+  assert.equal(checkout.amounts.totalAmount, 33000);
   assert.equal(checkout.address.status, 'ready');
   assert.equal(checkout.address.address.id, ADDRESS);
   // No label: the card leads with the recipient instead of repeating the street address.
   assert.equal(checkout.address.label, null);
-  assert.equal(await service.getCheckoutViewModel(MEMBER, [SOLD_OUT]), null);
+  assert.equal(await service.getCheckoutViewModel(MEMBER, ['gone']), null);
   const labeled = await checkoutService({ items: [line(LINE_A)], defaultAddress: address({ label: ' 집 ' }) })
     .getCheckoutViewModel(MEMBER, [LINE_A]);
   assert.equal(labeled.address.label, '집');
@@ -85,6 +85,36 @@ test('payment waits while the cart is read, so an older cart cannot land after t
   }
   view.store.getState().setStateFromController({ busy: false, phase: 'error', message: '장바구니를 불러오지 못했습니다.' });
   assert.deepEqual(state(), { disabled: false, hint: false });
+});
+
+test('a refusal fixed in the cart opens a popup that only its 확인 closes, by going back to the cart', async (t) => {
+  const checkout = await checkoutService({ items: [line(LINE_A)], defaultAddress: address() }).getCheckoutViewModel(MEMBER, [LINE_A]);
+  for (const [reason, sentence] of [
+    ['out_of_stock', '재고가 부족한 상품이 있습니다. 장바구니에서 확인해 주세요.'],
+    ['product_unavailable', '판매가 중지된 상품이 있습니다. 장바구니에서 확인해 주세요.'],
+    ['cart_changed', '장바구니가 바뀌었습니다. 장바구니에서 다시 주문해 주세요.'],
+    ['failed', null],
+    ['price_changed', null],
+  ]) {
+    const view = client('src/features/checkout/checkout-page-client.tsx', 'CheckoutPageClient', {
+      props: { checkout, requestId: REQUEST, placeOrder: async () => ({ status: 'rejected', reason }), createAddress: async () => true, updateAddress: async () => true },
+    });
+    t.after(() => view.dispose());
+    await view.nodes().find(n => n.props?.onClick && text(n).endsWith('결제하기')).props.onClick();
+    view.flush();
+    const popup = view.nodes().find(n => 'open' in (n.props ?? {}) && text(n).includes('주문할 수 없는 상품이 있습니다'));
+    assert.equal(popup.props.open, sentence !== null, reason);
+    assert.equal(popup.props.onOpenChange, undefined, 'outside click cannot close it');
+    assert.equal(view.nodes().some(n => n.props?.role === 'alert'), sentence === null, reason);
+    if (sentence === null) continue;
+    assert.ok(text(popup).includes(sentence));
+    let prevented = 0;
+    view.nodes().find(n => n.props?.onEscapeKeyDown).props.onEscapeKeyDown({ preventDefault() { prevented++; } });
+    assert.equal(prevented, 1);
+    assert.deepEqual(view.calls.navigation, []);
+    view.button('확인').props.onClick();
+    assert.deepEqual(view.calls.navigation, ['/cart']);
+  }
 });
 
 test('checkout asks for an address when none is saved or the detail line is blank', async () => {

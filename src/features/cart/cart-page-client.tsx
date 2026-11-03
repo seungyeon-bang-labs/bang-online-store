@@ -4,16 +4,19 @@ import { useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ShoppingCart } from 'lucide-react';
+import { getCartLineStatus } from '@/domains/cart/domain';
 import { useCartState, useCartCommands } from './use-cart';
 import { selectCartLocked } from './cart-selectors';
+import { lineStatusReason } from './cart-messages';
 import { PageTitle } from '@/shared/components/common/page-title';
 import { Checkbox } from '@/shared/components/ui/checkbox';
 import { Label } from '@/shared/components/ui/label';
+import { ProductImageOverlay } from '@/features/product/product-image-overlay';
 import { QuantitySelector } from '@/features/product/quantity-selector';
 import { ProductPrice } from '@/features/product/product-price';
 import { DeleteConfirmModal } from './delete-confirm-modal';
 import { OptionChangeModal } from './option-change-modal';
-import { CartSummary } from './cart-summary';
+import { CartSummary, getCartItemElementId } from './cart-summary';
 import { EmptyState } from '@/shared/components/common/empty-state';
 import { Container } from '@/shared/components/layout/container';
 import { Button } from '@/shared/components/ui/button';
@@ -36,14 +39,17 @@ export function CartPageClient() {
   const ready = phase === 'ready';
   const error = phase === 'error' || phase === 'restricted' ? message : null;
   const cartProducts = cart?.items ?? [];
-  const purchasable = cartProducts.filter(item => item.canSelect);
-  // The store keeps only selectable items of the current cart selected.
+  const lines = cartProducts.map(item => ({
+    item,
+    status: getCartLineStatus(item, cart?.optionGroups ?? {}),
+  }));
+  // Every line can be selected; 주문하기 stops a selection that has a line which is not ok.
   const selected = new Set(selectedIds);
   const selectedProducts = ready
-    ? purchasable.filter(item => selected.has(item.id))
+    ? cartProducts.filter(item => selected.has(item.id))
     : [];
   const allSelected =
-    purchasable.length > 0 && selected.size === purchasable.length;
+    cartProducts.length > 0 && selected.size === cartProducts.length;
   const isIndeterminate = selected.size > 0 && !allSelected;
   const isInitialLoading = cart === null && !error;
   const isEmpty = ready && cartProducts.length === 0;
@@ -52,7 +58,7 @@ export function CartPageClient() {
     !locked && selected.size > 0 && removeItems([...selected]);
   const handleDeleteItem = (id: string) => !locked && removeItems([id]);
   const handleUpdateCount = (id: string, delta: 1 | -1) => {
-    if (!locked && cartProducts.some(item => item.id === id && item.canSelect))
+    if (!locked && cartProducts.some(item => item.id === id && item.stock > 0))
       adjustQuantity(id, delta);
   };
 
@@ -112,7 +118,7 @@ export function CartPageClient() {
                 }
                 onCheckedChange={checked => selectAll(Boolean(checked))}
                 className="size-4 border border-black transition-all duration-200 data-[state=checked]:bg-black data-[state=checked]:text-white"
-                disabled={!ready || purchasable.length === 0}
+                disabled={!ready || cartProducts.length === 0}
               />
               <Label
                 htmlFor="select-all"
@@ -133,15 +139,19 @@ export function CartPageClient() {
           ) : (
             <>
               {/* 상품 아이템 루프 */}
-              {cartProducts.map((item, index) => (
+              {lines.map(({ item, status }, index) => (
                 // Price already includes size offset; apply discount for display.
                 <div
                   key={item.id}
-                  className="relative grid grid-cols-[auto_5rem_minmax(0,1fr)] items-start gap-x-3 gap-y-3 overflow-hidden rounded-md border border-gray-200 p-4 transition-all md:flex md:gap-2 md:border-2 md:border-gray-100 md:p-6"
+                  id={getCartItemElementId(item.id)}
+                  className={cn(
+                    'relative grid grid-cols-[auto_5rem_minmax(0,1fr)] items-start gap-x-3 gap-y-3 overflow-hidden rounded-md border border-gray-200 p-4 transition-all md:flex md:flex-wrap md:gap-2 md:border-2 md:border-gray-100 md:p-6',
+                    status !== 'ok' && 'border-red-200 md:border-red-200',
+                  )}
                 >
                   <Checkbox
                     aria-label={`${item.name} 선택`}
-                    disabled={!ready || !item.canSelect}
+                    disabled={!ready}
                     checked={selected.has(item.id)}
                     onCheckedChange={checked =>
                       setSelected(item.id, Boolean(checked))
@@ -158,6 +168,12 @@ export function CartPageClient() {
                       className="object-cover transition-transform duration-300"
                       priority={index < 3}
                     />
+                    {status === 'sold_out_all' && (
+                      <ProductImageOverlay
+                        label="일시품절"
+                        labelClassName="px-1.5 tracking-normal md:px-3 md:tracking-widest"
+                      />
+                    )}
                   </div>
 
                   <div className="contents md:flex md:min-w-0 md:flex-1 md:flex-col md:justify-between">
@@ -181,7 +197,12 @@ export function CartPageClient() {
 
                       {/* 옵션 정보*/}
                       <div className="flex flex-wrap items-center gap-2 md:gap-4">
-                        <p className="text-xs font-bold uppercase tracking-normal text-gray-400 md:text-sm md:tracking-widest">
+                        <p
+                          className={cn(
+                            'text-xs font-bold uppercase tracking-normal text-gray-400 md:text-sm md:tracking-widest',
+                            status === 'sold_out_option' && 'text-red-500',
+                          )}
+                        >
                           {item.color} / {item.size}
                           {item.priceOffset > 0 && (
                             <span className="ml-1 text-xs tracking-normal md:text-sm">
@@ -208,10 +229,12 @@ export function CartPageClient() {
                     {/* 수량 조절 및 가격 */}
                     <div className="col-span-full flex items-end justify-between gap-3 border-t border-gray-100 pt-3 md:mt-0 md:border-0 md:pt-0">
                       {/* 수량 조절 */}
-                      <fieldset disabled={locked || !item.canSelect}>
+                      {/* A sold-out line is fixed by changing the option or deleting it. */}
+                      <fieldset disabled={locked || item.stock === 0}>
                         <QuantitySelector
                           count={item.quantity}
                           stock={item.stock}
+                          overStock={status === 'over_stock'}
                           onIncrease={() => handleUpdateCount(item.id, 1)}
                           onDecrease={() => handleUpdateCount(item.id, -1)}
                           className="[&_button]:size-8 md:[&_button]:size-6"
@@ -229,6 +252,13 @@ export function CartPageClient() {
                       />
                     </div>
                   </div>
+
+                  {/* The card's own row on desktop (flex-wrap), so the reason spans the whole card. */}
+                  {status !== 'ok' && (
+                    <p className="col-span-full rounded-md bg-gray-100 px-3 py-2 text-xs font-medium text-gray-600 md:mt-2 md:basis-full md:text-sm">
+                      {lineStatusReason(status, item.stock)}
+                    </p>
+                  )}
                 </div>
               ))}
 

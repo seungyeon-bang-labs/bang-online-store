@@ -29,7 +29,7 @@ export function cartView(overrides = {}) {
       id: I1, productId: 1, styleId: 1, variantId: 2,
       name: '그레이 티셔츠', color: '그레이', thumbnailUrl: '/file.svg',
       price: 10000, discountRate: 20, priceOffset: 1000,
-      size: 'M', stock: 10, quantity: 2, canSelect: true,
+      size: 'M', stock: 10, quantity: 2,
     }],
     optionGroups: {},
     notices: [],

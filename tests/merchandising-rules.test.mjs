@@ -64,7 +64,7 @@ function textContent(node) {
 
 test('ProductPrice displays the same base discount and option-inclusive original amount', () => {
   const {ProductPrice} = loadTs('src/features/product/product-price.tsx');
-  const text = textContent(ProductPrice({price:10001,discount:15,quantity:2,priceOffset:500}));
+  const text = textContent(ProductPrice({price:10001,discount:15,quantity:2,priceOffset:500,stock:10,styleId:1}));
   assert.ok(text.includes('21,002원'),text);
   assert.ok(text.includes('18,000원'),text);
   const highDiscount = textContent(ProductPrice({price:10000,discount:80}));
@@ -75,10 +75,10 @@ test('CartSummary combines different products with base-only discounts, shipping
   const {CartSummary} = loadTs('src/features/cart/cart-summary.tsx', {
     react:{useMemo:fn=>fn(),useState:value=>[value,()=>{}]},
     'next/navigation':{useRouter:()=>({push(){}})},
-    './use-cart':{useCartState:select=>select({access:{status:'member',userId:'u'}})},
+    './use-cart':{useCartState:select=>select({access:{status:'member',userId:'u'}}),useCartCommands:()=>({setSelected(){}})},
   });
-  const a = {id:'10000000-0000-4000-8000-000000000001',productId:1,name:'A',price:10001,discountRate:15,quantity:2,priceOffset:500,canSelect:true};
-  const b = {id:'10000000-0000-4000-8000-000000000002',productId:2,name:'B',price:10000,discountRate:80,quantity:1,priceOffset:0,canSelect:true};
+  const a = {id:'10000000-0000-4000-8000-000000000001',productId:1,name:'A',price:10001,discountRate:15,quantity:2,priceOffset:500,stock:10,styleId:1};
+  const b = {id:'10000000-0000-4000-8000-000000000002',productId:2,name:'B',price:10000,discountRate:80,quantity:1,priceOffset:0,stock:10,styleId:1};
   const single = textContent(CartSummary({selectedProducts:[a]}));
   // 20,002 + 1,000 - 3,002 = 18,000원 is under 50,000원, so 3,000원 shipping makes 21,000원.
   for (const expected of ['-3,002원','3,000원','21,000원']) assert.ok(single.includes(expected),single);
@@ -91,7 +91,7 @@ test('CartSummary keeps 주문하기 off while a cart change is saving or past 1
     const {CartSummary} = loadTs('src/features/cart/cart-summary.tsx', {
       react:{useMemo:fn=>fn(),useState:value=>[value,()=>{}]},
       'next/navigation':{useRouter:()=>({push(){}})},
-      './use-cart':{useCartState:select=>select({access:{status:'member',userId:'u'},phase:'ready',busy:false,...state})},
+      './use-cart':{useCartState:select=>select({access:{status:'member',userId:'u'},phase:'ready',busy:false,...state}),useCartCommands:()=>({setSelected(){}})},
     });
     return CartSummary({selectedProducts});
   };
@@ -101,7 +101,7 @@ test('CartSummary keeps 주문하기 off while a cart change is saving or past 1
     const own = node.props?.onClick && textContent(node.props.children).includes('주문하기') ? [node] : [];
     return [...own, ...orderButtons(node.props?.children)];
   };
-  const item = index => ({id:`10000000-0000-4000-8000-${String(index).padStart(12,'0')}`,productId:index,name:'A',price:10000,discountRate:0,quantity:1,priceOffset:0,canSelect:true});
+  const item = index => ({id:`10000000-0000-4000-8000-${String(index).padStart(12,'0')}`,productId:index,name:'A',price:10000,discountRate:0,quantity:1,priceOffset:0,stock:10,styleId:1});
   const disabled = tree => orderButtons(tree).map(button => button.props.disabled);
 
   assert.deepEqual(disabled(render({}, [item(1)])), [false, false]);

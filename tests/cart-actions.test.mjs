@@ -75,7 +75,7 @@ test('successful actions compose a new session repository per call and return pr
   const read = await actions.readCart({ expectedUserId: A });
   const changed = await actions.mutateCart(command());
   assert.equal(read.status, 'ok');
-  assert.equal(read.cart.items[0].canSelect, true);
+  assert.equal(read.cart.items[0].stock, 10);
   assert.equal(changed.status, 'ok');
   assert.equal(changed.cart.operation.outcome, 'applied');
   assert.equal(calls.clients.length, 2);

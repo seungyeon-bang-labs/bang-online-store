@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import type { ProductCardViewModel } from '@/domains/product';
+import { ProductImageOverlay } from '@/features/product/product-image-overlay';
 import { ProductPrice } from '@/features/product/product-price';
 import { cn } from '@/shared/lib/utils';
 import { ProductWishlistButton } from './product-wishlist-button';
@@ -32,15 +33,7 @@ export function ProductItem({
         </Link>
 
         {product.isSoldOut ? (
-          <div
-            className={cn(
-              'pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-center rounded-lg bg-black/30 top-0',
-            )}
-          >
-          <span className="rounded-xs border border-white px-3 py-1 text-xs font-bold tracking-widest text-white md:text-sm">
-              일시품절
-            </span>
-          </div>
+          <ProductImageOverlay label="일시품절" className="rounded-lg" />
         ) : null}
 
         {rank !== undefined ? (

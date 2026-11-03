@@ -7,17 +7,65 @@ import { I1, I2, cartView } from './helpers/cart-fixtures.mjs';
 const productProps = { productId:1,colors:[],price:10001,discount:15,variants:[{id:2,size:'M',stock:10,priceOffset:500},{id:3,size:'L',stock:5,priceOffset:0}] };
 function select(view, value) { const node=view.nodes().find(n=>n.props?.onValueChange);assert.ok(node,'size selector');node.props.onValueChange(String(value));view.flush(); }
 
-test('member rows use UUID selection, exclude sold-out lines and delete only captured selected IDs',async t=>{
-  const view=client('src/features/cart/cart-page-client.tsx','CartPageClient',{cart:cartView({items:[cartView().items[0],{...cartView().items[0],id:I2,variantId:7,stock:0,canSelect:false}]})});t.after(()=>view.dispose());view.flush();
+test('member rows use UUID selection, include sold-out lines and delete only captured selected IDs',async t=>{
+  const view=client('src/features/cart/cart-page-client.tsx','CartPageClient',{cart:cartView({items:[cartView().items[0],{...cartView().items[0],id:I2,variantId:7,stock:0}]})});t.after(()=>view.dispose());view.flush();
   assert.equal(view.calls.enter,1);assert.deepEqual(view.store.getState().selectedIds,[]);
   const all=view.nodes().find(n=>n.props?.id==='select-all');assert.ok(all);all.props.onCheckedChange(true);view.flush();
-  assert.deepEqual(view.store.getState().selectedIds,[I1]);
-  const soldout=view.nodes().find(n=>n.props?.['aria-label']===`${cartView().items[0].name} 선택`&&n.props.disabled);assert.ok(soldout);
-  const summary=view.nodes().find(n=>n.props?.selectedProducts);assert.deepEqual(summary.props.selectedProducts.map(i=>i.id),[I1]);
+  assert.deepEqual(view.store.getState().selectedIds,[I1,I2]);
+  assert.ok(view.nodes().filter(n=>n.props?.['aria-label']===`${cartView().items[0].name} 선택`).every(n=>!n.props.disabled));
+  const summary=view.nodes().find(n=>n.props?.selectedProducts);assert.deepEqual(summary.props.selectedProducts.map(i=>i.id),[I1,I2]);
   const confirm=view.nodes().find(n=>n.props?.type==='selected'&&n.props.onConfirm).props.onConfirm;
   const before=view.store.getState().cart;view.store.getState().setStateFromController({cart:{...before,items:[...before.items,{...before.items[0],id:'10000000-0000-4000-8000-000000000003'}]}});
-  await confirm();assert.deepEqual(view.calls.remove,[[I1]]);
+  await confirm();assert.deepEqual(view.calls.remove,[[I1,I2]]);
   const soldQuantity=view.nodes().filter(n=>n.props?.onIncrease&&n.props?.stock===0)[0];assert.ok(soldQuantity);await soldQuantity.props.onDecrease();assert.deepEqual(view.calls.adjust,[]);
+});
+
+test('a problem line keeps its quantity and shows one red mark with its reason; a fine line shows none',t=>{
+  const base=cartView().items[0];const id3='10000000-0000-4000-8000-000000000003';
+  const option=(productId,stocks)=>({productId,styleId:1,color:{id:productId,label:'',hex:''},variants:stocks.map((stock,index)=>({id:productId*10+index,size:'M',stock,priceOffset:0}))});
+  const view=client('src/features/cart/cart-page-client.tsx','CartPageClient',{cart:cartView({
+    items:[base,{...base,id:I2,variantId:7,quantity:5,stock:3},{...base,id:id3,variantId:8,stock:0}],
+    optionGroups:{1:[option(1,[0,4])]},
+  })});t.after(()=>view.dispose());view.flush();
+  const card=id=>view.nodes().find(n=>n.props?.id===`cart-item-${id}`);
+  const reasons=id=>nodes(card(id)).filter(n=>n.type==='p'&&n.props.className?.includes('bg-gray-100')).map(text);
+  assert.ok(!card(I1).props.className.includes('border-red-200'));assert.deepEqual(reasons(I1),[]);
+  assert.ok(card(I2).props.className.includes('border-red-200'));assert.deepEqual(reasons(I2),['재고 3개 · 수량을 줄여 주세요']);
+  const over=nodes(card(I2)).find(n=>n.props?.onIncrease);assert.deepEqual([over.props.count,over.props.overStock],[5,true]);
+  over.props.onDecrease();assert.deepEqual(view.calls.adjust,[[I2,-1]]);
+  assert.deepEqual(reasons(id3),['선택한 옵션이 품절되었습니다 · 옵션을 변경해 주세요']);
+  assert.ok(nodes(card(id3)).some(n=>typeof n.props?.className==='string'&&n.props.className.includes('text-red-500')&&text(n).includes(base.color)));
+  assert.equal(nodes(card(id3)).find(n=>n.type==='fieldset').props.disabled,true);
+  assert.ok(!nodes(card(id3)).some(n=>n.props?.label==='일시품절'));
+  view.store.getState().setStateFromController({cart:{...view.store.getState().cart,optionGroups:{1:[option(1,[0,0])]}}});view.flush();
+  assert.ok(nodes(card(id3)).some(n=>n.props?.label==='일시품절'));assert.deepEqual(reasons(id3),['모든 옵션이 품절되었습니다']);
+});
+
+test('주문하기 stops a selection with a problem line: 확인하기 scrolls to it, the other button orders only the fine lines',t=>{
+  const base=cartView().items[0];const over={...base,id:I2,variantId:7,quantity:5,stock:3};
+  const view=client('src/features/cart/cart-summary.tsx','CartSummary',{cart:cartView({items:[base,over]}),props:{selectedProducts:[base,over]}});t.after(()=>view.dispose());
+  view.store.getState().setSelected(I1,true);view.store.getState().setSelected(I2,true);view.flush();
+  const scrolled=[];globalThis.document={getElementById:id=>({scrollIntoView:options=>scrolled.push([id,options.block])})};t.after(()=>{delete globalThis.document;});
+  const dialog=()=>view.nodes().find(n=>'open'in(n.props??{})&&n.props.onOpenChange);
+  const closed=()=>{let prevented=0;view.nodes().find(n=>n.props?.onCloseAutoFocus).props.onCloseAutoFocus({preventDefault(){prevented++;}});return prevented;};
+  view.button('주문하기').props.onClick();view.flush();
+  assert.equal(dialog().props.open,true);assert.deepEqual(view.calls.navigation,[]);
+  assert.ok(text(dialog()).includes(`${base.name} ${base.color} / ${base.size} — 재고 3개`),text(dialog()));
+  dialog().props.onOpenChange(false);view.flush();
+  assert.equal(closed(),0,'outside click and Esc only close');assert.deepEqual(scrolled,[]);
+  view.button('주문하기').props.onClick();view.flush();
+  view.button('확인하기').props.onClick();view.flush();
+  assert.equal(dialog().props.open,false);assert.equal(closed(),1);assert.deepEqual(scrolled,[[`cart-item-${I2}`,'center']]);
+  view.button('주문하기').props.onClick();view.flush();
+  view.button('주문 가능한 상품만 주문하기').props.onClick();view.flush();
+  assert.deepEqual(view.store.getState().selectedIds,[I1],'the problem line is only unselected, not removed');
+  assert.deepEqual(view.calls.navigation,[`/checkout?items=${I1}`]);assert.deepEqual(view.calls.remove,[]);
+  view.render({selectedProducts:[over]});view.flush();
+  view.button('주문하기').props.onClick();view.flush();
+  assert.equal(dialog().props.open,true);assert.equal(view.button('주문 가능한 상품만 주문하기'),undefined);
+  view.render({selectedProducts:[base]});view.flush();
+  view.button('주문하기').props.onClick();view.flush();
+  assert.deepEqual(view.calls.navigation.at(-1),`/checkout?items=${I1}`);
 });
 
 test('root mounts exactly one server cart boundary around all route children',()=>{
@@ -114,7 +162,7 @@ test('headers show nothing while loading and the cart quantity plus pending adds
     const view = client(file, name, { props, phase: 'loading', cart: null }); t.after(() => view.dispose());
     const count = () => { const badge = view.nodes().find(n => 'cartItemCount' in (n.props ?? {}) || 'count' in (n.props ?? {})); assert.ok(badge, name); return 'cartItemCount' in badge.props ? badge.props.cartItemCount : badge.props.count; };
     assert.equal(count(), null);
-    ready(view, { phase: 'ready', cart: cartView({ items: [cartView().items[0], { ...cartView().items[0], id: I2, stock: 0, canSelect: false, quantity: 3 }] }) });
+    ready(view, { phase: 'ready', cart: cartView({ items: [cartView().items[0], { ...cartView().items[0], id: I2, stock: 0, quantity: 3 }] }) });
     assert.equal(count(), 5);
     ready(view, { busy: true, pendingAdd: 2 });
     assert.equal(count(), 7, `${name} counts an add at once`);

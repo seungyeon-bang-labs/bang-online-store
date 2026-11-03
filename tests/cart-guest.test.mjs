@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import { loadTs } from './helpers/load-ts.mjs';
 import { I1, I2, cartView } from './helpers/cart-fixtures.mjs';
 import { productResponse } from './helpers/cart-products.mjs';
+import { addCases, adjustCases, optionCases } from './helpers/cart-quantity-cases.mjs';
 
 const { applyGuestChange, buildGuestCart } = loadTs('src/domains/cart/guest.ts');
 const { previewChange } = loadTs('src/features/cart/cart-preview.ts');
@@ -29,6 +30,25 @@ test('adjust applies ±1 to the latest quantity and never goes below 1', () => {
     { status: 'saved', lines: [line()] });
 });
 
+// The same table runs against apply_cart_operation in cart-keep-quantities-db.test.mjs.
+test('with known stock, guest quantities follow the shared member rule table', () => {
+  const at = stock => variantId => (variantId === 2 ? stock : undefined);
+  for (const c of adjustCases) {
+    const result = applyGuestChange([line({ quantity: c.line })], { kind: 'adjust_quantity', itemId: I1, delta: c.delta }, ids(), at(c.stock));
+    assert.equal(result.lines[0].quantity, c.expected, c.name);
+  }
+  for (const c of addCases) {
+    const lines = c.line ? [line({ quantity: c.line })] : [];
+    const result = applyGuestChange(lines, { kind: 'add_items', items: [{ productId: 1, variantId: 2, quantity: c.added }] }, ids(), at(c.stock));
+    assert.equal(result.lines.find(item => item.variantId === 2).quantity, c.expected, c.name);
+  }
+  for (const c of optionCases) {
+    const lines = [line({ variantId: 17, quantity: c.line }), ...(c.target ? [line({ id: I2, quantity: c.target })] : [])];
+    const result = applyGuestChange(lines, { kind: 'change_option', itemId: I1, productId: 1, variantId: 2 }, ids(), at(c.stock));
+    assert.deepEqual(result.lines.map(item => [item.variantId, item.quantity]), [[2, c.expected]], c.name);
+  }
+});
+
 test('change option moves the line and merges into the same option', () => {
   assert.deepEqual(applyGuestChange([line()], { kind: 'change_option', itemId: I1, productId: 1, variantId: 3 }, ids()),
     { status: 'saved', lines: [line({ variantId: 3 })] });
@@ -44,27 +64,29 @@ test('remove drops lines; a missing target reports missing', () => {
   assert.deepEqual(applyGuestChange([line()], { kind: 'change_option', itemId: I2, productId: 1, variantId: 3 }, ids()), { status: 'missing' });
 });
 
-test('build drops unavailable and clamps stock', () => {
+test('build drops unavailable lines but keeps quantities above stock', () => {
   const built = buildGuestCart([line({ quantity: 5 }), line({ id: I2, productId: 9, variantId: 9, quantity: 2 })], productResponse([product({ stock: 3 })]));
   assert.equal(built.changed, true);
-  assert.deepEqual(built.lines, [line({ quantity: 3 })]);
+  assert.deepEqual(built.lines, [line({ quantity: 5 })]);
   assert.deepEqual(built.cart.notices, [
-    { kind: 'quantity_adjusted', itemId: I1, variantId: 2, before: 5, after: 3 },
     { kind: 'unavailable', itemId: I2, variantId: 9, before: 2, after: 0 },
   ]);
   assert.deepEqual(built.cart.owner, { kind: 'guest' });
   assert.equal(built.cart.cartId, null);
   assert.equal(built.cart.revision, null);
   assert.equal(built.cart.operation, null);
-  assert.equal(built.cart.items[0].quantity, 3);
+  assert.equal(built.cart.items[0].quantity, 5);
   assert.equal(built.cart.items[0].name, '그레이 티셔츠');
+  const kept = buildGuestCart([line({ quantity: 5 })], productResponse([product({ stock: 3 })]));
+  assert.equal(kept.changed, false);
+  assert.deepEqual(kept.cart.notices, []);
 });
 
-test('build keeps sold-out lines, including just-added ones, but not selectable', () => {
+test('build keeps sold-out lines, including just-added ones, with their quantity', () => {
   const built = buildGuestCart([line({ quantity: 2 })], productResponse([product({ stock: 0 })]));
   assert.equal(built.changed, false);
   assert.deepEqual(built.lines, [line({ quantity: 2 })]);
-  assert.equal(built.cart.items[0].canSelect, false);
+  assert.deepEqual([built.cart.items[0].quantity, built.cart.items[0].stock], [2, 0]);
   assert.deepEqual(built.cart.notices, []);
 });
 
@@ -76,6 +98,7 @@ test('previewChange adjusts, removes and relabels options without merging', () =
   assert.equal(previewChange(cart, { kind: 'adjust_quantity', itemId: I1, delta: 1 }).items[0].quantity, 3);
   assert.equal(previewChange(cart, { kind: 'adjust_quantity', itemId: I1, delta: -1 }).items[0].quantity, 1);
   assert.equal(previewChange(cartView({ items: [{ ...cartView().items[0], quantity: 1 }] }), { kind: 'adjust_quantity', itemId: I1, delta: -1 }).items[0].quantity, 1);
+  assert.equal(previewChange(cartView({ items: [{ ...cartView().items[0], quantity: 5, stock: 3 }] }), { kind: 'adjust_quantity', itemId: I1, delta: -1 }).items[0].quantity, 3);
   assert.deepEqual(previewChange(cart, { kind: 'remove_items', itemIds: [I1] }).items.map(item => item.id), [I2]);
   const relabeled = previewChange(cart, { kind: 'change_option', itemId: I1, productId: 1, variantId: 3 });
   assert.equal(relabeled.items.length, 2);

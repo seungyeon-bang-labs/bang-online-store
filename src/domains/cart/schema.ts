@@ -105,7 +105,7 @@ const memberCartViewSchema = z.object({
   owner: z.strictObject({ kind: z.literal('member'), userId: z.uuid() }),
   cartId: z.uuid(),
   revision: revisionSchema,
-  items: z.array(z.object({ id: z.uuid(), quantity: quantitySchema, canSelect: z.boolean() })),
+  items: z.array(z.object({ id: z.uuid(), quantity: quantitySchema })),
   notices: z.array(noticeSchema),
   operation: operationSchema,
 });

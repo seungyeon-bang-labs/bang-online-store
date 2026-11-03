@@ -7,25 +7,50 @@ const rules = () => loadTs('src/domains/cart/domain.ts');
 const schemas = () => loadTs('src/domains/cart/schema.ts');
 const add = items => command({ operation: { kind: 'add_items', items } });
 
-test('positive stock caps but zero preserves', () => {
-  const { getAdjustedQuantity } = rules();
-  assert.equal(getAdjustedQuantity(5, 2), 2);
-  assert.equal(getAdjustedQuantity(2, 5), 2);
-  assert.equal(getAdjustedQuantity(5, 0), 5);
+test('a quantity change stays within 1 and stock, lands on stock from above it and leaves sold-out lines', () => {
+  const { getChangedQuantity } = rules();
+  assert.equal(getChangedQuantity(5, -1, 2), 2);
+  assert.equal(getChangedQuantity(2, 1, 2), 2);
+  assert.equal(getChangedQuantity(1, -1, 5), 1);
+  assert.equal(getChangedQuantity(2, 1, 5), 3);
+  assert.equal(getChangedQuantity(5, -1, 0), 5);
+  assert.equal(getChangedQuantity(5, 1, 2), 5, 'an increase never lowers a line above stock');
 });
 
-test('no automatic selection and existing purchasable selection survives', () => {
+test('an add holds only the added quantity to stock', () => {
+  const { getAddedQuantity } = rules();
+  assert.equal(getAddedQuantity(1, 5, 3), 3);
+  assert.equal(getAddedQuantity(3, 3, 3), 3);
+  assert.equal(getAddedQuantity(5, 1, 3), 5);
+  assert.equal(getAddedQuantity(0, 4, 0), 4);
+});
+
+test('line status: ok first, then over stock, then all options or only the chosen option sold out', () => {
+  const { getCartLineStatus } = rules();
+  const option = (productId, stocks) => ({ productId, styleId: 1, color: { id: productId, label: '', hex: '' },
+    variants: stocks.map((stock, index) => ({ id: productId * 10 + index, size: 'M', stock, priceOffset: 0 })) });
+  const line = (quantity, stock) => ({ quantity, stock, styleId: 1 });
+  const someLeft = { 1: [option(1, [0, 0]), option(2, [0, 3])] };
+  const noneLeft = { 1: [option(1, [0, 0]), option(2, [0])] };
+  assert.equal(getCartLineStatus(line(3, 3), someLeft), 'ok');
+  assert.equal(getCartLineStatus(line(5, 3), someLeft), 'over_stock');
+  assert.equal(getCartLineStatus(line(2, 0), someLeft), 'sold_out_option');
+  assert.equal(getCartLineStatus(line(2, 0), noneLeft), 'sold_out_all');
+  assert.equal(getCartLineStatus(line(2, 0), {}), 'sold_out_all');
+});
+
+test('no automatic selection and existing selection survives for every line still in the cart', () => {
   const { reconcileSelection } = rules();
   const items = Object.freeze(cartView().items.map(Object.freeze));
   assert.deepEqual(reconcileSelection([], items), []);
   const selected = Object.freeze([I1, I1, I2]);
   assert.deepEqual(reconcileSelection(selected, items), [I1]);
   assert.deepEqual(selected, [I1, I1, I2]);
-  assert.deepEqual(reconcileSelection([I1], [{ ...items[0], stock: 0, canSelect: false }]), []);
+  assert.deepEqual(reconcileSelection([I1], [{ ...items[0], stock: 0 }]), [I1]);
   assert.deepEqual(reconcileSelection([], items), []); // restocking does not reselect
 });
 
-test('option move preserves either selection once and never selects an unavailable target', () => {
+test('option move preserves either selection once, including a sold-out target', () => {
   const { reconcileSelection } = rules();
   const target = { ...cartView().items[0], id: I2, variantId: 17 };
   const mapping = Object.freeze({ [I1]: I2 });
@@ -33,7 +58,7 @@ test('option move preserves either selection once and never selects an unavailab
   assert.deepEqual(reconcileSelection([I2], [target], mapping), [I2]);
   assert.deepEqual(reconcileSelection([I1, I2], [target], mapping), [I2]);
   assert.deepEqual(reconcileSelection([], [target], mapping), []);
-  assert.deepEqual(reconcileSelection([I1], [{ ...target, canSelect: false }], mapping), []);
+  assert.deepEqual(reconcileSelection([I1], [{ ...target, stock: 0 }], mapping), [I2]);
 });
 
 test('all supported commands retain their original fixed request content', () => {

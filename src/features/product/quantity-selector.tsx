@@ -9,6 +9,8 @@ interface QuantitySelectorProps {
   stock: number;
   onIncrease: () => void;
   onDecrease: () => void;
+  // The count is above stock (a cart line): shown in red.
+  overStock?: boolean;
   className?: string;
 }
 
@@ -17,6 +19,7 @@ export function QuantitySelector({
   stock,
   onIncrease,
   onDecrease,
+  overStock = false,
   className,
 }: QuantitySelectorProps) {
   const isMin = count <= 1;
@@ -38,7 +41,7 @@ export function QuantitySelector({
       >
         <Minus strokeWidth={3} />
       </Button>
-      <span className="w-8 text-center text-xs font-bold">{count}</span>
+      <span className={cn('w-8 text-center text-xs font-bold', overStock && 'text-red-500')}>{count}</span>
       <Button
         onClick={onIncrease}
         size="icon-xs"
