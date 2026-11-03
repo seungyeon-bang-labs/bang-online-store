@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createClient } from '@supabase/supabase-js';
+import { client, text } from './helpers/cart-client.mjs';
 import { loadTs } from './helpers/load-ts.mjs';
 
 const MEMBER = '11111111-1111-4111-8111-111111111111';
@@ -58,6 +59,32 @@ test('checkout keeps only requested lines that can still be ordered', async () =
   const labeled = await checkoutService({ items: [line(LINE_A)], defaultAddress: address({ label: ' 집 ' }) })
     .getCheckoutViewModel(MEMBER, [LINE_A]);
   assert.equal(labeled.address.label, '집');
+});
+
+test('payment waits while the cart is read, so an older cart cannot land after the order, but not after a failed read', async (t) => {
+  const checkout = await checkoutService({ items: [line(LINE_A)], defaultAddress: address() }).getCheckoutViewModel(MEMBER, [LINE_A]);
+  const placed = [];
+  const view = client('src/features/checkout/checkout-page-client.tsx', 'CheckoutPageClient', {
+    props: { checkout, requestId: REQUEST, placeOrder: async input => { placed.push(input); return { status: 'rejected', reason: 'failed' }; }, createAddress: async () => true, updateAddress: async () => true },
+  });
+  t.after(() => view.dispose());
+  const payButtons = () => view.nodes().filter(n => n.props?.onClick && text(n).endsWith('결제하기'));
+  const state = () => {
+    view.flush();
+    const buttons = payButtons();
+    assert.ok(buttons.length > 0);
+    return { disabled: buttons.every(b => b.props.disabled), hint: view.nodes().some(n => text(n) === '장바구니를 확인하는 중입니다.') };
+  };
+
+  assert.deepEqual(state(), { disabled: false, hint: false });
+  for (const pending of [{ busy: true }, { busy: false, phase: 'loading' }]) {
+    view.store.getState().setStateFromController(pending);
+    assert.deepEqual(state(), { disabled: true, hint: true });
+    await payButtons()[0].props.onClick();
+    assert.equal(placed.length, 0);
+  }
+  view.store.getState().setStateFromController({ busy: false, phase: 'error', message: '장바구니를 불러오지 못했습니다.' });
+  assert.deepEqual(state(), { disabled: false, hint: false });
 });
 
 test('checkout asks for an address when none is saved or the detail line is blank', async () => {

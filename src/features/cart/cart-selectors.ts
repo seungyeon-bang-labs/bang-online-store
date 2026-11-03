@@ -9,6 +9,11 @@ export function selectCartItemCount(state: CartState): number | null {
   return getCartItemCount(state.cart.items) + state.pendingAdd;
 }
 
+// Reading or changing the cart: its answer may still come from before what the page does next.
+export function selectCartPending(state: CartState): boolean {
+  return state.busy || state.phase === 'loading';
+}
+
 // One request at a time; before any cart was shown only retry is possible.
 export function selectCartLocked(state: CartState): boolean {
   return state.busy || state.phase === 'loading' || state.phase === 'restricted' || (state.phase === 'error' && state.cart === null);
