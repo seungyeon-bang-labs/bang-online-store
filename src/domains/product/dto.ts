@@ -70,6 +70,20 @@ export type ProductQuery = {
   styleId?: number;
 };
 
+// One discontinued (product, variant) pair as get_discontinued_cart_lines returns it, with its image URL.
+export type DiscontinuedCartLineDTO = {
+  productId: number;
+  variantId: number;
+  styleId: number;
+  name: string;
+  color: string;
+  size: string;
+  price: number;
+  priceOffset: number;
+  stock: number;
+  imageUrl: string | null;
+};
+
 export type ProductAggregateDTO = {
   product: ProductDTO;
   style: ProductStyleDTO;

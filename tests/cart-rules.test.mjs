@@ -29,6 +29,20 @@ test('line status: ok first, then over stock, then all options or only the chose
   assert.equal(getCartLineStatus(line(2, 0), someLeft), 'sold_out_option');
   assert.equal(getCartLineStatus(line(2, 0), noneLeft), 'sold_out_all');
   assert.equal(getCartLineStatus(line(2, 0), {}), 'sold_out_all');
+  // A discontinued line is deleted, not fixed, so it wins over every stock state.
+  for (const [quantity, stock] of [[1, 3], [5, 3], [2, 0]])
+    assert.equal(getCartLineStatus({ ...line(quantity, stock), discontinued: true }, someLeft), 'discontinued');
+});
+
+test('a discontinued line changes no quantity, like a sold-out one, and gives its reasons', () => {
+  const { getChangeableStock, getChangedQuantity } = rules();
+  assert.equal(getChangeableStock({ stock: 4 }), 4);
+  assert.equal(getChangeableStock({ stock: 4, discontinued: true }), 0);
+  for (const delta of [1, -1]) assert.equal(getChangedQuantity(3, delta, getChangeableStock({ stock: 4, discontinued: true })), 3);
+  const { lineStatusReason, lineStatusShortReason } = loadTs('src/features/cart/cart-messages.ts');
+  assert.equal(lineStatusReason('discontinued', 4), '판매가 종료된 상품입니다 · 삭제해 주세요');
+  assert.deepEqual(['discontinued', 'over_stock', 'sold_out_all', 'sold_out_option'].map(status => lineStatusShortReason(status, 3)),
+    ['판매 종료', '재고 3개', '품절', '품절']);
 });
 
 test('no automatic selection and existing selection survives for every line still in the cart', () => {

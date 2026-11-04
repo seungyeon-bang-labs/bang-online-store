@@ -10,6 +10,7 @@ const responseSchema: z.ZodType<CartProductResponse> = z.object({
   cartItems: z.array(z.object({
     productId: numericIdSchema, variantId: numericIdSchema, styleId: numericIdSchema, name: z.string(), color: z.string(), thumbnailUrl: z.string().min(1),
     price: money, discountRate: z.number().min(0).max(100), priceOffset: money, stock, size: z.string().min(1),
+    discontinued: z.literal(true).optional(),
   })),
   optionGroups: z.record(z.string().regex(/^[1-9]\d*$/), z.array(z.object({
     productId: numericIdSchema, styleId: numericIdSchema, name: z.string(), thumbnailUrl: z.string().min(1),
@@ -26,11 +27,13 @@ export function parseCartProductResponse(value: unknown): CartProductResponse {
   return result;
 }
 
-// Member snapshots are validated by the server mapper. Guest HTTP snapshots must
+// Member snapshots are validated by the server mapper. Guest HTTP snapshots of on-sale lines must
 // agree with their own option before cleanup or local persistence.
 export function parseGuestCartProductResponse(value: unknown): CartProductResponse {
   const result = parseCartProductResponse(value);
   for (const item of result.cartItems) {
+    // A discontinued line has no on-sale option to agree with.
+    if (item.discontinued) continue;
     const product = result.optionGroups[item.styleId]?.find(product => product.productId === item.productId);
     const variant = product?.variants.find(variant => variant.id === item.variantId);
     if (!variant || variant.stock !== item.stock || variant.size !== item.size || variant.priceOffset !== item.priceOffset) {

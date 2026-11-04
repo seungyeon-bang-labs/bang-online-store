@@ -46,6 +46,8 @@ export type ProductCartItemViewModel = {
   stock: number;
   size: string;
   priceOffset: number;
+  /** Set only on a line whose product is no longer sold; such a line is shown so the customer can delete it. */
+  discontinued?: true;
 };
 
 export type ProductOptionViewModel = {

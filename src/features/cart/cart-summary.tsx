@@ -44,8 +44,13 @@ export function CartSummary({ selectedProducts }: CartSummaryProps) {
   const [problemsOpen, setProblemsOpen] = useState(false);
   const [scrollOnClose, setScrollOnClose] = useState(false);
   const { setSelected } = useCartCommands();
+  // A discontinued line has no current price (its discount is no longer read), so the amounts leave it out.
+  const pricedProducts = useMemo(
+    () => selectedProducts.filter(item => !item.discontinued),
+    [selectedProducts],
+  );
   const orderSummary = useMemo(() => {
-    const amounts = getOrderAmounts(selectedProducts);
+    const amounts = getOrderAmounts(pricedProducts);
 
     return {
       itemCount: amounts.itemCount,
@@ -55,12 +60,13 @@ export function CartSummary({ selectedProducts }: CartSummaryProps) {
       total: amounts.totalAmount,
       optionsTotal: amounts.optionAmount,
     };
-  }, [selectedProducts]);
+  }, [pricedProducts]);
   const access = useCartState(state => state.access);
   // A pending change would reach checkout as the old lines; wait until it settles.
   const locked = useCartState(selectCartLocked);
+  // Discontinued lines alone add up to 0원; the problem popup stops them instead of a disabled button.
   const block =
-    selectedProducts.length > 0
+    pricedProducts.length > 0
       ? getOrderBlock({ lineCount: selectedProducts.length, totalAmount: orderSummary.total })
       : null;
   const canOrder = selectedProducts.length > 0 && block === null && !locked;

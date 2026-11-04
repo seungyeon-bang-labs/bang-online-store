@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ShoppingCart } from 'lucide-react';
-import { getCartLineStatus } from '@/domains/cart/domain';
+import { getCartLineStatus, getChangeableStock } from '@/domains/cart/domain';
 import { useCartState, useCartCommands } from './use-cart';
 import { selectCartLocked } from './cart-selectors';
 import { lineStatusReason } from './cart-messages';
@@ -168,9 +168,9 @@ export function CartPageClient() {
                       className="object-cover transition-transform duration-300"
                       priority={index < 3}
                     />
-                    {status === 'sold_out_all' && (
+                    {(status === 'sold_out_all' || status === 'discontinued') && (
                       <ProductImageOverlay
-                        label="일시품절"
+                        label={status === 'discontinued' ? '판매종료' : '일시품절'}
                         labelClassName="px-1.5 tracking-normal md:px-3 md:tracking-widest"
                       />
                     )}
@@ -180,13 +180,25 @@ export function CartPageClient() {
                     {/* 상품 정보 및 개별 삭제*/}
                     <div className="min-w-0 flex flex-col gap-1">
                       <div className="flex items-center justify-between">
-                        <h3 className="min-w-0 flex-1 text-sm font-black leading-snug hover:underline md:text-lg">
-                          <Link
-                            href={`/product/${item.productId}`}
-                            className="block line-clamp-2"
-                          >
-                            {item.name}
-                          </Link>
+                        <h3
+                          className={cn(
+                            'min-w-0 flex-1 text-sm font-black leading-snug md:text-lg',
+                            status === 'discontinued'
+                              ? 'text-gray-400'
+                              : 'hover:underline',
+                          )}
+                        >
+                          {/* A discontinued product has no page to open. */}
+                          {status === 'discontinued' ? (
+                            <span className="block line-clamp-2">{item.name}</span>
+                          ) : (
+                            <Link
+                              href={`/product/${item.productId}`}
+                              className="block line-clamp-2"
+                            >
+                              {item.name}
+                            </Link>
+                          )}
                         </h3>
                         <DeleteConfirmModal
                           onConfirm={() => handleDeleteItem(item.id)}
@@ -204,7 +216,7 @@ export function CartPageClient() {
                           )}
                         >
                           {item.color} / {item.size}
-                          {item.priceOffset > 0 && (
+                          {item.priceOffset > 0 && status !== 'discontinued' && (
                             <span className="ml-1 text-xs tracking-normal md:text-sm">
                               (+
                               {(
@@ -214,7 +226,7 @@ export function CartPageClient() {
                             </span>
                           )}
                         </p>
-                        {/* 옵션 변경 버튼 */}
+                        {/* 옵션 변경 버튼: a discontinued line is fixed by deleting it. */}
                         <OptionChangeModal
                           itemId={item.id}
                           currentVariantId={item.variantId}
@@ -222,6 +234,7 @@ export function CartPageClient() {
                           productOptionViewModels={
                             cart?.optionGroups[item.styleId] ?? []
                           }
+                          disabled={status === 'discontinued'}
                         />
                       </div>
                     </div>
@@ -229,8 +242,8 @@ export function CartPageClient() {
                     {/* 수량 조절 및 가격 */}
                     <div className="col-span-full flex items-end justify-between gap-3 border-t border-gray-100 pt-3 md:mt-0 md:border-0 md:pt-0">
                       {/* 수량 조절 */}
-                      {/* A sold-out line is fixed by changing the option or deleting it. */}
-                      <fieldset disabled={locked || item.stock === 0}>
+                      {/* A sold-out line is fixed by changing the option or deleting it, a discontinued one by deleting it. */}
+                      <fieldset disabled={locked || getChangeableStock(item) === 0}>
                         <QuantitySelector
                           count={item.quantity}
                           stock={item.stock}
@@ -241,15 +254,23 @@ export function CartPageClient() {
                         />
                       </fieldset>
 
-                      {/* 가격 섹션 */}
-                      <ProductPrice
-                        price={item.price}
-                        discount={item.discountRate}
-                        size="compact"
-                        quantity={item.quantity}
-                        priceOffset={item.priceOffset}
-                        className="text-right"
-                      />
+                      {/* 가격 섹션: a discontinued line cannot be bought, and its discount is no longer known. */}
+                      {/* Its empty slot keeps the quantity where a discounted price would put it on other cards. */}
+                      {status === 'discontinued' ? (
+                        <div aria-hidden className="flex flex-col">
+                          <span className="text-xs sm:text-sm">&nbsp;</span>
+                          <span className="text-sm sm:text-base">&nbsp;</span>
+                        </div>
+                      ) : (
+                        <ProductPrice
+                          price={item.price}
+                          discount={item.discountRate}
+                          size="compact"
+                          quantity={item.quantity}
+                          priceOffset={item.priceOffset}
+                          className="text-right"
+                        />
+                      )}
                     </div>
                   </div>
 

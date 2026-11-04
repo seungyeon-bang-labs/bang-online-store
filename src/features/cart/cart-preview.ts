@@ -1,5 +1,5 @@
 import type { CartChange } from '@/domains/cart/contract';
-import { getChangedQuantity } from '@/domains/cart/domain';
+import { getChangeableStock, getChangedQuantity } from '@/domains/cart/domain';
 import type { CartViewModel } from '@/domains/cart/view-model';
 
 // Immediate display until the server reply replaces it. Merging lines is left to the server.
@@ -14,7 +14,7 @@ export function previewChange(
     ...cart,
     items: cart.items.map(item => {
       if (item.id !== change.itemId) return item;
-      if (change.kind === 'adjust_quantity') return { ...item, quantity: getChangedQuantity(item.quantity, change.delta, item.stock) };
+      if (change.kind === 'adjust_quantity') return { ...item, quantity: getChangedQuantity(item.quantity, change.delta, getChangeableStock(item)) };
       const option = cart.optionGroups[item.styleId]?.find(product => product.productId === change.productId);
       const variant = option?.variants.find(value => value.id === change.variantId);
       return {

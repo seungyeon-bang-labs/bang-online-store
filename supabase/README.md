@@ -13,6 +13,19 @@
 
 앱 실행과 환경변수 설정은 [프로젝트 README](../README.md)를 참고합니다.
 
+## 판매 종료 장바구니 줄 조회 적용·검증 — 2026-11-04
+
+판매 종료 상품을 장바구니에 남겨 두는 앱을 배포하기 전에, 사용자 승인으로 프로젝트 `plamqblmcavrtioajopz`(`main / PRODUCTION`)의 SQL Editor에서 아래 migration 한 개만 적용했습니다. 전체 `supabase db push`·기존 SQL 재실행·처리 이력 등록은 하지 않았습니다.
+
+- 적용 SQL: [20261104000000_cart_discontinued_lines.sql](./migrations/20261104000000_cart_discontinued_lines.sql), SHA-256 `ac7138289872affa538c27ca1f7b36beb8ecdeda914532cf44374edac95c3411`
+- 복구 SQL: [rollback SQL](./rollback/20261104000000_cart_discontinued_lines.sql), SHA-256 `43d5ce32d96c3ca25482777e6620496d7f842324d904b42491b5d2c8d0de793d`
+
+읽기 전용 함수 `public.get_discontinued_cart_lines(jsonb)` 하나만 추가했고 테이블·데이터·기존 함수는 그대로입니다. 요청한 (상품, 옵션) 중 판매 종료(`inactive`) 상품만 장바구니 카드에 필요한 값으로 돌려줍니다. 이전 앱은 이 함수를 부르지 않습니다. 적용 전 별도 사전 점검은 하지 않았고, 같은 함수가 있거나 의존 테이블이 없으면 migration의 시작 점검이 거부합니다. 적용 후 마커 `bang_cart_discontinued_lines_20261104000000`와 실행 권한(anon·authenticated만 허용, service_role 없음)을 확인했습니다.
+
+적용 후 로컬 앱(이 함수를 쓰는 버전)으로 비회원 장바구니를 확인했습니다. 회원 장바구니에 없는 상품 5번을 SQL Editor에서 `inactive`로 바꾼 동안 카드가 판매 종료로 표시되고 결제 금액에서 빠지는 것을 본 뒤 바로 `active`로 되돌렸습니다. 회원 장바구니는 `20261104010000_cart_keep_discontinued.sql` 적용 전이라 확인하지 않았습니다.
+
+`20261104010000_cart_keep_discontinued.sql`(판매 종료 줄 삭제 중단)은 앱 배포 후 따로 적용합니다. 복구할 때는 그 복구 SQL을 먼저 실행하고, 이 함수는 앱을 이전 버전으로 되돌린 뒤 지웁니다.
+
 ## 장바구니 수량 유지 적용·검증 — 2026-11-04
 
 PR #42 배포 후 사용자 승인으로 프로젝트 `plamqblmcavrtioajopz`(`main / PRODUCTION`)의 SQL Editor에서 아래 migration 한 개만 적용했습니다. 전체 `supabase db push`·기존 SQL 재실행·처리 이력 등록은 하지 않았습니다.

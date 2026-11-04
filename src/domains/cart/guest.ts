@@ -46,7 +46,8 @@ export function applyGuestChange(
   return { status: 'saved', lines: next };
 }
 
-// Unavailable products leave; quantities are kept even above stock, and the line shows why it cannot be ordered.
+// Only lines with no product data leave; discontinued lines and quantities above stock stay, and the line shows why
+// it cannot be ordered.
 export function buildGuestCart(
   lines: readonly CartLine[],
   products: CartProductResponse,

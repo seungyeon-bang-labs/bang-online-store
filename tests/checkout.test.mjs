@@ -61,6 +61,15 @@ test('checkout shows the requested lines as they are, sold-out included, and lea
   assert.equal(labeled.address.label, '집');
 });
 
+test('checkout sends the customer back to the cart when a requested line is discontinued', async () => {
+  const service = checkoutService({
+    items: [line(LINE_A), line(LINE_B, { discontinued: true })],
+    defaultAddress: address(),
+  });
+  assert.equal(await service.getCheckoutViewModel(MEMBER, [LINE_A, LINE_B]), null);
+  assert.deepEqual((await service.getCheckoutViewModel(MEMBER, [LINE_A])).items.map(item => item.id), [LINE_A]);
+});
+
 test('payment waits while the cart is read, so an older cart cannot land after the order, but not after a failed read', async (t) => {
   const checkout = await checkoutService({ items: [line(LINE_A)], defaultAddress: address() }).getCheckoutViewModel(MEMBER, [LINE_A]);
   const placed = [];

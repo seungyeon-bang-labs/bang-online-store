@@ -957,6 +957,7 @@ export type Database = {
         Returns: string
       }
       get_cart: { Args: { p_expected_user_id: string }; Returns: Json }
+      get_discontinued_cart_lines: { Args: { p_items: Json }; Returns: Json }
       place_order: {
         Args: {
           p_address_id: string

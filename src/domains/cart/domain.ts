@@ -4,14 +4,15 @@ export const getCartItemCount = (items: readonly { quantity: number }[]): number
   items.reduce((total, item) => total + item.quantity, 0);
 
 // Any line can be selected; a line that is not ok is shown with its reason and refused at checkout.
-export type CartLineStatus = 'ok' | 'over_stock' | 'sold_out_all' | 'sold_out_option';
+export type CartLineStatus = 'ok' | 'discontinued' | 'over_stock' | 'sold_out_all' | 'sold_out_option';
 
-// Earlier checks win when states overlap (all options sold out includes the chosen one).
-// Only a sold-out line scans the other options.
+// Earlier checks win when states overlap: a discontinued line is deleted rather than fixed, whatever its stock,
+// and all options sold out includes the chosen one. Only a sold-out line scans the other options.
 export function getCartLineStatus(
-  item: Pick<CartItemViewModel, 'quantity' | 'stock' | 'styleId'>,
+  item: Pick<CartItemViewModel, 'quantity' | 'stock' | 'styleId' | 'discontinued'>,
   optionGroups: CartViewModel['optionGroups'],
 ): CartLineStatus {
+  if (item.discontinued) return 'discontinued';
   if (item.quantity <= item.stock) return 'ok';
   if (item.stock > 0) return 'over_stock';
   const options = optionGroups[item.styleId] ?? [];
@@ -19,6 +20,10 @@ export function getCartLineStatus(
     ? 'sold_out_all'
     : 'sold_out_option';
 }
+
+// The stock a quantity change works with: apply_cart_operation leaves a discontinued line as it is, like a sold-out one.
+export const getChangeableStock = (item: Pick<CartItemViewModel, 'stock' | 'discontinued'>): number =>
+  item.discontinued ? 0 : item.stock;
 
 // Same rules as apply_cart_operation. A change never goes below 1; one decrease from above stock lands on stock,
 // and an increase never lowers a line already above it. A sold-out line is not changed.

@@ -3,8 +3,8 @@ import { test } from 'node:test';
 import { loadTs } from './helpers/load-ts.mjs';
 import { A, I1, I2, REQUEST1, cartDto, command, productModel } from './helpers/cart-fixtures.mjs';
 
-function setup({ snapshots = [cartDto()], byIds, byStyle, failure } = {}) {
-  const calls = { read: [], apply: [], products: [], styles: [], now: 0 };
+function setup({ snapshots = [cartDto()], byIds, byStyle, discontinued = () => [], failure } = {}) {
+  const calls = { read: [], apply: [], products: [], styles: [], discontinued: [], now: 0 };
   let index = 0;
   const repository = {
     read: async user => { calls.read.push(user); if (failure) throw failure; return snapshots[Math.min(index++, snapshots.length - 1)]; },
@@ -13,6 +13,7 @@ function setup({ snapshots = [cartDto()], byIds, byStyle, failure } = {}) {
   const products = {
     findByIds: async (ids, options) => { calls.products.push({ ids, options }); return byIds ? byIds(calls.products.length) : [productModel()]; },
     findByStyleId: async (styleId, options) => { calls.styles.push({ styleId, options }); return byStyle ? byStyle(styleId, calls.styles.length) : [productModel()]; },
+    findDiscontinuedCartItems: async items => { calls.discontinued.push(items); return discontinued(items); },
   };
   const instant = new Date('2026-10-23T00:00:00Z');
   const { createCartService } = loadTs('src/domains/cart/service.ts');
@@ -101,6 +102,32 @@ test('mutation display recovery repeats the same captured request and returns it
   assert.deepEqual((await result).operation, receipt);
   assert.deepEqual(calls.apply, [command(), command()]);
   assert.equal(calls.now, 1);
+});
+
+// A discontinued line as get_discontinued_cart_lines and its mapper return it.
+const endedItem = (overrides = {}) => ({
+  productId: 1, styleId: 1, variantId: 2, name: '그레이 티셔츠', color: '그레이', thumbnailUrl: '/file.svg',
+  price: 10000, discountRate: 0, stock: 3, size: 'M', priceOffset: 1000, discontinued: true, ...overrides,
+});
+
+test('a discontinued member line is shown from the discontinued lookup, not dropped or refused', async () => {
+  const { service, calls } = setup({ byIds: () => [], byStyle: () => [], discontinued: () => [endedItem()] });
+  const cart = await service.read(A);
+  assert.deepEqual(cart.items, [{ ...endedItem(), id: I1, quantity: 2 }]);
+  assert.deepEqual(calls.discontinued, [[{ productId: 1, variantId: 2 }]]);
+  assert.deepEqual(calls.styles, [], 'a discontinued line needs no option list');
+  assert.equal(calls.read.length, 1);
+  const onSale = setup();
+  await onSale.service.read(A);
+  assert.deepEqual(onSale.calls.discontinued, [], 'on-sale lines never call the lookup');
+});
+
+test('a line missing from both reads, or a lookup row for another variant, still stops after one retry', async () => {
+  for (const rows of [[], [endedItem({ variantId: 99 })], [endedItem({ productId: 4 })]]) {
+    const { service, calls } = setup({ byIds: () => [], discontinued: () => rows });
+    await assert.rejects(service.read(A), /상품/);
+    assert.equal(calls.read.length, 2);
+  }
 });
 
 test('drift between item and option stock cannot produce a successful selectable view', async () => {
