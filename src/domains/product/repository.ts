@@ -1,8 +1,10 @@
 import 'server-only';
 
 import type { QueryData } from '@supabase/supabase-js';
+import { z } from 'zod';
 import { supabase } from '@/shared/lib/supabase/server';
 import type {
+  DiscontinuedCartLineDTO,
   ProductAggregateDTO,
   ProductImageTypeDTO,
   ProductQuery,
@@ -120,4 +122,27 @@ export const productRepository = {
     }
     return result.sort((a, b) => a.product.id - b.product.id);
   },
+  // products RLS hides discontinued products, so cart lines read them through this one function.
+  async findDiscontinuedCartLines(
+    items: readonly { productId: number; variantId: number }[],
+  ): Promise<readonly DiscontinuedCartLineDTO[]> {
+    if (items.length === 0) return [];
+    const { data, error } = await supabase.rpc('get_discontinued_cart_lines', {
+      p_items: items.map(({ productId, variantId }) => ({ productId, variantId })),
+    });
+    const rows = discontinuedCartLinesSchema.safeParse(data);
+    if (error || !rows.success) throw new Error('상품 정보를 불러오지 못했습니다.');
+    return rows.data.map(({ imagePath, ...row }) => ({
+      ...row,
+      imageUrl: imagePath === null ? null
+        : supabase.storage.from('product-images').getPublicUrl(imagePath).data.publicUrl,
+    }));
+  },
 };
+
+const discontinuedCartLinesSchema = z.array(z.object({
+  productId: z.number().int().positive(), variantId: z.number().int().positive(), styleId: z.number().int().positive(),
+  name: z.string(), color: z.string(), size: z.string().min(1),
+  price: z.number().int().nonnegative(), priceOffset: z.number().int().nonnegative(),
+  stock: z.number().int().nonnegative(), imagePath: z.string().min(1).nullable(),
+}));

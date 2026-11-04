@@ -33,6 +33,7 @@ export const messages = {
 // Shown under a line that cannot be ordered as it is; the popup at 주문하기 uses the short form.
 export function lineStatusReason(status: Exclude<CartLineStatus, 'ok'>, stock: number): string {
   switch (status) {
+    case 'discontinued': return '판매가 종료된 상품입니다 · 삭제해 주세요';
     case 'over_stock': return `재고 ${stock}개 · 수량을 줄여 주세요`;
     case 'sold_out_all': return '모든 옵션이 품절되었습니다';
     case 'sold_out_option': return '선택한 옵션이 품절되었습니다 · 옵션을 변경해 주세요';
@@ -40,5 +41,9 @@ export function lineStatusReason(status: Exclude<CartLineStatus, 'ok'>, stock: n
 }
 
 export function lineStatusShortReason(status: Exclude<CartLineStatus, 'ok'>, stock: number): string {
-  return status === 'over_stock' ? `재고 ${stock}개` : '품절';
+  switch (status) {
+    case 'discontinued': return '판매 종료';
+    case 'over_stock': return `재고 ${stock}개`;
+    default: return '품절';
+  }
 }

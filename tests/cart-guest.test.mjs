@@ -90,6 +90,17 @@ test('build keeps sold-out lines, including just-added ones, with their quantity
   assert.deepEqual(built.cart.notices, []);
 });
 
+test('build keeps a discontinued line with its quantity; quantity changes leave it as it is', () => {
+  const ended = product({ stock: 4, discountRate: 0, discontinued: true });
+  const built = buildGuestCart([line({ quantity: 2 })], { cartItems: [ended], optionGroups: {} });
+  assert.equal(built.changed, false);
+  assert.deepEqual(built.lines, [line({ quantity: 2 })]);
+  assert.deepEqual(built.cart.notices, []);
+  assert.equal(built.cart.items[0].discontinued, true);
+  const preview = previewChange(built.cart, { kind: 'adjust_quantity', itemId: I1, delta: -1 });
+  assert.equal(preview.items[0].quantity, 2);
+});
+
 test('previewChange adjusts, removes and relabels options without merging', () => {
   const second = { ...cartView().items[0], id: I2, variantId: 3, size: 'L' };
   const cart = cartView({ items: [cartView().items[0], second], optionGroups: { 1: [

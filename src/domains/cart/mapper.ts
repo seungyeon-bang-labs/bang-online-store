@@ -1,4 +1,5 @@
 import type { ProductModel } from '../product/model';
+import type { ProductCartItemViewModel } from '../product/view-model';
 import {
   toProductCartItemViewModel,
   toProductOptionViewModel,
@@ -28,6 +29,7 @@ export function toCartViewModel(
   snapshot: CartSnapshotDTO,
   products: readonly ProductModel[],
   optionProducts: readonly ProductModel[],
+  discontinued: readonly ProductCartItemViewModel[] = [],
 ): CartViewModel {
   const byId = new Map(products.map(product => [product.id, product]));
   const availableOptions = optionProducts.filter(
@@ -37,8 +39,14 @@ export function toCartViewModel(
     requireRelations(product);
   const items = snapshot.items.map(line => {
     const product = byId.get(line.product_id);
-    if (!product || product.state !== 'active')
-      throw new CartDisplayMismatchError();
+    if (!product) {
+      // A discontinued line has no on-sale option to compare with; it is shown for the customer to delete.
+      const ended = discontinued.find(item =>
+        item.productId === line.product_id && item.variantId === line.product_variant_id);
+      if (!ended) throw new CartDisplayMismatchError();
+      return { ...ended, id: line.id, quantity: line.quantity };
+    }
+    if (product.state !== 'active') throw new CartDisplayMismatchError();
     const variant = product.variants.find(
       variant => variant.id === line.product_variant_id,
     );

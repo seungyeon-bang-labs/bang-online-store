@@ -81,7 +81,7 @@ test('cart API rejects invalid IDs before reading product data', async () => {
 test('cart API refuses oversized, cross-origin and non-JSON requests before reading product data', async () => {
   let reads = 0;
   const { POST } = loadTs('src/app/api/cart/products/route.ts', {
-    '@/domains/product': { productService: { findByIds: async () => { reads++; return []; }, findByStyleId: async () => [] } },
+    '@/domains/product': { productService: { findByIds: async () => { reads++; return []; }, findByStyleId: async () => [], findDiscontinuedCartItems: async () => [] } },
   });
   const pairs = count => Array.from({ length: count }, (_, i) => ({ productId: i + 1, variantId: i + 1 }));
   assert.equal((await POST(request(pairs(500)))).status, 200);
@@ -93,7 +93,7 @@ test('cart API refuses oversized, cross-origin and non-JSON requests before read
   assert.equal(reads, 1);
 });
 
-test('cart API omits inactive products but keeps active sold-out options', async () => {
+test('cart API marks inactive products from the discontinued lookup and keeps active sold-out options', async () => {
   const { fixtureProductRepository } = loadTs('src/domains/product/fixture-repository.ts');
   const { createProductService } = loadTs('src/domains/product/service.ts');
   const mapping = loadTs('src/domains/product/mapper.ts');
@@ -106,13 +106,28 @@ test('cart API omits inactive products but keeps active sold-out options', async
       }));
     },
   }, { findByProductIds: async () => [] });
+  const lookups = [];
+  const ended = {
+    productId: 1, variantId: 2, styleId: 1, name: '그레이 티셔츠', color: '그레이', size: 'M',
+    price: 10000, priceOffset: 1000, stock: 0, imageUrl: null,
+  };
   const { POST } = loadTs('src/app/api/cart/products/route.ts', {
-    '@/domains/product': { ...mapping, productService },
+    '@/domains/product': { ...mapping, productService: { ...productService, async findDiscontinuedCartItems(items) {
+      lookups.push(items);
+      return [mapping.toDiscontinuedCartItemViewModel(ended)];
+    } } },
   });
-  const result = await POST(request([{ productId: 1, variantId: 2 }, { productId: 2, variantId: 7 }]));
+  const result = await POST(request([{ productId: 1, variantId: 2 }, { productId: 2, variantId: 7 }, { productId: 99, variantId: 99 }]));
   assert.equal(result.status, 200);
   const data = await result.json();
-  assert.deepEqual(data.cartItems.map(item => [item.productId, item.variantId, item.stock]), [[2, 7, 0]]);
+  assert.deepEqual(data.cartItems.map(item => [item.productId, item.variantId, item.stock, item.discontinued ?? false]),
+    [[1, 2, 0, true], [2, 7, 0, false]], 'request order is kept and an unknown pair is left out');
+  assert.deepEqual(data.cartItems[0], { ...mapping.toDiscontinuedCartItemViewModel(ended), thumbnailUrl: '/file.svg' });
+  assert.equal(data.cartItems[0].discountRate, 0);
+  assert.deepEqual(lookups, [[{ productId: 1, variantId: 2 }, { productId: 99, variantId: 99 }]], 'only off-sale pairs are looked up');
+  assert.ok(Object.values(data.optionGroups).flat().every(product => product.productId !== 1));
+  const { parseGuestCartProductResponse } = loadTs('src/features/cart/cart-product-client.ts');
+  assert.deepEqual(parseGuestCartProductResponse(data).cartItems, data.cartItems, 'the client accepts a discontinued line with no option');
 });
 
 test('exchange form keeps a missing option null and prevents submitting it', () => {

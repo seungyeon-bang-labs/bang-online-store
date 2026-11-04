@@ -14,7 +14,7 @@ import {
   parseCartProductResponse,
   type loadCartProducts,
 } from './cart-product-client';
-import { getCartItemCount } from '@/domains/cart';
+import { getCartItemCount, getChangeableStock } from '@/domains/cart';
 import { applyGuestChange, buildGuestCart, pairKey } from '@/domains/cart/guest';
 import { selectCartLocked } from './cart-selectors';
 import { previewChange } from './cart-preview';
@@ -459,7 +459,7 @@ export function createCartController({
   ): boolean {
     let saved = false;
     try {
-      const stocks = new Map(current.cart?.items.map(item => [item.variantId, item.stock]));
+      const stocks = new Map(current.cart?.items.map(item => [item.variantId, getChangeableStock(item)]));
       const result = applyGuestChange(local.read().items, next, newId, variantId => stocks.get(variantId));
       if (result.status === 'missing') notify.error(messages.itemMissing);
       else {

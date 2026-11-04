@@ -41,6 +41,47 @@ test('a problem line keeps its quantity and shows one red mark with its reason; 
   assert.ok(nodes(card(id3)).some(n=>n.props?.label==='일시품절'));assert.deepEqual(reasons(id3),['모든 옵션이 품절되었습니다']);
 });
 
+test('a discontinued line shows 판매종료 and its reason, with a disabled option change, a gray unlinked name, no price and no quantity change',t=>{
+  const base=cartView().items[0];const ended={...base,id:I2,variantId:7,stock:5,discountRate:0,priceOffset:1000,discontinued:true};
+  const view=client('src/features/cart/cart-page-client.tsx','CartPageClient',{cart:cartView({items:[base,ended]})});t.after(()=>view.dispose());view.flush();
+  const card=id=>view.nodes().find(n=>n.props?.id===`cart-item-${id}`);
+  const reasons=id=>nodes(card(id)).filter(n=>n.type==='p'&&n.props.className?.includes('bg-gray-100')).map(text);
+  assert.ok(card(I2).props.className.includes('border-red-200'));
+  assert.deepEqual(reasons(I2),['판매가 종료된 상품입니다 · 삭제해 주세요']);
+  assert.ok(nodes(card(I2)).some(n=>n.props?.label==='판매종료'));
+  assert.equal(nodes(card(I2)).find(n=>n.type==='fieldset').props.disabled,true);
+  assert.equal(nodes(card(I2)).find(n=>n.props?.currentVariantId!==undefined).props.disabled,true,'option change is disabled');
+  assert.ok(nodes(card(I2)).find(n=>n.type==='h3').props.className.includes('text-gray-400'),'gray name');
+  assert.ok(!text(card(I2)).includes('원)'),'no option price');
+  assert.ok(!nodes(card(I2)).some(n=>n.props?.href===`/product/${ended.productId}`),'no product link');
+  assert.ok(nodes(card(I2)).some(n=>n.props?.onConfirm),'it can still be deleted');
+  assert.ok(!nodes(card(I2)).some(n=>n.props?.priceOffset!==undefined&&n.props?.discount!==undefined),'no price');
+  assert.ok(nodes(card(I1)).some(n=>n.props?.priceOffset!==undefined&&n.props?.discount!==undefined));
+  assert.equal(nodes(card(I1)).find(n=>n.props?.currentVariantId!==undefined).props.disabled,false);
+  assert.ok(!nodes(card(I1)).find(n=>n.type==='h3').props.className.includes('text-gray-400'));
+  assert.ok(nodes(card(I1)).some(n=>n.props?.href===`/product/${base.productId}`));
+  assert.ok(!nodes(card(I1)).some(n=>n.props?.label==='판매종료'));
+});
+
+test('주문하기 lists a selected discontinued line as 판매 종료',t=>{
+  const base=cartView().items[0];const ended={...base,id:I2,variantId:7,discontinued:true};
+  const view=client('src/features/cart/cart-summary.tsx','CartSummary',{cart:cartView({items:[base,ended]}),props:{selectedProducts:[base,ended]}});t.after(()=>view.dispose());
+  view.store.getState().setSelected(I1,true);view.store.getState().setSelected(I2,true);view.flush();
+  view.button('주문하기').props.onClick();view.flush();
+  const dialog=view.nodes().find(n=>'open'in(n.props??{})&&n.props.onOpenChange);
+  assert.equal(dialog.props.open,true);assert.deepEqual(view.calls.navigation,[]);
+  assert.ok(text(dialog).includes(`${base.name} ${base.color} / ${base.size} — 판매 종료`),text(dialog));
+  const counts=view.nodes().filter(n=>n.type==='span'&&/^\d+개$/.test(text(n))).map(text);
+  assert.ok(counts.length>0&&counts.every(count=>count===`${base.quantity}개`),'the amounts leave the discontinued line out');
+  view.button('주문 가능한 상품만 주문하기').props.onClick();view.flush();
+  assert.deepEqual(view.calls.navigation,[`/checkout?items=${I1}`]);assert.deepEqual(view.calls.remove,[]);
+  view.render({selectedProducts:[ended]});view.flush();
+  assert.equal(view.button('주문하기').props.disabled,false,'discontinued lines alone add up to 0원 but still reach the popup');
+  view.button('주문하기').props.onClick();view.flush();
+  assert.equal(view.nodes().find(n=>'open'in(n.props??{})&&n.props.onOpenChange).props.open,true);
+  assert.equal(view.button('주문 가능한 상품만 주문하기'),undefined);
+});
+
 test('주문하기 stops a selection with a problem line: 확인하기 scrolls to it, the other button orders only the fine lines',t=>{
   const base=cartView().items[0];const over={...base,id:I2,variantId:7,quantity:5,stock:3};
   const view=client('src/features/cart/cart-summary.tsx','CartSummary',{cart:cartView({items:[base,over]}),props:{selectedProducts:[base,over]}});t.after(()=>view.dispose());

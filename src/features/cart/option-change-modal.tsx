@@ -37,6 +37,7 @@ interface OptionChangeModalProps {
   currentProductId: number;
   currentVariantId: number;
   productOptionViewModels: readonly ProductOptionViewModel[];
+  disabled?: boolean;
 }
 
 export function OptionChangeModal({
@@ -44,6 +45,7 @@ export function OptionChangeModal({
   currentProductId,
   currentVariantId,
   productOptionViewModels,
+  disabled = false,
 }: OptionChangeModalProps) {
   const { changeOption } = useCartCommands();
   const pending = useCartState(selectCartLocked);
@@ -138,7 +140,7 @@ export function OptionChangeModal({
 
   const trigger = (
     <Button
-      disabled={pending}
+      disabled={pending || disabled}
       variant="outline"
       size="xs"
       className="font-bold rounded-sm tracking-widest"

@@ -16,8 +16,15 @@ export type {
 import { createProductService } from './service';
 import { productRepository } from './repository';
 import { discountRepository } from '@/domains/discount/discount.repository';
+import { toDiscontinuedCartItemViewModel } from './mapper';
 
-export const productService = createProductService(productRepository, discountRepository);
+export const productService = {
+  ...createProductService(productRepository, discountRepository),
+  /** Cart lines whose product is no longer sold; on-sale and unknown pairs are left out. */
+  async findDiscontinuedCartItems(items: readonly { productId: number; variantId: number }[]) {
+    return (await productRepository.findDiscontinuedCartLines(items)).map(toDiscontinuedCartItemViewModel);
+  },
+};
 export {
   filterProducts,
   parseProductFilterCriteria,

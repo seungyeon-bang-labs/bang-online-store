@@ -1,5 +1,5 @@
 import type { AppliedProductDiscount } from '@/domains/discount/discount.dto';
-import type { ProductAggregateDTO } from './dto';
+import type { DiscontinuedCartLineDTO, ProductAggregateDTO } from './dto';
 import type {
   ProductColorModel,
   ProductImageModel,
@@ -142,6 +142,24 @@ export function toProductCartItemViewModel(
     priceOffset: variant.priceOffset,
   };
 }
+
+// Discounts are not read for a product that is no longer sold, and it cannot be ordered either way.
+export const toDiscontinuedCartItemViewModel = (
+  line: DiscontinuedCartLineDTO,
+): ProductCartItemViewModel => ({
+  productId: line.productId,
+  styleId: line.styleId,
+  variantId: line.variantId,
+  name: line.name,
+  color: line.color,
+  thumbnailUrl: line.imageUrl ?? '/file.svg',
+  price: line.price,
+  discountRate: 0,
+  stock: line.stock,
+  size: line.size,
+  priceOffset: line.priceOffset,
+  discontinued: true,
+});
 
 export const toProductOptionViewModel = (
   product: ProductModel,
