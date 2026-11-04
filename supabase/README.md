@@ -13,6 +13,21 @@
 
 앱 실행과 환경변수 설정은 [프로젝트 README](../README.md)를 참고합니다.
 
+## 판매 종료 장바구니 줄 유지 적용·검증 — 2026-11-04
+
+PR #45 배포 후 사용자 승인으로 프로젝트 `plamqblmcavrtioajopz`(`main / PRODUCTION`)의 SQL Editor에서 아래 migration 한 개만 적용했습니다. 전체 `supabase db push`·기존 SQL 재실행·처리 이력 등록은 하지 않았습니다.
+
+- 적용 SQL: [20261104010000_cart_keep_discontinued.sql](./migrations/20261104010000_cart_keep_discontinued.sql), SHA-256 `41c2b21ab794d1b3f7ee4decf8a9873019b68764d7d1a2750cafb45e16b2e70c`
+- 복구 SQL: [rollback SQL](./rollback/20261104010000_cart_keep_discontinued.sql), SHA-256 `28de120d1e23a84476b68e07b2c8ee6adc9d868192424cb4aca1c58907d52722`
+
+`private.cart_cleanup`과 `public.apply_cart_operation` 두 함수만 바꿨고 테이블·데이터·권한은 그대로입니다. 회원 장바구니를 읽어도 판매 종료 줄을 지우지 않고, 로그인 병합은 그 줄을 옮깁니다. 판매 종료 상품을 새로 담거나 수량을 바꾸는 것은 계속 거절하고, 주문은 `place_order`가 계속 거절합니다.
+
+적용 전 별도 사전 점검은 하지 않았고, 두 함수가 1단계 마커(`bang_cart_keep_quantities_20261103000000`)가 아니거나 조회 함수가 없으면 migration의 시작 점검이 거부합니다. 적용 후 두 함수의 마커가 `bang_cart_keep_discontinued_20261104010000`이고 본문 md5(`28849e6a09c84fce8e8502787bcf0672`, `da3e3ec5ad079eca14a1982199b1d4a4`)가 같은 migration을 적용한 테스트 DB 값과 일치하며, 실행 권한(authenticated는 `apply_cart_operation`만, anon 없음)이 바뀌지 않았음을 확인했습니다.
+
+적용 후 운영 사이트(PR #45 배포 기준)에서 회원 장바구니를 확인했습니다. 테스트 줄로 상품 5번을 담고 SQL Editor에서 `inactive`로 바꾼 동안, 장바구니를 다시 읽어도 줄이 남아 판매 종료로 표시되고 결제 금액에서 빠지며, 그 줄을 넣은 결제 화면 주소는 장바구니로 돌아가는 것을 본 뒤 바로 `active`로 되돌리고 테스트 줄만 지웠습니다.
+
+앱을 이전 버전으로 되돌릴 때는 이 복구 SQL을 **먼저** 실행합니다. 이전 앱은 판매 종료 줄을 표시하지 못해 해당 회원 장바구니를 불러오지 못합니다.
+
 ## 판매 종료 장바구니 줄 조회 적용·검증 — 2026-11-04
 
 판매 종료 상품을 장바구니에 남겨 두는 앱을 배포하기 전에, 사용자 승인으로 프로젝트 `plamqblmcavrtioajopz`(`main / PRODUCTION`)의 SQL Editor에서 아래 migration 한 개만 적용했습니다. 전체 `supabase db push`·기존 SQL 재실행·처리 이력 등록은 하지 않았습니다.
