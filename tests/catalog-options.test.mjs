@@ -12,6 +12,9 @@ test('product mapping preserves SKU while cart and option views use numeric IDs'
   assert.equal(toProductCartItemViewModel(product, 2).size, 'M');
   assert.equal(toProductCartItemViewModel(product, 17), null);
   assert.equal(toProductOptionViewModel(product).variants[1].id, 2);
+  const { name, thumbnailUrl, price, discountRate } = toProductCartItemViewModel(product, 2);
+  const option = toProductOptionViewModel(product);
+  assert.deepEqual([option.name, option.thumbnailUrl, option.price, option.discountRate], [name, thumbnailUrl, price, discountRate], 'an option shows the same product as a cart line');
   assert.ok(product.images.every(image => Number.isSafeInteger(image.id)));
 });
 

@@ -115,6 +115,17 @@ test('a request with no answer is cut off after the timeout and handled as a los
   assert.equal((await port.resolveAccess()).status, 'error');
 });
 
+test('guest product answers keep the option product fields the preview shows', () => {
+  const { parseCartProductResponse } = loadTs('src/features/cart/cart-product-client.ts');
+  const option = { productId: 2, styleId: 1, name: '블랙 코트', thumbnailUrl: '/black.png', price: 15000, discountRate: 10, color: { id: 2, label: '블랙', hex: '#000' }, variants: [{ id: 7, size: 'XL', stock: 4, priceOffset: 3000 }] };
+  assert.deepEqual(parseCartProductResponse({ cartItems: [], optionGroups: { 1: [option] } }).optionGroups[1][0], option);
+  for (const field of ['name', 'thumbnailUrl', 'price', 'discountRate']) {
+    const missing = { ...option };
+    delete missing[field];
+    assert.throws(() => parseCartProductResponse({ cartItems: [], optionGroups: { 1: [missing] } }));
+  }
+});
+
 test('a product load with no answer is cut off after the timeout', async t => {
   const previous = globalThis.fetch;
   t.after(() => { globalThis.fetch = previous; });

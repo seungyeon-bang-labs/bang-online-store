@@ -93,7 +93,7 @@ test('build keeps sold-out lines, including just-added ones, with their quantity
 test('previewChange adjusts, removes and relabels options without merging', () => {
   const second = { ...cartView().items[0], id: I2, variantId: 3, size: 'L' };
   const cart = cartView({ items: [cartView().items[0], second], optionGroups: { 1: [
-    { productId: 1, styleId: 1, color: { id: 1, label: '그레이', hex: '#888' }, variants: [{ id: 2, size: 'M', stock: 10, priceOffset: 1000 }, { id: 3, size: 'L', stock: 5, priceOffset: 1000 }] },
+    { productId: 1, styleId: 1, name: '그레이 티셔츠', thumbnailUrl: '/file.svg', price: 10000, discountRate: 20, color: { id: 1, label: '그레이', hex: '#888' }, variants: [{ id: 2, size: 'M', stock: 10, priceOffset: 1000 }, { id: 3, size: 'L', stock: 1, priceOffset: 3000 }] },
   ] } });
   assert.equal(previewChange(cart, { kind: 'adjust_quantity', itemId: I1, delta: 1 }).items[0].quantity, 3);
   assert.equal(previewChange(cart, { kind: 'adjust_quantity', itemId: I1, delta: -1 }).items[0].quantity, 1);
@@ -103,6 +103,19 @@ test('previewChange adjusts, removes and relabels options without merging', () =
   const relabeled = previewChange(cart, { kind: 'change_option', itemId: I1, productId: 1, variantId: 3 });
   assert.equal(relabeled.items.length, 2);
   assert.deepEqual([relabeled.items[0].variantId, relabeled.items[0].size, relabeled.items[0].quantity], [3, 'L', 2]);
+  assert.deepEqual([relabeled.items[0].stock, relabeled.items[0].priceOffset], [1, 3000], 'the new option stock and price offset are shown before the reply');
+  assert.deepEqual(
+    [relabeled.items[0].name, relabeled.items[0].thumbnailUrl, relabeled.items[0].price, relabeled.items[0].discountRate, relabeled.items[0].color],
+    ['그레이 티셔츠', '/file.svg', 10000, 20, '그레이'],
+    'a size change keeps the product fields',
+  );
+  const black = { productId: 2, styleId: 1, name: '블랙 코트', thumbnailUrl: '/black.png', price: 15000, discountRate: 0, color: { id: 2, label: '블랙', hex: '#000' }, variants: [{ id: 7, size: 'XL', stock: 4, priceOffset: 3000 }] };
+  const recolored = previewChange(cartView({ optionGroups: { 1: [black] } }), { kind: 'change_option', itemId: I1, productId: 2, variantId: 7 }).items[0];
+  assert.deepEqual(
+    [recolored.name, recolored.thumbnailUrl, recolored.price, recolored.discountRate, recolored.color, recolored.size, recolored.stock, recolored.priceOffset],
+    ['블랙 코트', '/black.png', 15000, 0, '블랙', 'XL', 4, 3000],
+    'a color change shows the whole new product, never a mix with the old one',
+  );
   assert.equal(cart.items[0].variantId, 2, 'input is not mutated');
 });
 

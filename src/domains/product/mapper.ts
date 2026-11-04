@@ -148,6 +148,10 @@ export const toProductOptionViewModel = (
 ): ProductOptionViewModel => ({
   productId: product.id,
   styleId: product.styleId,
+  name: product.name,
+  thumbnailUrl: toProductCardViewModel(product).thumbnailUrl,
+  price: product.price,
+  discountRate: product.discountRate,
   color: {
     id: product.color.id,
     label: product.color.name,
