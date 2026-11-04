@@ -12,7 +12,8 @@ const responseSchema: z.ZodType<CartProductResponse> = z.object({
     price: money, discountRate: z.number().min(0).max(100), priceOffset: money, stock, size: z.string().min(1),
   })),
   optionGroups: z.record(z.string().regex(/^[1-9]\d*$/), z.array(z.object({
-    productId: numericIdSchema, styleId: numericIdSchema, color: z.object({ id: numericIdSchema, label: z.string(), hex: z.string() }),
+    productId: numericIdSchema, styleId: numericIdSchema, name: z.string(), thumbnailUrl: z.string().min(1),
+    price: money, discountRate: z.number().min(0).max(100), color: z.object({ id: numericIdSchema, label: z.string(), hex: z.string() }),
     variants: z.array(z.object({ id: numericIdSchema, size: z.string().min(1), stock, priceOffset: money })),
   }))),
 });

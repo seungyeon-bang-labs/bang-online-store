@@ -51,6 +51,10 @@ export type ProductCartItemViewModel = {
 export type ProductOptionViewModel = {
   productId: number;
   styleId: number;
+  name: string;
+  thumbnailUrl: string;
+  price: number;
+  discountRate: number;
   color: ProductColorViewModel;
   variants: readonly {
     id: number;

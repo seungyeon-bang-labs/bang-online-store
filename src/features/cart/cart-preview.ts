@@ -2,7 +2,7 @@ import type { CartChange } from '@/domains/cart/contract';
 import { getChangedQuantity } from '@/domains/cart/domain';
 import type { CartViewModel } from '@/domains/cart/view-model';
 
-// Immediate member display only; the server reply replaces it, so merging and prices are left to the server.
+// Immediate display until the server reply replaces it. Merging lines is left to the server.
 export function previewChange(
   cart: CartViewModel,
   change: Exclude<CartChange, { kind: 'add_items' }>,
@@ -21,8 +21,9 @@ export function previewChange(
         ...item,
         productId: change.productId,
         variantId: change.variantId,
-        ...(variant ? { size: variant.size } : {}),
-        ...(option ? { color: option.color.label } : {}),
+        // The whole new option, so the card never mixes it with the old one until the reply.
+        ...(option ? { name: option.name, thumbnailUrl: option.thumbnailUrl, price: option.price, discountRate: option.discountRate, color: option.color.label } : {}),
+        ...(variant ? { size: variant.size, stock: variant.stock, priceOffset: variant.priceOffset } : {}),
       };
     }),
   };

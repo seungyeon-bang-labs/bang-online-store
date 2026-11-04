@@ -22,7 +22,7 @@ test('member rows use UUID selection, include sold-out lines and delete only cap
 
 test('a problem line keeps its quantity and shows one red mark with its reason; a fine line shows none',t=>{
   const base=cartView().items[0];const id3='10000000-0000-4000-8000-000000000003';
-  const option=(productId,stocks)=>({productId,styleId:1,color:{id:productId,label:'',hex:''},variants:stocks.map((stock,index)=>({id:productId*10+index,size:'M',stock,priceOffset:0}))});
+  const option=(productId,stocks)=>({productId,styleId:1,name:base.name,thumbnailUrl:base.thumbnailUrl,price:base.price,discountRate:base.discountRate,color:{id:productId,label:'',hex:''},variants:stocks.map((stock,index)=>({id:productId*10+index,size:'M',stock,priceOffset:0}))});
   const view=client('src/features/cart/cart-page-client.tsx','CartPageClient',{cart:cartView({
     items:[base,{...base,id:I2,variantId:7,quantity:5,stock:3},{...base,id:id3,variantId:8,stock:0}],
     optionGroups:{1:[option(1,[0,4])]},
