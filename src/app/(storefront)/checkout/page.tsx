@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { requireActiveMember } from '@/app/(auth)/require-active-member';
 import {
@@ -9,7 +10,9 @@ import { createCartService } from '@/domains/cart/service';
 import { createUserAddressRepository } from '@/domains/member/supabase-repository.server';
 import { createCheckoutService } from '@/domains/order/checkout.service';
 import { productService } from '@/domains/product';
-import { CheckoutPageClient } from '@/features/checkout/checkout-page-client';
+import { CartFixDialog, CheckoutPageClient } from '@/features/checkout/checkout-page-client';
+import { getPlaceOrderMessage } from '@/features/checkout/checkout-messages';
+import { Container } from '@/shared/components/layout/container';
 import { getCartHref } from '@/shared/lib/cart-routes';
 import { parseCheckoutItemIds } from '@/shared/lib/checkout-routes';
 import { createAuthClient } from '@/shared/lib/supabase/auth-server';
@@ -39,6 +42,19 @@ async function CheckoutPage({ searchParams }: CheckoutPageProps) {
     findDefaultAddress: userId => addressRepository.findDefaultByUserId(userId),
   }).getCheckoutViewModel(member.id, cartItemIds);
   if (!checkout) redirect(getCartHref());
+  if ('refused' in checkout) {
+    const message = getPlaceOrderMessage({ status: 'rejected', reason: checkout.refused });
+    // The popup mounts only after hydration; the same sentence and a link stand in until then.
+    return (
+      <Container className="flex min-h-[50vh] flex-col items-center justify-center gap-4 text-center">
+        <p className="text-sm font-medium text-gray-500">{message}</p>
+        <Link href={getCartHref()} replace className="text-sm font-bold underline">
+          장바구니로
+        </Link>
+        <CartFixDialog message={message} replace />
+      </Container>
+    );
+  }
 
   return (
     <CheckoutPageClient

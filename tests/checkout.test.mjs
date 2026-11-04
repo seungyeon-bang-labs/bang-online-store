@@ -61,12 +61,12 @@ test('checkout shows the requested lines as they are, sold-out included, and lea
   assert.equal(labeled.address.label, '집');
 });
 
-test('checkout sends the customer back to the cart when a requested line is discontinued', async () => {
+test('checkout refuses a requested discontinued line up front, as place_order would', async () => {
   const service = checkoutService({
     items: [line(LINE_A), line(LINE_B, { discontinued: true })],
     defaultAddress: address(),
   });
-  assert.equal(await service.getCheckoutViewModel(MEMBER, [LINE_A, LINE_B]), null);
+  assert.deepEqual(await service.getCheckoutViewModel(MEMBER, [LINE_A, LINE_B]), { refused: 'product_unavailable' });
   assert.deepEqual((await service.getCheckoutViewModel(MEMBER, [LINE_A])).items.map(item => item.id), [LINE_A]);
 });
 
@@ -100,7 +100,7 @@ test('a refusal fixed in the cart opens a popup that only its 확인 closes, by 
   const checkout = await checkoutService({ items: [line(LINE_A)], defaultAddress: address() }).getCheckoutViewModel(MEMBER, [LINE_A]);
   for (const [reason, sentence] of [
     ['out_of_stock', '재고가 부족한 상품이 있습니다. 장바구니에서 확인해 주세요.'],
-    ['product_unavailable', '판매가 중지된 상품이 있습니다. 장바구니에서 확인해 주세요.'],
+    ['product_unavailable', '판매가 종료된 상품이 있습니다. 장바구니에서 확인해 주세요.'],
     ['cart_changed', '장바구니가 바뀌었습니다. 장바구니에서 다시 주문해 주세요.'],
     ['failed', null],
     ['price_changed', null],
@@ -111,19 +111,32 @@ test('a refusal fixed in the cart opens a popup that only its 확인 closes, by 
     t.after(() => view.dispose());
     await view.nodes().find(n => n.props?.onClick && text(n).endsWith('결제하기')).props.onClick();
     view.flush();
-    const popup = view.nodes().find(n => 'open' in (n.props ?? {}) && text(n).includes('주문할 수 없는 상품이 있습니다'));
-    assert.equal(popup.props.open, sentence !== null, reason);
-    assert.equal(popup.props.onOpenChange, undefined, 'outside click cannot close it');
+    assert.equal(view.nodes().find(n => 'message' in (n.props ?? {})).props.message, sentence, reason);
     assert.equal(view.nodes().some(n => n.props?.role === 'alert'), sentence === null, reason);
-    if (sentence === null) continue;
-    assert.ok(text(popup).includes(sentence));
-    let prevented = 0;
-    view.nodes().find(n => n.props?.onEscapeKeyDown).props.onEscapeKeyDown({ preventDefault() { prevented++; } });
-    assert.equal(prevented, 1);
-    assert.deepEqual(view.calls.navigation, []);
-    view.button('확인').props.onClick();
-    assert.deepEqual(view.calls.navigation, ['/cart']);
   }
+  const popupFor = message => {
+    const view = client('src/features/checkout/checkout-page-client.tsx', 'CartFixDialog', { props: { message } });
+    t.after(() => view.dispose());
+    view.flush();
+    return view;
+  };
+  assert.equal(popupFor(null).nodes().find(n => 'open' in (n.props ?? {})).props.open, false);
+  const view = popupFor('판매가 종료된 상품이 있습니다. 장바구니에서 확인해 주세요.');
+  const popup = view.nodes().find(n => 'open' in (n.props ?? {}) && text(n).includes('주문할 수 없는 상품이 있습니다'));
+  assert.equal(popup.props.open, true);
+  assert.equal(popup.props.onOpenChange, undefined, 'outside click cannot close it');
+  assert.ok(text(popup).includes('판매가 종료된 상품이 있습니다.'));
+  let prevented = 0;
+  view.nodes().find(n => n.props?.onEscapeKeyDown).props.onEscapeKeyDown({ preventDefault() { prevented++; } });
+  assert.equal(prevented, 1);
+  assert.deepEqual(view.calls.navigation, []);
+  view.button('확인').props.onClick();
+  assert.deepEqual(view.calls.navigation, ['/cart']);
+  const entry = client('src/features/checkout/checkout-page-client.tsx', 'CartFixDialog', { props: { message: 'x', replace: true } });
+  t.after(() => entry.dispose());
+  entry.flush();
+  entry.button('확인').props.onClick();
+  assert.deepEqual(entry.calls.navigation, ['/cart']);
 });
 
 test('checkout asks for an address when none is saved or the detail line is blank', async () => {

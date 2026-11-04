@@ -37,6 +37,40 @@ import {
   isCartFixRejection,
 } from './checkout-messages';
 
+/**
+ * Open while message is set; it closes only by going back to the cart, where the line is fixed.
+ * replace drops this checkout from history, for a page that can only ever show this popup.
+ */
+export function CartFixDialog({ message, replace = false }: { message: string | null; replace?: boolean }) {
+  const router = useRouter();
+
+  return (
+    <AlertDialog open={message !== null}>
+      <AlertDialogContent
+        className="max-w-xs! rounded-md"
+        onEscapeKeyDown={event => event.preventDefault()}
+      >
+        <AlertDialogHeader>
+          <AlertDialogTitle className="text-xl font-black">
+            주문할 수 없는 상품이 있습니다
+          </AlertDialogTitle>
+          <AlertDialogDescription className="text-sm font-medium text-gray-500">
+            {message}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter className="mt-4">
+          <AlertDialogAction
+            className="flex-1 rounded-md font-bold"
+            onClick={() => (replace ? router.replace(getCartHref()) : router.push(getCartHref()))}
+          >
+            확인
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
 interface CheckoutPageClientProps {
   checkout: CheckoutViewModel;
   // Made once per server render, so a resent payment replays the same order instead of placing another.
@@ -145,29 +179,7 @@ export function CheckoutPageClient({
 
   return (
     <Container className="mb-20 pb-6 tabular-nums md:py-10">
-      <AlertDialog open={cartFix !== null}>
-        <AlertDialogContent
-          className="max-w-xs! rounded-md"
-          onEscapeKeyDown={event => event.preventDefault()}
-        >
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl font-black">
-              주문할 수 없는 상품이 있습니다
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-sm font-medium text-gray-500">
-              {cartFix}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="mt-4">
-            <AlertDialogAction
-              className="flex-1 rounded-md font-bold"
-              onClick={() => router.push(getCartHref())}
-            >
-              확인
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <CartFixDialog message={cartFix} />
       <PageTitle
         current="주문/결제"
         className="mb-6 hidden border-b-2 pb-4 md:mb-12 md:flex md:border-b-4 md:pb-5"
