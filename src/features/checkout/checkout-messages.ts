@@ -9,7 +9,7 @@ import { formatKoreanMoney } from '@/shared/lib/format';
 const MESSAGES: Record<PlaceOrderRejection, string> = {
   price_changed: '상품 가격이 바뀌었습니다. 바뀐 금액을 확인하고 다시 결제해 주세요.',
   out_of_stock: '재고가 부족한 상품이 있습니다. 장바구니에서 확인해 주세요.',
-  product_unavailable: '판매가 중지된 상품이 있습니다. 장바구니에서 확인해 주세요.',
+  product_unavailable: '판매가 종료된 상품이 있습니다. 장바구니에서 확인해 주세요.',
   cart_changed: '장바구니가 바뀌었습니다. 장바구니에서 다시 주문해 주세요.',
   address_missing: '배송지를 찾지 못했습니다. 배송지를 다시 확인해 주세요.',
   address_incomplete: '상세 주소를 입력해 주세요.',
