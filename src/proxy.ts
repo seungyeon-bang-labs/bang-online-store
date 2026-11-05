@@ -1,13 +1,15 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Database } from '@/shared/types/supabase';
+import { readSupabaseEnv } from '@/shared/lib/supabase/env';
 
 export async function proxy(request: NextRequest) {
+  const { url, anonKey } = readSupabaseEnv();
   let response = NextResponse.next({ request });
 
   const client = createServerClient<Database>(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_ANON_KEY!,
+    url,
+    anonKey,
     {
       cookies: {
         getAll: () => request.cookies.getAll(),

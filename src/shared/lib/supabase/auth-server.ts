@@ -3,13 +3,15 @@ import 'server-only';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { Database } from '@/shared/types/supabase';
+import { readSupabaseEnv } from './env';
 
 export async function createAuthClient() {
+  const { url, anonKey } = readSupabaseEnv();
   const cookieStore = await cookies();
 
   return createServerClient<Database>(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_ANON_KEY!,
+    url,
+    anonKey,
     {
       cookies: {
         getAll: () => cookieStore.getAll(),
