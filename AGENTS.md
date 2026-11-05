@@ -22,6 +22,7 @@
 - 커밋 메시지와 PR 본문에는 사람이 쓴 내용만 남긴다. `Co-Authored-By`와 생성 도구 표기는 넣지 않는다.
 - 운영 DB 변경은 사용자 승인 후 Supabase SQL Editor에서 migration을 하나씩 적용하고, `supabase/README.md`에 기록한다.
 - 공개 저장소이므로, 커밋되는 파일에는 비밀값과 보안 취약점 재현 방법을 남기지 않는다.
+- 로컬 DB에서 auth 스키마 객체(예: auth.users 트리거)를 바꿀 때는 postgres가 아니라 supabase_admin으로 접속한다(-h 127.0.0.1).
 
 ## PR 전 검사
 
