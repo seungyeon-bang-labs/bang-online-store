@@ -1,4 +1,4 @@
-// 로컬 Supabase와 운영 DB의 public·private 스키마를 객체 단위로 비교한다.
+// 로컬 Supabase와 운영 DB의 public·private 스키마 덤프를 줄 단위로 비교한다.
 // migration이 auth·storage에 만드는 것(auth.users 트리거, Storage 버킷·정책)과 public·private 함수를 쓰는 event trigger도 함께 비교한다.
 // 운영은 읽기만 하고, 받은 스키마는 임시 폴더에 잠깐 썼다가 바로 지운다.
 //   PROD_DB_URL='<비밀번호 없는 주소>' npm run db:diff
@@ -7,14 +7,14 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { differences, extraObjects, objects } from './db-diff-objects.mjs';
+import { comparable, lineDiff } from './db-diff-lines.mjs';
 
 const LOCAL_CONTAINER = 'supabase_db_bang-online-store';
 const IMAGE = 'public.ecr.aws/supabase/postgres:17.6.1.087';
 const SCHEMA_ARGS = ['--schema-only', '--schema=public', '--schema=private'];
-const IGNORE_FILE = new URL('../supabase/schema-diff-ignore.txt', import.meta.url);
 // One "key<TAB>definition" line per auth.users trigger, storage bucket, storage policy and event trigger.
 // pg_get_triggerdef leaves out whether a trigger is disabled, so tgenabled is appended.
+// Policy expressions keep their exact text; only newlines and tabs are written as \n and \t to stay on one line.
 // pg_dump skips event triggers, and Supabase's own ones differ by version, so only ours (public·private functions) are listed.
 const EXTRA_SQL = `
 select 'TRIGGER auth.users.' || tgname || E'\\t' || pg_get_triggerdef(oid) || ' enabled=' || tgenabled::text
@@ -24,7 +24,7 @@ select 'BUCKET storage.' || id || E'\\t' || concat_ws(' ', public, file_size_lim
   from storage.buckets
 union all
 select 'POLICY storage.' || tablename || '.' || policyname || E'\\t'
-    || regexp_replace(concat_ws(' ', permissive, roles::text, cmd, 'using', qual, 'check', with_check), '\\s+', ' ', 'g')
+    || replace(replace(concat_ws(' ', permissive, roles::text, cmd, 'using', qual, 'check', with_check), E'\\n', '\\n'), E'\\t', '\\t')
   from pg_policies where schemaname = 'storage'
 union all
 select 'EVENT TRIGGER ' || e.evtname || E'\\t'
@@ -66,13 +66,6 @@ function prodSchema() {
   }
 }
 
-function ignored() {
-  return new Set(readFileSync(IGNORE_FILE, 'utf8')
-    .split('\n')
-    .map(line => line.replace(/#.*/, '').trim())
-    .filter(Boolean));
-}
-
 function compare() {
   const args = process.argv.slice(2);
   const fileIndex = args.indexOf('--local-only');
@@ -80,18 +73,18 @@ function compare() {
   if (fileOnly && !args[fileIndex + 1]) fail('--local-only 뒤에 파일 경로가 필요합니다.');
 
   // Local first, so a stopped local stack is caught before asking for the production password.
-  const local = objects(runLocal(['pg_dump', '-U', 'postgres', ...SCHEMA_ARGS], '스키마'));
-  if (!fileOnly) extraObjects(runLocal(['psql', '-U', 'postgres', '-X', '-A', '-t', '-c', EXTRA_SQL], 'auth·storage 정보'), local);
+  const localSchema = runLocal(['pg_dump', '-U', 'postgres', ...SCHEMA_ARGS], '스키마');
+  const localExtra = fileOnly ? '' : runLocal(['psql', '-U', 'postgres', '-X', '-A', '-t', '-c', EXTRA_SQL], 'auth·storage 정보');
   const remote = fileOnly ? { schema: readFileSync(args[fileIndex + 1], 'utf8'), extra: '' } : prodSchema();
-  return differences(local, extraObjects(remote.extra, objects(remote.schema)), ignored());
+  return lineDiff(comparable(remote.schema, remote.extra), comparable(localSchema, localExtra));
 }
 
 // exitCode instead of process.exit, so piped output is fully written before the process ends.
 try {
-  const lines = compare();
-  for (const line of lines) console.log(line);
-  console.log(lines.length ? `차이 ${lines.length}` : '차이 0');
-  process.exitCode = lines.length ? 1 : 0;
+  const { text, changes } = compare();
+  if (text) process.stdout.write(text);
+  console.log(changes ? `차이 ${changes}줄 (-: 운영에만, +: 로컬에만)` : '차이 0');
+  process.exitCode = changes ? 1 : 0;
 } catch (error) {
   console.error(error.message);
   process.exitCode = 2;

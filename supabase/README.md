@@ -40,12 +40,12 @@ PROD_DB_URL='<비밀번호 없는 Session pooler 주소>' bash scripts/prod-dump
 PROD_DB_URL='<비밀번호 없는 Session pooler 주소>' npm run db:diff
 ```
 
-로컬과 운영의 public·private 스키마, 그리고 migration이 auth·storage에 만드는 회원가입 트리거·Storage 버킷·정책, 새 테이블에 RLS를 켜는 event trigger를 객체 단위로 비교해 `+ 로컬만`, `- 운영만`, `~ 내용 다름`을 출력합니다. 차이가 없으면 `차이 0`으로 끝납니다. 받은 운영 스키마는 임시 폴더에 썼다가 바로 지웁니다. 예상된 차이는 이유를 주석으로 달아 `schema-diff-ignore.txt`에 적습니다.
+로컬과 운영의 public·private 스키마 덤프를 다듬지 않고 줄 단위로 비교합니다. migration이 auth·storage에 만드는 회원가입 트리거(활성 상태 포함)·Storage 버킷·정책과, 새 테이블에 RLS를 켜는 event trigger도 함께 비교합니다. 다른 줄은 `-`(운영에만)와 `+`(로컬에만)로 출력하고, 차이가 없으면 `차이 0`으로 끝납니다. 받은 운영 스키마는 임시 폴더에 썼다가 바로 지웁니다.
 
 운영에 migration을 적용할 때는 아래를 확인합니다. 이 절차는 아직 문서로만 두며, 강제하는 장치는 migration 적용 방식을 정리할 때 함께 붙입니다.
 
 1. 로컬에 migration을 추가하고 `npm run db:reset`이 성공합니다.
-2. 적용 전 `npm run db:diff`의 차이가 이번 migration이 만드는 객체뿐입니다. 다른 차이가 있으면 운영이 저장소와 어긋난 것이므로 먼저 원인을 찾습니다.
+2. 적용 전 `npm run db:diff`의 차이가 이번 migration이 바꾸는 부분(`-` 옛 내용, `+` 새 내용)뿐입니다. 다른 차이가 있으면 운영이 저장소와 어긋난 것이므로 먼저 원인을 찾습니다.
 3. 적용 후 `npm run db:diff`가 `차이 0`입니다.
 
 ## 판매 종료 장바구니 줄 유지 적용·검증 — 2026-11-04
