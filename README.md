@@ -142,6 +142,13 @@ chmod 600 .env.development.local
 
 `.env.development.local`에 `SUPABASE_URL=http://127.0.0.1:54321`, `npx supabase status`의 anon key, `PASSWORD_RECOVERY_SECRET`, `AUTH_FEATURES_ENABLED=true`를 넣은 뒤 실행합니다.
 
+`npm run build`·`npm run start`는 이 파일을 읽지 않으므로 같은 값을 `.env.production.local`에도 둡니다. 이 파일은 `.env.local`보다 먼저 읽혀, 이 컴퓨터의 빌드와 실행도 로컬 Supabase를 씁니다. 배포는 Vercel에 등록한 값을 씁니다.
+
+```bash
+cp .env.development.local .env.production.local
+chmod 600 .env.production.local
+```
+
 ```bash
 npm run dev
 ```
@@ -162,11 +169,11 @@ npm run dev
 - 다 쓴 뒤에는 `npx supabase stop`으로 끕니다.
 - 운영 상품 데이터를 다시 받거나 운영 스키마와 비교하는 방법은 [Supabase 문서](./supabase/README.md#로컬-환경과-스키마-비교)에 있습니다.
 
-다른 Supabase 프로젝트를 사용한다면 DB 구조·권한·Storage를 준비하고 `next.config.ts`의 이미지 허용 호스트도 맞춰야 합니다. DB 적용 조건은 [Supabase 문서](./supabase/README.md)에서 확인합니다.
+다른 Supabase 프로젝트를 사용한다면 DB 구조·권한·Storage를 준비하고 `next.config.ts`의 이미지 허용 호스트도 맞춰야 합니다. 로컬 Supabase 주소는 `SUPABASE_URL`에서 자동으로 허용합니다. DB 적용 조건은 [Supabase 문서](./supabase/README.md)에서 확인합니다.
 
 ## 환경변수와 데모 모드
 
-`.env.example`을 복사해 개발용 값은 `.env.development.local`에 입력합니다. `npm run dev`는 이 파일을 `.env.local`보다 먼저 읽습니다. 환경변수 파일과 실제 인증 정보는 커밋하지 않습니다.
+`.env.example`을 복사해 개발용 값은 `.env.development.local`에, 같은 값을 `.env.production.local`에 입력합니다. `npm run dev`는 앞의 파일을, `npm run build`·`npm run start`는 뒤의 파일을 `.env.local`보다 먼저 읽습니다. 환경변수 파일과 실제 인증 정보는 커밋하지 않습니다.
 
 | 변수 | 용도 | 설정 조건 |
 | --- | --- | --- |
