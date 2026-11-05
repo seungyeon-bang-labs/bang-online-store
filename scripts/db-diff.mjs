@@ -13,8 +13,9 @@ const IMAGE = 'public.ecr.aws/supabase/postgres:17.6.1.087';
 const SCHEMA_ARGS = ['--schema-only', '--schema=public', '--schema=private'];
 const IGNORE_FILE = new URL('../supabase/schema-diff-ignore.txt', import.meta.url);
 // One "key<TAB>definition" line per auth.users trigger, storage bucket and storage policy.
+// pg_get_triggerdef leaves out whether a trigger is disabled, so tgenabled is appended.
 const EXTRA_SQL = `
-select 'TRIGGER auth.users.' || tgname || E'\\t' || pg_get_triggerdef(oid)
+select 'TRIGGER auth.users.' || tgname || E'\\t' || pg_get_triggerdef(oid) || ' enabled=' || tgenabled::text
   from pg_trigger where tgrelid = 'auth.users'::regclass and not tgisinternal
 union all
 select 'BUCKET storage.' || id || E'\\t' || concat_ws(' ', public, file_size_limit, allowed_mime_types::text)
