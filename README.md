@@ -125,18 +125,22 @@ Repository는 데이터 조회와 관계 조립을, Service는 업무 흐름을,
 
 - Node.js 24.12.0 (`.nvmrc` 참고)
 - npm
-- 프로젝트의 DB 구조·권한·Storage와 Auth 설정이 준비된 Supabase 프로젝트
+- Docker Desktop: 로컬 Supabase 실행용. Supabase CLI는 devDependency로 함께 설치됩니다.
+
+개발과 테스트는 로컬 Supabase에서 합니다. 운영 Supabase 접속 정보는 필요하지 않습니다.
 
 ### 설치 및 실행
 
 ```bash
 nvm use
 npm ci
-cp .env.example .env.local
-chmod 600 .env.local
+npx supabase start     # 로컬 Supabase 실행. 처음에는 이미지를 내려받느라 몇 분 걸립니다
+npm run db:reset       # 스키마·seed 적용과 상품 이미지 복사
+cp .env.example .env.development.local
+chmod 600 .env.development.local
 ```
 
-`.env.local`에 아래 환경변수를 설정한 뒤 실행합니다. 현재 앱은 실제 DB를 조회하므로 환경변수 복사만으로는 실행 준비가 끝나지 않습니다.
+`.env.development.local`에 `SUPABASE_URL=http://127.0.0.1:54321`, `npx supabase status`의 anon key, `PASSWORD_RECOVERY_SECRET`, `AUTH_FEATURES_ENABLED=true`를 넣은 뒤 실행합니다.
 
 ```bash
 npm run dev
@@ -144,15 +148,29 @@ npm run dev
 
 개발 서버를 실행한 뒤 [http://localhost:3000](http://localhost:3000)에서 확인할 수 있습니다.
 
+### 로컬 Supabase
+
+| 테스트 회원 | 비밀번호 | 상태 |
+| --- | --- | --- |
+| `demo@example.com` | `demoexample123` | 배송지 5개 |
+| `member-b@example.test` | `bang-local-1234` | 배송지 없음 |
+
+- `demo@example.com`은 배포 데모와 같은 비밀번호라, `AUTH_FEATURES_ENABLED=false`일 때 로그인 화면에 미리 채워지는 값으로도 로그인됩니다. `member-b@example.test`의 비밀번호는 로컬 전용입니다.
+- 회원가입·비밀번호 찾기 인증 메일은 Mailpit([http://127.0.0.1:54324](http://127.0.0.1:54324))에서 확인합니다.
+- `npm run db:reset`을 실행하면 상품·회원·장바구니·주문이 처음 상태로 돌아갑니다.
+- 개발 서버(`npm run dev`)는 로컬 Supabase에만 연결합니다. `SUPABASE_URL`이 localhost·127.0.0.1이 아니면 요청 처리 중 오류로 멈춥니다.
+- 다 쓴 뒤에는 `npx supabase stop`으로 끕니다.
+- 운영 상품 데이터를 다시 받거나 운영 스키마와 비교하는 방법은 [Supabase 문서](./supabase/README.md#로컬-환경과-스키마-비교)에 있습니다.
+
 다른 Supabase 프로젝트를 사용한다면 DB 구조·권한·Storage를 준비하고 `next.config.ts`의 이미지 허용 호스트도 맞춰야 합니다. DB 적용 조건은 [Supabase 문서](./supabase/README.md)에서 확인합니다.
 
 ## 환경변수와 데모 모드
 
-`.env.example`을 복사한 후 로컬 값만 `.env.local`에 입력합니다. `.env.local`과 실제 인증 정보는 커밋하지 않습니다.
+`.env.example`을 복사해 개발용 값은 `.env.development.local`에 입력합니다. `npm run dev`는 이 파일을 `.env.local`보다 먼저 읽습니다. 환경변수 파일과 실제 인증 정보는 커밋하지 않습니다.
 
 | 변수 | 용도 | 설정 조건 |
 | --- | --- | --- |
-| `SUPABASE_URL` | Supabase 프로젝트 URL | 앱 실행 시 필수 |
+| `SUPABASE_URL` | Supabase 프로젝트 URL | 앱 실행 시 필수. 개발 서버는 로컬 주소만 허용 |
 | `SUPABASE_ANON_KEY` | 공개 조회·인증용 키 | 앱 실행 시 필수 |
 | `PASSWORD_RECOVERY_SECRET` | 비밀번호 복구 임시 인증 쿠키 암호화 | 비밀번호 재설정 기능 사용 시 필요 |
 | `AUTH_FEATURES_ENABLED` | 회원가입·이메일 인증·비밀번호 찾기 허용 여부 | 정확히 `true`일 때 허용, 기본값은 제한 |
@@ -165,6 +183,8 @@ npm run dev
 
 ```bash
 npm run dev                    # 개발 서버 실행
+npm run db:reset               # 로컬 DB를 처음 상태로(스키마·seed·이미지)
+npm run db:diff                # 로컬과 운영 스키마 비교(터미널 앱에서 운영 DB 비밀번호 입력)
 node --test tests/*.test.mjs    # Node 테스트 실행
 npm run lint                   # ESLint 검사
 npm run typecheck              # TypeScript 검사
@@ -178,10 +198,12 @@ npm run start                  # 빌드 결과 실행
 
 ## 문서
 
-- [Supabase DB 적용·검증 기록](./supabase/README.md): 적용 조건, SQL, 격리 DB 테스트, 데이터 이전·복구 검증과 정리 기록
+- [Supabase DB 적용·검증 기록](./supabase/README.md): 적용 조건, SQL, 로컬 환경 재구성과 스키마 비교, 격리 DB 테스트, 데이터 이전·복구 검증과 정리 기록
 
 ## 향후 계획
 
 - 주문·혜택·리뷰·문의 등 남은 도메인의 DB 전환
 - 장바구니의 물리적 다중 기기 최종 확인
 - 주문 영속화·주문·재고 트랜잭션 구현
+- 결제 전체 흐름 E2E 테스트(로컬 Supabase 기반)
+- migration 적용 방식 정리: CLI 적용 이력과 적용 전후 db:diff 확인을 장치로 연결

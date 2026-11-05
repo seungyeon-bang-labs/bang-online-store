@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit --incremental false"
+    "typecheck": "tsc --noEmit --incremental false",
+    "db:reset": "supabase db reset && node scripts/local-supabase-images.mjs",
+    "db:diff": "node scripts/db-diff.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

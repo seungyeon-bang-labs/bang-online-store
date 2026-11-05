@@ -7,6 +7,7 @@ import {
   PASSWORD_RECOVERY_DURATION_SECONDS,
   type PasswordRecoveryGrant,
 } from '@/domains/auth/schema';
+import { readSupabaseEnv } from '@/shared/lib/supabase/env';
 
 const COOKIE_NAME = 'bang-password-recovery';
 const MAX_COOKIE_BYTES = 3180;
@@ -35,9 +36,7 @@ function recoveryKey() {
 
 export function assertRecoveryConfiguration() {
   recoveryKey();
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
-    throw new Error('비밀번호 복구 서버 설정을 확인해주세요.');
-  }
+  readSupabaseEnv();
 }
 
 function cookieOptions() {
